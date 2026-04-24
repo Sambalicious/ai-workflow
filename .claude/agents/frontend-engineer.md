@@ -1,0 +1,1 @@
+../../.agents/frontend-engineer.md
