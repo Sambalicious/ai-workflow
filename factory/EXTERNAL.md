@@ -110,6 +110,13 @@ state file; a new directory is not a way to reset budgets or repair waves.
 2. Read `FACTORY_ROOT/AGENTS.md` for the team and handoff order, and applicable
    rules under `FACTORY_ROOT/.agents/rules/`. Explicit loading works without native
    skill discovery or copied agent configuration.
+   Apply its role activation policy to new runs. Record enabled roles and explicit
+   user opt-ins in the handoff. Generic full pipeline requests use enabled defaults;
+   Growth, Data Analyst, and Release Manager remain disabled unless each is requested.
+   Omit disabled tasks and their edges, not `required: false` placeholders.
+   Keep QA, Security, and fresh independent review mandatory. Preserve approved checks
+   and blockers; report scope conflicts rather than activating a disabled role.
+   Existing pinned runs retain their graph and gates.
 3. For intake, load `FACTORY_ROOT/.agents/skills/triage/SKILL.md`. For an approved
    implementation or repair run, load `FACTORY_ROOT/.agents/skills/factory-loop/SKILL.md`
    and `FACTORY_ROOT/factory/PROTOCOL.md`. For independent candidate review, load
@@ -136,6 +143,10 @@ node "$FACTORY_ROOT/factory/example.mjs" input > "$RUN_ROOT/input.template.json"
 Replace all template authority, repository, baseline, candidate, task, actor, and
 version fields with real run inputs. Record actual authorization; templates are
 not approval or evidence. Save the prepared input as `RUN_ROOT/input.json`.
+The default template ends at `VERIFIED` on success, not release GO or approval.
+For explicit release assessment, generate `input-with-release` instead of `input`.
+It adds only Release Manager and can yield `PRODUCTION_READY` after all required
+evidence passes. Neither status authorizes deployment or merge.
 
 ```bash
 node "$FACTORY_ROOT/factory/cli.mjs" init "$RUN_ROOT/state.json" "$RUN_ROOT/input.json"

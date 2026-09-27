@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm, writeFile, access } from 'node:fs/promises';
+import { mkdtemp, readFile, readlink, rm, writeFile, access } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -63,6 +63,61 @@ test('factory integration references executable roles and controller', async () 
     assert.match(role, /factory-loop\/SKILL\.md/);
     assert.doesNotMatch(role, /No full implementations|Do not write full implementations/);
   }
+});
+
+test('factory policy keeps assessments opt-in without weakening verification or pinned runs', async () => {
+  const root = new URL('../../', import.meta.url);
+  const orchestrator = await readFile(new URL('AGENTS.md', root), 'utf8');
+  const policy = orchestrator.split('## Role activation policy\n')[1]?.split('\n## ')[0];
+  assert.ok(policy, 'Role selection needs one authoritative policy');
+  for (const role of ['growth', 'data-analyst', 'release-manager']) assert.ok(policy.includes(`\`${role}\``));
+  assert.match(policy, /disabled by default/);
+  assert.match(policy, /only when the user explicitly requests/);
+  assert.match(policy, /"full pipeline" request uses enabled defaults/);
+  assert.match(policy, /Omit disabled tasks and their dependency edges/);
+  assert.match(policy, /QA, Security, and fresh independent code review remain mandatory/);
+  assert.match(policy, /Existing active pinned runs retain their graph/);
+  assert.match(policy, /VERIFIED/);
+  assert.match(policy, /PRODUCTION_READY/);
+  for (const path of ['README.md', '.agents/rules/02-no-pipeline-jump.md',
+    '.agents/skills/factory-loop/SKILL.md', '.agents/skills/code-review/SKILL.md',
+    'factory/PROTOCOL.md', 'factory/EXTERNAL.md']) {
+    const source = await readFile(new URL(path, root), 'utf8');
+    assert.match(source, /role activation policy/, `${path} must reference the policy`);
+  }
+  const prompt = orchestrator.split('## Invoking the full pipeline')[1].split('```')[1];
+  assert.match(prompt, /Use AGENTS.md role defaults/);
+  assert.doesNotMatch(prompt, /Invoke.*(?:Growth|Data Analyst|Release Manager)/);
+});
+
+test('opt-in agent definitions and client links remain usable', async () => {
+  const root = new URL('../../', import.meta.url);
+  for (const [definition, link] of [
+    ['.agents/skills/growth.md', '.claude/skills/growth.md'],
+    ['.agents/data-analyst.md', '.claude/agents/data-analyst.md'],
+    ['.agents/release-manager.md', '.claude/agents/release-manager.md'],
+  ]) {
+    const source = await readFile(new URL(definition, root), 'utf8');
+    assert.match(source, /Disabled by default under `AGENTS.md` role activation policy/);
+    assert.match(source, /Invoke only when the\s+user explicitly requests/);
+    assert.match(source, /## Inputs/);
+    assert.match(source, /## Output format/);
+    assert.equal(await readlink(new URL(link, root)), `../../${definition}`);
+    assert.equal(await readFile(new URL(link, root), 'utf8'), source);
+  }
+});
+
+test('release assessment distinguishes unrequested plans from required evidence', async () => {
+  const source = await readFile(new URL('../release-manager.md', import.meta.url), 'utf8');
+  assert.match(source, /This opt-in does not enable Growth or Data Analyst/);
+  for (const section of ['GTM readiness', 'Measurement readiness']) {
+    const body = source.split(`### ${section}\n`)[1].split('\n### ')[0];
+    assert.match(body, /no approved required check needs this assessment/);
+    assert.match(body, /Not assessed \(not requested\)/);
+    assert.match(body, /missing required evidence as blocked/);
+  }
+  assert.match(source, /Keep approved required checks and unresolved blockers binding/);
+  assert.match(source, /scope\s+conflict for a user decision/);
 });
 
 test('installer includes controller, preserves files, and force avoids nested copies', async () => {

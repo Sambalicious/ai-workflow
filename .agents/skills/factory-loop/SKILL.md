@@ -1,6 +1,6 @@
 ---
 name: factory-loop
-description: "Coordinate a bounded Software Factory repair loop. Use when a pipeline stage fails, a finding needs an owner, or an approved request needs implementation, independent verification, and release assessment."
+description: "Coordinate a bounded Software Factory repair loop. Use when a pipeline stage fails, a finding needs an owner, or an approved request needs implementation and independent verification."
 ---
 
 # Factory loop
@@ -15,6 +15,9 @@ independent evidence before accepting the result. Reuse existing agent roles.
   use `PROJECT_ROOT` for application operations and `RUN_ROOT` for state and reports.
 - Receive an approved request or bug brief, repository and candidate identity,
   factory version, required task graph, named actors, and bounded budget.
+- Apply `AGENTS.md` role activation policy to new runs. Record enabled roles and
+  explicit user opt-ins in the handoff. Existing pinned runs keep their graph,
+  factory version, approved gates, and blockers.
 - Load the selected factory role definitions and applicable target repository instructions.
   Resolve missing roles before dispatch. Roles describe capabilities, not permission.
 - Keep triage and code review read-only. Their verdicts do not authorize edits.
@@ -48,9 +51,12 @@ Concurrent workers need isolated writable files, branches, databases, and ports.
 One integration owner publishes the combined candidate. Shared contracts and
 lockfiles have one writer. Declare optional work before execution, not after failure.
 
-Required verification, code review, security review, and release assessment remain
-gates. A required consumer cannot bypass a failed optional dependency. Finish when
-each task has a role, explicit inputs and outputs, and acceptance checks.
+QA, fresh independent code review, and security review remain required gates.
+Release assessment is a required gate only when enabled. Omit disabled tasks and
+their dependency edges; `required: false` still schedules work and can become
+required through consumers. Preserve all approved required checks. A scope conflict
+with a disabled role needs a user decision, not implicit activation or a waived gate.
+Finish when each task has a role, explicit inputs and outputs, and acceptance checks.
 
 ## 3. Dispatch through the controller
 
@@ -96,7 +102,8 @@ Group related findings into one repair wave. The controller invalidates source
 tasks and transitive consumers. Retain unaffected artifacts and historical results.
 Stale in-flight output cannot satisfy current gates.
 
-Dispatch owners under the same approved constraints. Submit a new candidate and
+Dispatch enabled owners under the same approved constraints. If an owner is disabled,
+report the scope conflict for a user decision. Submit a new candidate and
 rerun affected checks. A changed candidate requires current verification and review,
 including checks that passed earlier. Authors cannot verify their own candidate
 or independently close their findings.
@@ -120,8 +127,8 @@ frameworks as a side effect of a bug fix. First-party E2E
 uses the real application and isolated database. Record third-party substitutes.
 For bugs, retain the regression that fails before repair and passes afterward.
 
-A fresh reviewer uses `.agents/skills/code-review/SKILL.md`. Security and Release
-Manager inspect the actual candidate and evidence. Missing, stale, skipped, and
+A fresh reviewer uses `.agents/skills/code-review/SKILL.md`. Security and, when enabled,
+Release Manager inspect the actual candidate and evidence. Missing, stale, skipped, and
 unrun required checks are not passes. A controller verdict is conditional on the
 caller's attestations, not independent proof of production readiness.
 
@@ -130,6 +137,9 @@ caller's attestations, not independent proof of production readiness.
 Return the controller report, artifact references, findings and owners, budget,
 and next authorized action. Distinguish verified completion from blocked work and
 budget exhaustion. No verdict grants merge or deployment permission.
+Without Release Manager, report `VERIFIED` on success and the verification evidence,
+not release GO or approval. With explicit release opt-in, successful required release
+assessment yields `PRODUCTION_READY`.
 
 Record recurring failures as improvement proposals only. Skill changes require
 separate authorization, baseline-versus-candidate evaluation on held-out cases,

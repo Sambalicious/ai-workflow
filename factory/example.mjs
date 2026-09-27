@@ -19,7 +19,6 @@ export const exampleInput = {
     { id: 'review-session', roles: ['code-review'] },
     { id: 'security-session', roles: ['security'] },
     { id: 'qa-recheck-session', roles: ['qa'] },
-    { id: 'release-session', roles: ['release-manager'] },
   ],
   tasks: [
     { id: 'backend', role: 'backend-engineer', depends_on: [], required: true,
@@ -30,10 +29,14 @@ export const exampleInput = {
       kind: 'verification', artifact_kind: 'security', checks: ['security-review'] },
     { id: 'review', role: 'code-review', depends_on: ['backend', 'qa', 'security'], required: true,
       kind: 'review', artifact_kind: 'review', checks: ['independent-review'] },
-    { id: 'release', role: 'release-manager', depends_on: ['qa', 'security', 'review'], required: true,
-      kind: 'release', artifact_kind: 'release', checks: ['local-release-checklist'] },
   ],
 };
+
+// Select only when the user explicitly requests release assessment for a new run.
+export const exampleInputWithRelease = structuredClone(exampleInput);
+exampleInputWithRelease.actors.push({ id: 'release-session', roles: ['release-manager'] });
+exampleInputWithRelease.tasks.push({ id: 'release', role: 'release-manager', depends_on: ['qa', 'security', 'review'], required: true,
+  kind: 'release', artifact_kind: 'release', checks: ['local-release-checklist'] });
 
 const common = {
   event_id: 'unique-event-id', expected_version: 0,
@@ -68,11 +71,12 @@ export const exampleEvents = {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const [name = 'input', ...extra] = process.argv.slice(2);
-  if (extra.length || (name !== 'input' && !Object.hasOwn(exampleEvents, name))) {
-    process.stderr.write(`Usage: node factory/example.mjs input|${Object.keys(exampleEvents).join('|')}\n`);
+  const templates = { input: exampleInput, 'input-with-release': exampleInputWithRelease, ...exampleEvents };
+  if (extra.length || !Object.hasOwn(templates, name)) {
+    process.stderr.write(`Usage: node factory/example.mjs ${Object.keys(templates).join('|')}\n`);
     process.exitCode = 1;
   } else {
     process.stderr.write('TEMPLATE ONLY: replace all example authority, refs, hashes, usage, event IDs, versions, and evidence before use.\n');
-    process.stdout.write(`${JSON.stringify(name === 'input' ? exampleInput : exampleEvents[name], null, 2)}\n`);
+    process.stdout.write(`${JSON.stringify(templates[name], null, 2)}\n`);
   }
 }

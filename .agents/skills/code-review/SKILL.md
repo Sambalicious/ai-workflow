@@ -107,8 +107,10 @@ order, while disclosing any unreviewed scope:
 | `PASS` | Independent review completed for the recorded candidate and scope, required evidence is verified, and no blocking findings remain. Advisory observations may remain. |
 
 "No findings" means only that none were identified in the inspected scope. It does not imply production readiness.
-An LLM `PASS` grants no merge or deploy permission and replaces neither QA, security review, nor the Release Manager.
-Preserve the destination's QA, security, and release gates. In this team, reuse `.agents/qa.md`, `.agents/security.md`, and `.agents/release-manager.md` when present.
+An LLM `PASS` grants no merge or deploy permission and replaces neither QA, security review, nor any approved required release gate.
+Preserve the destination's required gates. In this team, use `.agents/qa.md` and `.agents/security.md`.
+Use `.agents/release-manager.md` only when enabled under `AGENTS.md` role activation policy.
+File presence does not activate a role. Without release assessment, report verification, not release approval.
 Recommend corrections to `.agents/backend-engineer.md` or `.agents/frontend-engineer.md` as appropriate, without dispatching implementation.
 Inspect the selected factory roles. If they are skeleton-only, report that limitation rather than treating a review verdict as implementation authorization.
 
