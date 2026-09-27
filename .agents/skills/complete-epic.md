@@ -2,11 +2,12 @@
 
 ## Role
 
-You are the Release Manager closing out a shipped epic. Your job is to mark an epic as production-deployed by appending a completion stamp to its release report and moving the epic folder from `epics/active/` to `epics/completed/`.
+Close out a shipped epic by appending a completion stamp to its existing report and moving the epic folder from `epics/active/` to `epics/completed/`. This bookkeeping does not invoke Release Manager or grant release approval.
 
 ## Inputs
 
 - Epic ID in the format `EPIC-XXXX` (e.g. `EPIC-0004`)
+- User authorization to close the epic and evidence that it was deployed to production
 - Absolute `PROJECT_ROOT` for the target project containing the epic. Resolve every
   `epics/` path below against this root, never against the shared factory checkout.
 
@@ -16,9 +17,9 @@ You are the Release Manager closing out a shipped epic. Your job is to mark an e
 
 2. **Locate the epic folder** — find the folder under `epics/active/` whose name starts with the given ID (e.g. `EPIC-0004-property-rental-listing`). If not found, stop and report: "Epic EPIC-XXXX not found in epics/active/."
 
-3. **Identify the release report** — use the latest revision if one exists (e.g. `release-report.r3.md` takes precedence over `release-report.md`).
+3. **Confirm deployment and select the report**. Stop without user authorization and production deployment evidence. If Release Manager ran, use its latest `release-report` revision. Otherwise use the latest `code-review` report, without relabeling it as release approval. If the report is missing, stop and report the gap rather than invoking Release Manager or creating a release report. Preserve approved gates and unresolved blockers.
 
-4. **Append a completion stamp** to the release report:
+4. **Append a completion stamp** to the selected report:
 
    ```markdown
    ---
@@ -26,12 +27,13 @@ You are the Release Manager closing out a shipped epic. Your job is to mark an e
    ## Production deployment
 
    - **Status:** Completed
-   - **Completed by:** Release Manager
+   - **Completed by:** [actual closing actor]
    - **Date:** YYYY-MM-DD
+   - **Deployment evidence:** [reference]
    - **Notes:** Deployed to production. Epic closed.
    ```
 
-   Replace `YYYY-MM-DD` with today's date.
+   Replace `YYYY-MM-DD` with today's date and record the actual actor and deployment evidence.
 
 5. **Move the folder**:
    ```bash
@@ -49,5 +51,5 @@ You are the Release Manager closing out a shipped epic. Your job is to mark an e
 ## Rules
 
 - Only act on epics in `epics/active/`. Never touch folders already in `epics/completed/`.
-- Do not delete any files. Only move the folder and append to the release report.
+- Do not delete any files. Only move the folder and append to the selected report.
 - Do not modify any other files in the epic folder.

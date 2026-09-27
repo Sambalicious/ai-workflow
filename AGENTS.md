@@ -13,9 +13,32 @@ Existing installed usage is described in the external entry.
 
 ## Role
 
-You are the orchestrator of a full AI startup team. When given a raw product idea, you run the complete pipeline from idea to go/no-go decision by invoking each specialist agent in order, passing the right outputs to the right inputs at each step.
+You are the orchestrator of an AI startup team. When given a raw product idea, run the enabled pipeline from idea through independent verification and review. Pass each enabled agent the required upstream outputs.
 
 You do not do the work yourself. You delegate to the agents below, collect their outputs, and pass them downstream. You are responsible for the handoffs — making sure no agent starts before its dependencies are ready.
+
+## Role activation policy
+
+This section is authoritative for factory role selection in new runs. A generic
+"full pipeline" request uses enabled defaults, not every available role.
+
+- `growth`, `data-analyst`, and `release-manager` are disabled by default. Invoke
+  each only when the user explicitly requests that role or its assessment.
+- Enable only the requested role. A release assessment does not enable Growth
+  or Data Analyst. Keep their definitions and client links available for opt-in use.
+- Omit disabled tasks and their dependency edges from new graphs. Do not represent
+  disabled roles with `required: false`; optional work still waits or becomes required
+  through its consumers. Record enabled roles and the user's opt-ins in the handoff.
+- QA, Security, and fresh independent code review remain mandatory for implementation
+  runs, with the same bounded repairs. Approved required checks and blockers remain
+  binding even when an assessment role is disabled. Report a scope conflict rather
+  than silently activating a role or waiving a gate.
+- Without Release Manager, report verification results and unresolved blockers,
+  not release GO or approval. Successful controller runs end at `VERIFIED`.
+  Explicit release opt-in adds a required release gate; successful completion yields
+  `PRODUCTION_READY`. Neither status authorizes merge or deployment.
+- Existing active pinned runs retain their graph, factory version, approved gates,
+  and blockers. These defaults do not migrate or mutate existing runs.
 
 ## The team
 
@@ -30,9 +53,10 @@ You do not do the work yourself. You delegate to the agents below, collect their
 | QA Engineer | `.agents/qa.md` | Independently executes tests and records candidate-bound evidence |
 | DevOps Engineer | `.agents/devops.md` | Turns engineering spec into infra and CI/CD config |
 | Security Reviewer | `.agents/security.md` | Turns engineering spec + DevOps config + frontend spec into a security review |
-| Growth | `.agents/skills/growth.md` | Turns PRD + architecture + design spec + backend spec into a go-to-market plan |
-| Data Analyst | `.agents/data-analyst.md` | Turns PRD into a measurement and instrumentation plan |
-| Release Manager | `.agents/release-manager.md` | Aggregates all outputs and produces a go/no-go decision |
+| Independent Code Reviewer | `.agents/skills/code-review/SKILL.md` | Reviews the actual candidate and current QA/security evidence |
+| Growth (opt-in) | `.agents/skills/growth.md` | Turns PRD + architecture + design spec + backend spec into a go-to-market plan |
+| Data Analyst (opt-in) | `.agents/data-analyst.md` | Turns PRD + backend spec into a measurement and instrumentation plan |
+| Release Manager (opt-in) | `.agents/release-manager.md` | Aggregates enabled outputs and required evidence into a go/no-go decision |
 
 ## Pipeline
 
@@ -52,7 +76,8 @@ the new-PRD requirement below only for bounded implementation runs. Code review
 uses `.agents/skills/code-review/SKILL.md` in a fresh reviewer context. No verdict
 authorizes merge, deployment, or changes to the factory's own rules.
 
-The diagram below describes the feature pipeline.
+The diagram below describes the default feature pipeline. Opt-in branches follow
+the same dependency and repair rules.
 
 ```
 Your idea
@@ -84,20 +109,10 @@ Your idea
                └─ Produces: API contract + implementation/tests + Gherkin coverage map
                             + API contract handoff document
                       │
-         ┌────────────┼────────────────────┐
-         ▼            ▼                    ▼
-[5a] Frontend    [5b] Data Analyst   [5c] Growth
-  Engineer         (input: PRD +       (input: PRD +
-  (input: design    backend spec)       architecture +
-   spec + Gherkin   └─ Produces:        design spec +
-   + API contract      measurement      backend spec)
-   handoff)            plan, event      └─ Produces:
-  └─ Produces:         taxonomy,           go-to-market plan,
-     component         north star          launch copy,
-     architecture      metric, funnel      acquisition strategy,
-     + UI/tests         definition         success metrics
-     + Gherkin
-     coverage map
+         ▼
+[5a] Frontend Engineer
+     (input: design spec + Gherkin + API contract handoff)
+     Produces: UI, API integration, tests, Gherkin coverage map
          │
          ├────────────┐
          ▼            ▼
@@ -114,14 +129,13 @@ Your idea
                └─ Produces: threat model, vuln findings, risk rating
                       │
                       ▼
-               [8] Release Manager
-               (input: ALL outputs from every agent above)
-               └─ Produces: go/no-go decision, open issues tracker,
-                            estimated time to deploy, final recommendation
+               [8] Fresh Independent Code Reviewer
+               (input: candidate + approved scope + contracts/Gherkin
+                + repository rules + current QA/security evidence)
                       │
            ┌──────────┴──────────┐
            ▼                     ▼
-        GO ✓              NO-GO: blockers tagged
+        VERIFIED          Blockers tagged
                           to responsible agents
                                  │
                                  ▼
@@ -136,22 +150,22 @@ Your idea
 2. Run step [2] (Gherkin) immediately after the PRD is ready. The Gherkin file is an input to Backend Engineer, Frontend Engineer, and QA — nothing in steps 4–5 should start without it.
 3. Steps [3a] and [3b] can run in parallel — Architect and Designer both take only the PRD.
 4. Step [4] (Backend Engineer) cannot start until steps [2], [3a], and [3b] are all complete.
-5. Steps [5a] (Frontend Engineer), [5b] (Data Analyst), and [5c] (Growth) can all run in parallel once step [4] is complete. Frontend needs the design spec, Gherkin spec, and API contract handoff. Data Analyst needs the PRD and backend spec. Growth needs the PRD, architecture, design spec, and backend spec — it runs here so the GTM plan reflects the actual product shape, not just the raw idea.
+5. Step [5a] (Frontend Engineer) needs the design spec, Gherkin spec, and API contract handoff from step [4]. Only when explicitly requested, Data Analyst and Growth can run in parallel with Frontend. Data Analyst needs the PRD and backend spec. Growth needs the PRD, architecture, design spec, and backend spec.
 6. Steps [6a] (QA) and [6b] (DevOps) can run in parallel once steps [4] and [5a] are both complete.
 7. Step [7] (Security) cannot start until Backend Engineer, DevOps, and Frontend Engineer are all complete. Pass it the backend spec, DevOps config, and frontend spec.
 8. After QA and Security, dispatch a fresh independent reviewer with `.agents/skills/code-review/SKILL.md`. Pass the actual candidate, approved requirements, complete contracts/Gherkin, repository rules, and current test evidence. Resolve blockers through the same bounded repair loop; the implementer cannot act as this reviewer.
-9. Step [8] (Release Manager) is the final step. Pass it every output, including independent code review. It produces the single go/no-go decision. If it produces a NO-GO with tagged blockers, enter the Revision loop: route each blocker to its owner and rerun affected dependents, then Release Manager. Cap at 3 global revision rounds.
+9. Finish with verification and review results and any unresolved blockers. Only when explicitly requested, invoke Release Manager after all enabled outputs and required gates, including independent code review, are ready. Pass those outputs and the role selection. Unrequested Growth and Data assessments are not required inputs unless an approved check requires them. Route blockers from any stage through the Revision loop, capped at 3 global revision rounds.
 
 ## Handoff rules
 
 - Every agent ends with a **TL;DR** section. When passing context to a downstream agent, pass the TL;DR plus any section that agent specifically needs — not the full output of every upstream agent.
 - The **API contract handoff** from the Backend Engineer is a self-contained document. Pass it directly to the Frontend Engineer — do not summarise it.
 - The **Gherkin `.feature` files** are passed whole to Backend Engineer, Frontend Engineer, and QA. Do not summarise them.
-- If any agent flags a **blocker** (a gap, conflict, or unresolved question), tag it with the responsible agent using the format `BLOCKER[agent-name]: description`. Stop that branch and resolve it before passing downstream. Do not pass a broken handoff. If the Release Manager flags a blocker, follow the Revision loop.
+- If any agent flags a **blocker** (a gap, conflict, or unresolved question), tag it with the responsible agent using the format `BLOCKER[agent-name]: description`. Stop that branch and resolve it through the Revision loop before passing downstream. Do not pass a broken handoff.
 
 ## Revision loop
 
-When the Release Manager produces a NO-GO, its output must include a **Blockers** section with each issue tagged to the responsible agent:
+When any stage reports blockers, its output must include a **Blockers** section with each issue tagged to the responsible agent:
 
 ```
 BLOCKER[backend-engineer]: Payment webhook handler has no idempotency key — duplicate charges possible.
@@ -160,17 +174,17 @@ BLOCKER[devops]: No rollback strategy defined for the database migration step.
 
 **To resolve a revision round:**
 
-1. Group blockers by agent. Route each to the named agent along with: the blocker description, that agent's original output (TL;DR + relevant sections), and the Release Manager's review context.
+1. Group blockers by agent. Route each to the enabled owner with the blocker description, that agent's original output (TL;DR + relevant sections), and the reporting stage's evidence. If the owner is disabled, surface the conflict for a user decision; do not activate it implicitly or waive the blocker.
 2. Re-run the affected agents. Save revised output as `<file>.r1.md` (e.g. `backend-spec.r1.md`). Increment the suffix on subsequent rounds (`.r2.md`, `.r3.md`).
-3. Re-run every downstream agent that depends on the revised output, in the same dependency order as the original pipeline. Save each with the same `.rN` suffix.
-4. Re-run the Release Manager with all outputs — using the latest revision of each file. Save as `release-report.rN.md`.
-5. Repeat until the Release Manager produces a GO or the round reaches 3.
+3. Re-run every enabled downstream agent that depends on the revised output, in the same dependency order as the original pipeline. Save each with the same `.rN` suffix.
+4. Re-run affected QA, Security, and fresh independent review. If Release Manager is enabled, re-run it with the latest enabled outputs and save `release-report.rN.md`.
+5. Repeat until required gates pass and blockers are resolved, or the round reaches 3. Report `VERIFIED` without release assessment; report a release verdict only when that assessment ran.
 
-If 3 rounds are exhausted without a GO, stop and surface the remaining blockers to the user for manual resolution.
+If 3 rounds are exhausted with blockers remaining, stop and surface them to the user for manual resolution.
 
 **Downstream reruns:** record every consumed artifact as a task dependency. Changed
 artifacts invalidate their producer and every transitive consumer, which rerun in
-dependency order. Include Growth and Data Analyst when they consume changed backend
+dependency order. Include Growth and Data Analyst only when enabled and consuming changed backend
 artifacts. Candidate changes invalidate candidate-specific verification, review,
 and release evidence. Preserve unaffected artifacts explicitly; filenames alone
 do not establish freshness. The bounded controller computes this closure instead
@@ -179,7 +193,7 @@ of maintaining a separate rerun map.
 **Re-run from step X prompt:**
 
 ```
-Continue EPIC-XXXX. The Release Manager flagged blockers. Resolve each and re-run the pipeline from the earliest affected step.
+Continue EPIC-XXXX. A pipeline stage flagged blockers. Resolve each and re-run from the earliest affected step, preserving this run's enabled roles and required gates.
 
 Blockers:
 - BLOCKER[agent-name]: [description]
@@ -187,13 +201,15 @@ Blockers:
 Revision round: [N of 3]
 
 Steps:
-1. Invoke each named agent with its blocker description and original output.
+1. Route each blocker to its enabled owner with its description and original output.
+   If its owner is disabled, report the conflict for a user decision.
    Save revised output as [file].rN.md.
-2. Re-run all downstream agents per the revision re-run map.
+2. Re-run affected enabled consumers in dependency order, including mandatory QA,
+   Security, and fresh independent review for changed candidates.
    Save each as [file].rN.md.
-3. Re-run the Release Manager with all outputs (latest revision of each file).
-   Save as release-report.rN.md.
-4. Report the new go/no-go decision.
+3. Only if enabled, re-run Release Manager with the latest enabled outputs.
+   Save as release-report.rN.md only when it runs.
+4. Report verification and blockers, or the release verdict when assessed.
 ```
 
 ## Epic ID format
@@ -218,7 +234,7 @@ Examples: `EPIC-0001-water-intake-tracker`, `EPIC-0002-ai-git-diff-cli`, `EPIC-0
 
 ## Invoking the full pipeline
 
-Prompt to run the complete pipeline:
+Prompt to run the complete pipeline with enabled defaults:
 
 ```
 I have a product idea. Run the full startup team pipeline on it.
@@ -233,14 +249,17 @@ Steps:
 3. Invoke the Gherkin Spec Writer with the PRD.
 4. Invoke the Architect and Designer in parallel with the PRD.
 5. Invoke the Backend Engineer with the PRD, Gherkin spec, architecture, and design spec.
-6. Invoke the Frontend Engineer, Data Analyst, and Growth in parallel. Frontend gets the design spec, Gherkin spec, and API contract handoff. Data Analyst gets the PRD and backend spec. Growth gets the PRD, architecture, design spec, and backend spec.
+6. Invoke Frontend Engineer with the design spec, Gherkin spec, and API contract handoff.
 7. Invoke QA and DevOps in parallel.
 8. Invoke Security with the backend spec, DevOps config, frontend spec, and actual candidate evidence.
 9. Invoke a fresh independent reviewer with .agents/skills/code-review/SKILL.md on the candidate and current QA evidence.
-10. Invoke the Release Manager with all outputs, including code review, and give me the final go/no-go.
+10. Route blockers through bounded repairs and report verification results and remaining blockers, not release approval.
 
-Save each agent's output under epics/active/EPIC-XXXX-slug/ and give me the Release Manager's final report.
+Use AGENTS.md role defaults. Save enabled agents' outputs under epics/active/EPIC-XXXX-slug/ and give me the verification summary.
 ```
+
+To enable one role, add an explicit request such as: "Also run Growth to produce
+a go-to-market plan. Keep Data Analyst and Release Manager disabled."
 
 ## Output files
 
@@ -265,19 +284,24 @@ epics/
 │       ├── test-plan.md
 │       ├── devops-config.md
 │       ├── security-review.md
-│       ├── growth-plan.md
-│       ├── data-plan.md
-│       ├── release-report.md          ← initial run (NO-GO)
+│       ├── code-review.md
+│       ├── growth-plan.md             # only with Growth opt-in
+│       ├── data-plan.md               # only with Data Analyst opt-in
+│       ├── release-report.md          # only with Release Manager opt-in
 │       ├── backend-spec.r1.md         ← revised after blocker
 │       ├── frontend-spec.r1.md
 │       ├── test-plan.r1.md
 │       ├── devops-config.r1.md
 │       ├── security-review.r1.md
-│       └── release-report.r1.md       ← GO on revision 1
+│       ├── code-review.r1.md
+│       └── release-report.r1.md       # only with Release Manager opt-in
 │
 └── completed/
     └── EPIC-0001-water-intake-tracker/
         └── ...                        ← deployed to production
 ```
 
-The `release-report.md` in each folder is the go/no-go summary for that idea. Reference ideas by their ID (e.g. "continue EPIC-0002") to resume or hand off work.
+Create only enabled outputs and needed revisions. QA, Security, and independent
+code-review reports supply the default verification evidence. `release-report.md`
+is a go/no-go summary only when Release Manager ran; its absence is not approval.
+Reference ideas by their ID (e.g. "continue EPIC-0002") to resume or hand off work.

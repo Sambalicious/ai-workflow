@@ -6,7 +6,7 @@ import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { createRun, reduce, report, routeFinding, DEFAULT_BUDGET } from './controller.mjs';
 import { initialize, load, apply } from './store.mjs';
-import { exampleInput, exampleEvents } from './example.mjs';
+import { exampleInput, exampleInputWithRelease, exampleEvents } from './example.mjs';
 
 const NOW = 100000;
 const artifact = (n = 1) => ({ ref: `artifact:${n}`, hash: n.toString(16).padStart(64, '0') });
@@ -44,9 +44,10 @@ function input(extra = {}) {
 function harness(config = input()) {
   let state = createRun(config, { now: NOW });
   let sequence = 0;
-  const event = (type, fields = {}, actor_id = 'control') => ({
+  const controller = config.actors.find(a => a.roles.includes('controller')).id;
+  const event = (type, fields = {}, actor_id = controller) => ({
     type, event_id: `event-${++sequence}`, expected_version: state.version,
-    adapter_id: 'adapter', attested: true, actor_id, ...fields,
+    adapter_id: config.trusted_adapter_id, attested: true, actor_id, ...fields,
   });
   const send = (type, fields, actor_id, now = NOW) => {
     const e = event(type, fields, actor_id); state = reduce(state, e, { now }); return e;
@@ -356,14 +357,87 @@ test('repair preserves unaffected work but reruns candidate-specific gates', () 
   assert.equal(report(h.state, { now: NOW }).status, 'PRODUCTION_READY');
 });
 
+test('default example requires QA, security and fresh review, then completes VERIFIED', () => {
+  const h = harness(exampleInput);
+  const disabled = ['growth', 'data-analyst', 'release-manager'];
+  assert.ok(exampleInput.actors.every(a => a.roles.every(role => !disabled.includes(role))));
+  assert.deepEqual(exampleInput.tasks.map(t => t.role), ['backend-engineer', 'qa', 'security', 'code-review']);
+  assert.ok(exampleInput.tasks.every(t => t.required));
+  for (const id of ['qa', 'security', 'review']) {
+    assert.throws(() => h.send('skip', { task_id: id, reason: 'Not requested' }), /required/);
+  }
+  h.run('backend');
+  h.send('publish', { candidate: artifact(1001) });
+  for (const id of ['qa', 'security', 'review']) {
+    assert.deepEqual(report(h.state, { now: NOW }).ready.map(t => t.task_id), [id]);
+    h.run(id);
+  }
+  const result = report(h.state, { now: NOW });
+  assert.equal(result.status, 'VERIFIED');
+  assert.equal(result.usage.invocations, 4);
+  assert.deepEqual(result.ready, []);
+  assert.equal(new Set(h.state.tasks.map(t => t.attempts[0].actor_id)).size, 4);
+});
+
+test('release opt-in adds only a required release gate and waits for current evidence', () => {
+  assert.deepEqual(exampleInputWithRelease.tasks.slice(0, -1), exampleInput.tasks);
+  assert.deepEqual(exampleInputWithRelease.actors.slice(0, -1), exampleInput.actors);
+  const release = exampleInputWithRelease.tasks.at(-1);
+  assert.equal(release.role, 'release-manager');
+  assert.equal(release.required, true);
+  assert.deepEqual(release.depends_on, ['qa', 'security', 'review']);
+  const h = harness(exampleInputWithRelease);
+  for (const id of ['backend', 'qa', 'security', 'review']) {
+    assert.equal(report(h.state, { now: NOW }).ready.some(t => t.task_id === 'release'), false);
+    h.run(id);
+  }
+  assert.notEqual(report(h.state, { now: NOW }).status, 'PRODUCTION_READY');
+  assert.deepEqual(report(h.state, { now: NOW }).ready.map(t => t.task_id), ['release']);
+  h.run('release');
+  assert.equal(report(h.state, { now: NOW }).status, 'PRODUCTION_READY');
+  assert.equal(h.state.usage.invocations, 5);
+});
+
+test('example gates reject missing evidence with and without release opt-in', () => {
+  for (const template of [exampleInput, exampleInputWithRelease]) {
+    for (const gate of template.tasks.filter(t => t.kind !== 'work')) {
+      const h = harness(template);
+      for (const task of template.tasks) {
+        if (task.id === gate.id) break;
+        h.run(task.id);
+      }
+      h.start(gate.id); h.complete(gate.id, { evidence: [] });
+      assert.equal(h.state.tasks.find(t => t.id === gate.id).status, 'blocked');
+      assert.equal(report(h.state, { now: NOW }).status, 'BLOCKED');
+      assert.deepEqual(report(h.state, { now: NOW }).ready, []);
+    }
+  }
+});
+
+for (const [role, kind] of [['growth', 'growth'], ['data-analyst', 'data']]) {
+  test(`${role} can be explicitly added without enabling other assessments`, () => {
+    const config = structuredClone(exampleInput);
+    config.actors.push({ id: `${role}-session`, roles: [role] });
+    config.tasks.push(task(role, role, 'work', ['backend'], kind));
+    config.tasks.find(t => t.id === 'qa').depends_on.push(role);
+    const h = harness(config);
+    for (const id of ['backend', role, 'qa', 'security', 'review']) h.run(id);
+    assert.equal(report(h.state, { now: NOW }).status, 'VERIFIED');
+    assert.deepEqual(h.state.tasks.map(t => t.role), [...exampleInput.tasks.map(t => t.role), role]);
+  });
+}
+
 test('published templates match live schema without claiming verification', () => {
   const state = createRun(exampleInput, { now: NOW });
   const next = reduce(state, exampleEvents.start, { now: NOW });
   assert.equal(next.tasks[0].status, 'running');
-  const result = spawnSync(process.execPath, [resolve('factory/example.mjs'), 'input'], { encoding: 'utf8' });
-  assert.equal(result.status, 0);
-  assert.match(result.stderr, /TEMPLATE ONLY/);
-  assert.deepEqual(JSON.parse(result.stdout), exampleInput);
+  for (const [name, template] of [['input', exampleInput], ['input-with-release', exampleInputWithRelease]]) {
+    const result = spawnSync(process.execPath, [resolve('factory/example.mjs'), name], { encoding: 'utf8' });
+    assert.equal(result.status, 0);
+    assert.match(result.stderr, /TEMPLATE ONLY/);
+    assert.deepEqual(JSON.parse(result.stdout), template);
+    assert.doesNotThrow(() => createRun(JSON.parse(result.stdout), { now: NOW }));
+  }
 });
 
 test('actual candidate is published after implementation and after repair, never fabricated in repair event', () => {

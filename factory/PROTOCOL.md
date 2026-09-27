@@ -44,6 +44,27 @@ exit code zero. Always inspect `status`, task reasons, and findings.
 Use `node factory/example.mjs input` for the executable input schema example.
 Unknown fields are rejected rather than silently ignored.
 
+### Role selection
+
+Apply the [AGENTS.md role activation policy](../AGENTS.md#role-activation-policy)
+before initializing a new run. Record enabled roles and explicit user opt-ins in
+the scope handoff, not new schema fields. The default example omits Growth, Data
+Analyst, and Release Manager actors, tasks, and dependency edges. Marking disabled
+tasks `required: false` would still schedule them and can make them required through
+consumers. Keep QA, Security, and fresh independent review required.
+
+For explicit release assessment, `node factory/example.mjs input-with-release`
+adds a required release task after QA, Security, and review. It does not enable
+Growth or Data Analyst. Add either assessment only when explicitly requested,
+declaring its actual dependencies and required consumers before initialization.
+Approved checks and blockers remain binding; a conflict with a disabled role needs
+a user decision rather than implicit activation or a waived gate.
+
+Existing active pinned runs retain their graph, factory version, approved gates,
+and blockers. These defaults do not migrate persisted state.
+
+### Input fields
+
 | Field | Meaning |
 | --- | --- |
 | `run_id`, `work_item_id` | Stable identifiers |
@@ -89,7 +110,8 @@ The source reducer and executable tests define validation for event payloads.
 3. After work settles, publish the actual integrated candidate with `publish`.
    A future hash is not required before implementing a change. Gates wait for
    this explicit publication and receive its exact reference and digest.
-4. Run required QA, code review, security, and release gates with separate actors.
+4. Run required QA, security, and fresh code review gates with separate actors.
+   Run the required release gate only when enabled.
    Every required work output must reach QA and code review through dependencies.
 5. Submit `finding` when a stage exposes a defect. `repair` groups unresolved
    findings into a global wave, invalidates affected work, and schedules reruns.
@@ -160,8 +182,11 @@ per-attempt bounds and submit truthful usage. A local ledger cannot cap external
 spending by itself. Budget limits cannot be increased through events.
 
 The report includes version, status, stop reason, candidate, ready tasks, attempts,
-findings, budget, and observed/reserved usage. `VERIFIED` and `PRODUCTION_READY` are
-conditional local assessments based on supplied evidence, never authorization to
+findings, budget, and observed/reserved usage. Successful runs without a required
+release task yield `VERIFIED`; with explicit release opt-in they yield
+`PRODUCTION_READY`. Without release assessment, report verification results and
+unresolved blockers, not release GO or approval. Both statuses are conditional local
+assessments based on supplied evidence, never authorization to
 merge or deploy. `BLOCKED` requires missing work or decisions; `STOPPED` records
 an exhausted limit or terminal condition. `RUNNING` means work remains.
 

@@ -7,6 +7,13 @@ An approved bug brief and existing relevant architecture, design, API contract,
 and full regression scenarios may replace a new PRD and newly authored design docs.
 This substitution waives no required behavior contract or verification gate.
 
+Apply the role activation policy in `AGENTS.md` before declaring dependencies.
+The table below applies only to enabled roles; it does not activate them.
+Omit disabled tasks and their edges, rather than marking them optional.
+An unrequested assessment is not a missing input unless an approved check requires
+it. In that case, report the scope conflict without activating a role or waiving
+the check. Existing pinned graphs and gates remain unchanged.
+
 ---
 
 ## STOP and wait when any of these is true
@@ -15,7 +22,7 @@ This substitution waives no required behavior contract or verification gate.
 - The architecture decision is not yet complete and you are the Backend Engineer.
 - The API contract handoff is not yet complete and you are the Frontend Engineer.
 - The backend spec and DevOps config are not yet complete and you are the Security Reviewer.
-- Any upstream output is marked as a draft, partial, or contains unresolved blockers.
+- Any upstream output consumed by your task is marked as a draft, partial, or contains unresolved blockers.
 
 ## Do NOT stop when
 
@@ -30,17 +37,17 @@ This substitution waives no required behavior contract or verification gate.
 | Agent | Must have before starting |
 |---|---|
 | Gherkin Spec Writer | PRD |
-| Growth | PRD + architecture + design spec + backend spec |
+| Growth (opt-in) | PRD + architecture + design spec + backend spec |
 | Architect | PRD |
 | Designer | PRD |
 | Backend Engineer | PRD + Gherkin spec + architecture + design spec |
 | Frontend Engineer | Design spec + Gherkin spec + API contract handoff |
-| Data Analyst | PRD + backend spec |
+| Data Analyst (opt-in) | PRD + backend spec |
 | QA | PRD + Gherkin spec + backend spec + frontend spec |
 | DevOps | Backend spec |
 | Security Reviewer | Backend spec + frontend spec + DevOps config + candidate evidence |
 | Independent Code Reviewer | Actual candidate + approved scope + full contracts/Gherkin + repository rules + current QA/security evidence |
-| Release Manager | All required outputs above, including independent code review |
+| Release Manager (opt-in) | Enabled outputs and approved required evidence, including QA, security, and independent code review |
 
 ---
 

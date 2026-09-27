@@ -128,6 +128,10 @@ test('complete-epic uses the target root and retains its client symlink', async 
   const source = await readFile(join(root, '.agents/skills/complete-epic.md'), 'utf8');
   assert.doesNotMatch(source, /\/Users\/|\/home\/|[A-Z]:\\Users\\/);
   assert.match(source, /PROJECT_ROOT/);
+  assert.match(source, /Stop without user authorization and production deployment evidence/);
+  assert.match(source, /Otherwise use the latest `code-review` report/);
+  assert.match(source, /does not invoke Release Manager or grant release approval/);
+  assert.match(source, /\[actual closing actor\]/);
   assert.match(source, /mv "\$PROJECT_ROOT\/epics\/active\/EPIC-XXXX-slug" "\$PROJECT_ROOT\/epics\/completed\/EPIC-XXXX-slug"/);
   assert.equal(await readlink(join(root, '.claude/skills/complete-epic.md')), '../../.agents/skills/complete-epic.md');
 });

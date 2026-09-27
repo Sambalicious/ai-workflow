@@ -20,9 +20,22 @@ A portable set of agent skills that simulate a full startup team. Each agent is 
 | qa | `.agents/qa.md` | QA Engineer | Independent test execution, evidence and coverage gaps |
 | devops | `.agents/devops.md` | DevOps Engineer | Dockerfile, CI/CD, deploy runbook |
 | security | `.agents/security.md` | Security Reviewer | Threat model, vuln findings, risk rating |
-| growth | `.agents/skills/growth.md` | Growth / Marketing | Go-to-market plan, launch copy, acquisition strategy |
-| data-analyst | `.agents/data-analyst.md` | Data Analyst | Measurement plan, event taxonomy, north star metric |
-| release-manager | `.agents/release-manager.md` | Engineering Review Manager | Go/no-go decision, open issues, next steps |
+| code-review | `.agents/skills/code-review/SKILL.md` | Independent Code Reviewer | Candidate findings and verification gaps |
+| growth (opt-in) | `.agents/skills/growth.md` | Growth / Marketing | Go-to-market plan, launch copy, acquisition strategy |
+| data-analyst (opt-in) | `.agents/data-analyst.md` | Data Analyst | Measurement plan, event taxonomy, north star metric |
+| release-manager (opt-in) | `.agents/release-manager.md` | Engineering Review Manager | Go/no-go decision, open issues, next steps |
+
+[AGENTS.md role activation policy](AGENTS.md#role-activation-policy) defines the
+defaults. A generic full pipeline keeps Growth, Data Analyst, and Release Manager
+disabled. Each runs only when the user explicitly requests that role or assessment.
+QA, Security, fresh independent code review, and bounded repairs remain required.
+Without Release Manager, successful runs end at `VERIFIED`, not release approval.
+Explicit release assessment adds a required gate and can yield `PRODUCTION_READY`.
+Neither status permits merge or deployment. Existing pinned runs keep their graph
+and approved gates.
+
+For example: "Run the full pipeline. Also run Growth to produce a go-to-market plan.
+Keep Data Analyst and Release Manager disabled."
 
 ## Use a shared checkout
 
@@ -109,6 +122,9 @@ node --test .agents/skills/skills.test.mjs
 The [controller protocol](factory/PROTOCOL.md) describes inputs, events,
 state, and trust boundaries. Generate exact JSON templates with
 `node factory/example.mjs input` or `node factory/example.mjs start`.
+The default input omits disabled roles and their dependency edges. When release
+assessment is explicitly requested, use `node factory/example.mjs input-with-release`.
+That template adds only Release Manager, not Growth or Data Analyst.
 
 Use `.agents/skills/factory-loop/SKILL.md` for the agent workflow. The controller
 is dependency-free Node.js code. It does not invoke models, execute tests, merge
@@ -229,8 +245,8 @@ Your idea
    └──────────────────────┘
    ↓
    backend-engineer  →  API contract + backend spec
-   ↓                 ↘
-   frontend-engineer   data-analyst + growth  (ready inputs required)
+   ↓
+   frontend-engineer
    ↓
    ┌─────────┬──────────┐
    qa        devops     (run in parallel)
@@ -240,8 +256,13 @@ Your idea
    ↓
    independent code-review → Candidate findings
    ↓
-   release-manager  →  Go/no-go
+   Verification summary  →  VERIFIED or unresolved blockers
 ```
+
+When explicitly requested, Growth and Data Analyst can run after Backend with
+their required inputs. Release Manager runs after all enabled outputs and required
+gates are ready. An unrequested assessment is not a missing deliverable, but approved
+required checks and unresolved blockers still apply.
 
 ## Adding your own agent
 

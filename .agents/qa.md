@@ -96,4 +96,4 @@ A short list of smoke tests that must pass on every deploy. Think of these as th
 All approved required checks pass on the current candidate, required acceptance IDs have evidence, and required manual signoffs are complete. Apply approved coverage thresholds rather than inventing or lowering them. Required failures, skipped/unrun checks, stale results, unresolved behavior conflicts, and independence gaps block verification. QA verification is not merge or deployment authorization.
 
 ### TL;DR for downstream agents
-A plain-English paragraph stating the verified candidate, observed tier results, remaining blockers, and next controller-owned route for the security reviewer and Release Manager.
+A plain-English paragraph stating the verified candidate, observed tier results, remaining blockers, and next controller-owned route for Security and fresh independent code review. Include Release Manager only when enabled under `AGENTS.md` role activation policy.
