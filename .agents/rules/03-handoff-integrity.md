@@ -12,7 +12,7 @@ A handoff is only as good as its accuracy. Compressing, paraphrasing, or editori
 ## Pass TL;DR + relevant sections — do not pass the full upstream output
 
 - All other handoffs: pass the upstream agent's TL;DR plus only the sections the receiving agent specifically needs.
-- The orchestrator (AGENT.md) is responsible for selecting the right sections — individual agents must not re-summarise on their own initiative.
+- The orchestrator (`AGENTS.md` under the selected factory root) is responsible for selecting the right sections — individual agents must not re-summarise on their own initiative.
 
 ## A TL;DR must be accurate, not aspirational
 

@@ -1,6 +1,11 @@
 # Rule 02 — No Pipeline Jump (auto-loaded)
 
-An agent that starts before its dependencies are ready produces output built on assumptions, not facts. That output then poisons every downstream agent. This rule enforces the dependency graph defined in AGENT.md.
+An agent that starts before its dependencies are ready produces output built on assumptions, not facts. This rule enforces the dependency graph defined in AGENTS.md.
+
+For bounded implementation runs, follow `.agents/skills/factory-loop/SKILL.md`.
+An approved bug brief and existing relevant architecture, design, API contract,
+and full regression scenarios may replace a new PRD and newly authored design docs.
+This substitution waives no required behavior contract or verification gate.
 
 ---
 
@@ -25,7 +30,7 @@ An agent that starts before its dependencies are ready produces output built on 
 | Agent | Must have before starting |
 |---|---|
 | Gherkin Spec Writer | PRD |
-| Growth | PRD |
+| Growth | PRD + architecture + design spec + backend spec |
 | Architect | PRD |
 | Designer | PRD |
 | Backend Engineer | PRD + Gherkin spec + architecture + design spec |
@@ -33,8 +38,9 @@ An agent that starts before its dependencies are ready produces output built on 
 | Data Analyst | PRD + backend spec |
 | QA | PRD + Gherkin spec + backend spec + frontend spec |
 | DevOps | Backend spec |
-| Security Reviewer | Backend spec + DevOps config |
-| Release Manager | All outputs from every agent above |
+| Security Reviewer | Backend spec + frontend spec + DevOps config + candidate evidence |
+| Independent Code Reviewer | Actual candidate + approved scope + full contracts/Gherkin + repository rules + current QA/security evidence |
+| Release Manager | All required outputs above, including independent code review |
 
 ---
 

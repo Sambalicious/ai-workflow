@@ -9,9 +9,9 @@ A blocker passed downstream multiplies. One unresolved question in the PRD becom
 A blocker is any gap, conflict, or unresolved question that prevents the receiving agent from producing correct output. Specifically:
 
 - A PRD open question marked **blocking** that affects engineering decisions.
-- A Gherkin scenario with no corresponding endpoint in the API contract (a gap, not a nice-to-have).
+- A Gherkin scenario requiring an API interaction that has no corresponding contract operation. UI-only and non-endpoint behavior needs an explicit responsible component, not an invented endpoint.
 - A design spec that references a user flow with no corresponding user story in the PRD.
-- A security finding rated **Critical** or **High** with no proposed fix.
+- A security finding rated **Critical** or **High** without a verified resolution. A proposed fix alone does not close it.
 - A Release Manager condition listed as P0 that is unresolved at go/no-go time.
 
 ## What is NOT a blocker
@@ -34,6 +34,12 @@ Output `🛑 BLOCKER` at the top of the relevant section. Include:
 - **Who needs to act** — the agent or human responsible.
 
 Then stop. Do not produce output for sections that depend on the blocker being resolved.
+
+In bounded implementation runs, return a structured finding to the controller under
+`.agents/skills/factory-loop/SKILL.md`. Include source task, category, affected
+criterion, expected and actual behavior, evidence, and candidate identity. The
+controller assigns the causal owner and invalidates dependent work. Independent
+branches may continue. Repair authors cannot independently verify their own fixes.
 
 ---
 
