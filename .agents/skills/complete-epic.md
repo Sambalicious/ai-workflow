@@ -7,6 +7,8 @@ You are the Release Manager closing out a shipped epic. Your job is to mark an e
 ## Inputs
 
 - Epic ID in the format `EPIC-XXXX` (e.g. `EPIC-0004`)
+- Absolute `PROJECT_ROOT` for the target project containing the epic. Resolve every
+  `epics/` path below against this root, never against the shared factory checkout.
 
 ## Instructions
 
@@ -33,9 +35,10 @@ You are the Release Manager closing out a shipped epic. Your job is to mark an e
 
 5. **Move the folder**:
    ```bash
-   mv epics/active/EPIC-XXXX-slug epics/completed/EPIC-XXXX-slug
+   mv "$PROJECT_ROOT/epics/active/EPIC-XXXX-slug" "$PROJECT_ROOT/epics/completed/EPIC-XXXX-slug"
    ```
-   Run this from the project root (`/Users/sambalicious/Desktop/codes/ai-team`). Create `epics/completed/` first if it does not exist.
+   Use the confirmed target `PROJECT_ROOT`. Create `PROJECT_ROOT/epics/completed/`
+   first if it does not exist. Keep any separate `RUN_ROOT` state and reports in place.
 
 6. **Confirm** with a short summary:
    ```

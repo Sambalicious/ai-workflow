@@ -23,7 +23,11 @@ Silent deviation is the single highest-impact failure mode in AEDL. This rule go
 
 ## How to raise a Deviation
 
-Append an entry to `contracts/epic/{epic-id}/deviations.md` using the format defined in handbook §9.3 (also available at `templates/deviation-entry.template.md`). Use the `/aedl-deviation-new` command to scaffold the entry.
+For a bounded factory run, return a structured finding to the controller using
+`.agents/skills/factory-loop/SKILL.md`; do not edit the approved contract. If the
+caller authorizes saving a deviation record, use the project's existing artifact
+location. This repository does not require an external handbook, template, or
+slash command to report a blocker.
 
 Each entry must include:
 
@@ -50,6 +54,6 @@ If you (an agent) cannot satisfy the contract:
 
 1. Stop implementing.
 2. Output: `⚠ DEVIATION REQUIRED` with the quoted contract line and the blocker.
-3. Point the human to `/aedl-deviation-new`.
+3. Identify the required human decision and link the finding and unchanged contract.
 4. Do NOT modify the contract.
 5. Do NOT silently "adapt" the code to work around it.

@@ -1,0 +1,33 @@
+{
+  "name": "ai-workflow",
+  "version": "1.0.0",
+  "description": "Full AI startup team — agents, skills, and pipeline orchestrator for any project",
+  "keywords": [
+    "ai",
+    "agents",
+    "skills",
+    "claude",
+    "cursor",
+    "llm",
+    "startup",
+    "team"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "bin": {
+    "software-factory": "factory/cli.mjs"
+  },
+  "files": [
+    "factory/",
+    ".agents/",
+    ".claude/",
+    "AGENTS.md",
+    "install.sh"
+  ],
+  "scripts": {
+    "test": "node --test factory/*.test.mjs .agents/skills/skills.test.mjs",
+    "factory": "node factory/cli.mjs"
+  }
+}

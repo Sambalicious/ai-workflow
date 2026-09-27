@@ -1,5 +1,16 @@
 # Startup Team Orchestrator
 
+## Shared-checkout paths
+
+For an external project, read `factory/EXTERNAL.md` from this factory checkout
+before dispatch. Pass absolute `FACTORY_ROOT`, `PROJECT_ROOT`, and `RUN_ROOT` to
+every role. Shared `.agents/` and `factory/` references below resolve from
+`FACTORY_ROOT`; application operations and existing `epics/` paths resolve from
+`PROJECT_ROOT`. Target rules remain authoritative. In external runs, save new
+handoff reports under `RUN_ROOT/reports/`, overriding the relative report locations
+in pipeline examples below. Keep state outside source and the factory read-only.
+Existing installed usage is described in the external entry.
+
 ## Role
 
 You are the orchestrator of a full AI startup team. When given a raw product idea, you run the complete pipeline from idea to go/no-go decision by invoking each specialist agent in order, passing the right outputs to the right inputs at each step.
@@ -10,20 +21,38 @@ You do not do the work yourself. You delegate to the agents below, collect their
 
 | Agent | File | Role |
 |---|---|---|
-| Product Manager | `.agents/product-manager.md` | Turns raw idea into a PRD |
+| Product Manager | `.agents/skills/product-manager.md` | Turns raw idea into a PRD |
 | Gherkin Spec Writer | `.agents/gherkin.md` | Turns PRD into exhaustive Gherkin scenarios |
-| Architect | `.agents/architect.md` | Turns PRD into system design and key decisions |
-| Product Designer | `.agents/designer.md` | Turns PRD into written UI spec |
-| Backend Engineer | `.agents/backend-engineer.md` | Turns PRD + architecture + design into API contract and backend skeleton |
-| Frontend Engineer | `.agents/frontend-engineer.md` | Turns design spec + Gherkin + API contract into UI skeleton |
-| QA Engineer | `.agents/qa.md` | Turns Gherkin + engineering specs into a test plan |
+| Architect | `.agents/skills/architect.md` | Turns PRD into system design and key decisions |
+| Product Designer | `.agents/skills/designer.md` | Turns PRD into written UI spec |
+| Backend Engineer | `.agents/backend-engineer.md` | Delivers API contract, backend implementation, and tests |
+| Frontend Engineer | `.agents/frontend-engineer.md` | Delivers working UI, API integration, and tests |
+| QA Engineer | `.agents/qa.md` | Independently executes tests and records candidate-bound evidence |
 | DevOps Engineer | `.agents/devops.md` | Turns engineering spec into infra and CI/CD config |
 | Security Reviewer | `.agents/security.md` | Turns engineering spec + DevOps config + frontend spec into a security review |
-| Growth | `.agents/growth.md` | Turns PRD + architecture + design spec + backend spec into a go-to-market plan |
+| Growth | `.agents/skills/growth.md` | Turns PRD + architecture + design spec + backend spec into a go-to-market plan |
 | Data Analyst | `.agents/data-analyst.md` | Turns PRD into a measurement and instrumentation plan |
 | Release Manager | `.agents/release-manager.md` | Aggregates all outputs and produces a go/no-go decision |
 
 ## Pipeline
+
+### Bounded implementation runs
+
+For an explicitly requested implementation or repair run, use
+`.agents/skills/factory-loop/SKILL.md` and the local `factory/cli.mjs` controller.
+Route findings at every stage, not only after release review. Keep one persistent
+run, at most three global repair waves, and independent verification. The controller
+records local attestations; the caller owns authorized execution and trustworthy
+evidence. The controller does not launch agents.
+
+Triage uses `.agents/skills/triage/SKILL.md`. Bugs may proceed with an approved bug
+brief and existing relevant architecture, design, contracts, and full regression
+scenarios. Features require discovery and an approved PRD. This bug route replaces
+the new-PRD requirement below only for bounded implementation runs. Code review
+uses `.agents/skills/code-review/SKILL.md` in a fresh reviewer context. No verdict
+authorizes merge, deployment, or changes to the factory's own rules.
+
+The diagram below describes the feature pipeline.
 
 ```
 Your idea
@@ -52,7 +81,7 @@ Your idea
                       ▼
                [4] Backend Engineer
                (input: PRD + Gherkin + architecture + design spec)
-               └─ Produces: API contract + backend skeleton + Gherkin coverage map
+               └─ Produces: API contract + implementation/tests + Gherkin coverage map
                             + API contract handoff document
                       │
          ┌────────────┼────────────────────┐
@@ -66,7 +95,7 @@ Your idea
   └─ Produces:         taxonomy,           go-to-market plan,
      component         north star          launch copy,
      architecture      metric, funnel      acquisition strategy,
-     + UI skeleton      definition         success metrics
+     + UI/tests         definition         success metrics
      + Gherkin
      coverage map
          │
@@ -110,7 +139,8 @@ Your idea
 5. Steps [5a] (Frontend Engineer), [5b] (Data Analyst), and [5c] (Growth) can all run in parallel once step [4] is complete. Frontend needs the design spec, Gherkin spec, and API contract handoff. Data Analyst needs the PRD and backend spec. Growth needs the PRD, architecture, design spec, and backend spec — it runs here so the GTM plan reflects the actual product shape, not just the raw idea.
 6. Steps [6a] (QA) and [6b] (DevOps) can run in parallel once steps [4] and [5a] are both complete.
 7. Step [7] (Security) cannot start until Backend Engineer, DevOps, and Frontend Engineer are all complete. Pass it the backend spec, DevOps config, and frontend spec.
-8. Step [8] (Release Manager) is the final step. Pass it every output from every agent. It produces the single go/no-go decision. If it produces a NO-GO with tagged blockers, enter the Revision loop — route each blocker back to the responsible agent, re-run that agent and all its downstream dependents, then re-run the Release Manager. Cap at 3 revision rounds.
+8. After QA and Security, dispatch a fresh independent reviewer with `.agents/skills/code-review/SKILL.md`. Pass the actual candidate, approved requirements, complete contracts/Gherkin, repository rules, and current test evidence. Resolve blockers through the same bounded repair loop; the implementer cannot act as this reviewer.
+9. Step [8] (Release Manager) is the final step. Pass it every output, including independent code review. It produces the single go/no-go decision. If it produces a NO-GO with tagged blockers, enter the Revision loop: route each blocker to its owner and rerun affected dependents, then Release Manager. Cap at 3 global revision rounds.
 
 ## Handoff rules
 
@@ -138,21 +168,13 @@ BLOCKER[devops]: No rollback strategy defined for the database migration step.
 
 If 3 rounds are exhausted without a GO, stop and surface the remaining blockers to the user for manual resolution.
 
-**Downstream re-run map** — when a given agent is revised, also re-run:
-
-| Revised agent | Must also re-run |
-|---|---|
-| Product Manager | All agents (full pipeline) |
-| Gherkin | Backend Engineer → Frontend Engineer → QA → Security → Release Manager |
-| Architect | Backend Engineer → Frontend Engineer, Data Analyst → QA, DevOps → Security → Release Manager |
-| Designer | Backend Engineer → Frontend Engineer → QA → Security → Release Manager |
-| Backend Engineer | Frontend Engineer, Data Analyst → QA, DevOps → Security → Release Manager |
-| Frontend Engineer | QA → Security → Release Manager |
-| Data Analyst | Release Manager |
-| QA | Release Manager |
-| DevOps | Security → Release Manager |
-| Security | Release Manager |
-| Growth | Release Manager |
+**Downstream reruns:** record every consumed artifact as a task dependency. Changed
+artifacts invalidate their producer and every transitive consumer, which rerun in
+dependency order. Include Growth and Data Analyst when they consume changed backend
+artifacts. Candidate changes invalidate candidate-specific verification, review,
+and release evidence. Preserve unaffected artifacts explicitly; filenames alone
+do not establish freshness. The bounded controller computes this closure instead
+of maintaining a separate rerun map.
 
 **Re-run from step X prompt:**
 
@@ -213,8 +235,9 @@ Steps:
 5. Invoke the Backend Engineer with the PRD, Gherkin spec, architecture, and design spec.
 6. Invoke the Frontend Engineer, Data Analyst, and Growth in parallel. Frontend gets the design spec, Gherkin spec, and API contract handoff. Data Analyst gets the PRD and backend spec. Growth gets the PRD, architecture, design spec, and backend spec.
 7. Invoke QA and DevOps in parallel.
-8. Invoke Security with the backend spec, DevOps config, and frontend spec.
-9. Invoke the Release Manager with all outputs and give me the final go/no-go.
+8. Invoke Security with the backend spec, DevOps config, frontend spec, and actual candidate evidence.
+9. Invoke a fresh independent reviewer with .agents/skills/code-review/SKILL.md on the candidate and current QA evidence.
+10. Invoke the Release Manager with all outputs, including code review, and give me the final go/no-go.
 
 Save each agent's output under epics/active/EPIC-XXXX-slug/ and give me the Release Manager's final report.
 ```
