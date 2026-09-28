@@ -8,13 +8,13 @@ async function location(path) {
   const parent = await realpath(dirname(absolute));
   return join(parent, basename(absolute));
 }
-async function checkFile(path, allowMissing = false) {
+export async function checkFile(path, allowMissing = false) {
   try {
     const stat = await lstat(path);
     if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1) throw new Error('State must be a regular, non-linked file');
   } catch (error) { if (!(allowMissing && error.code === 'ENOENT')) throw error; }
 }
-async function locked(path, update) {
+export async function locked(path, update) {
   path = await location(path);
   const lockPath = `${path}.lock`;
   let lock;
@@ -29,7 +29,7 @@ async function locked(path, update) {
     return await update(path);
   } finally { await lock.close(); await unlink(lockPath); }
 }
-async function atomicWrite(path, state) {
+export async function atomicWrite(path, state) {
   const temporary = `${path}.${randomUUID()}.tmp`;
   const file = await open(temporary, 'wx', 0o600);
   try {

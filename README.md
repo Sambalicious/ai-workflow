@@ -170,6 +170,112 @@ Self-improvement stops at proposals. Changing agent skills, routing, acceptance
 tests, permissions, or evaluation rules requires a separately approved change and
 independent evaluation. Active runs retain their original factory version.
 
+### Kilo admission and settlement foundation
+
+`factory/kilo-adapter.mjs` provides a persistent, transport-independent host API.
+It integrates with the controller's real `start` and `complete` events. It does not
+launch Kilo, intercept its HTTP traffic, or enable live execution. Preflight is
+deliberately blocked:
+
+```bash
+node factory/kilo-adapter.mjs preflight
+node --test factory/kilo-adapter.test.mjs
+```
+
+Preflight prints `status: "BLOCKED"` and exits with code 2. Tests use an injected
+offline transport, no credentials, and no network calls. They exercise admission,
+all default controller gates, accounting, retries, collisions, concurrency, and
+process-death recovery. Synthetic gate evidence is not product verification.
+
+The exported `createKiloAdapter({runPath, adapterId, transport, mode, now})` returns
+`bind`, `execute`, `settle`, `complete`, `cancelUndispatched`, `inspect`, and `preflight`. `mode` defaults
+to `live`, which refuses operations. Only explicitly injected `mode: 'offline'`
+transports run today. The clock defaults to `Date.now`; tests inject a fixed clock.
+An offline transport is trusted executable host code, not a sandbox or a way to
+authorize paid calls by changing a label. The test file contains a runnable example.
+
+The host calls the API in this order:
+
+1. Initialize a controller run using the existing CLI with an approved scope and
+   `trusted_adapter_id` matching `adapterId`. Keep the existing budgets and gates.
+2. Call `bind({task_id, attempt_id, session_id, actor_id, reservation})`. The adapter
+   copies the current ready assignment and records its reservation through the
+   controller before any request. A Kilo session cannot bind to different actors.
+3. Call `execute({request_id, attempt_id, session_id, payload, reservation})` for each
+   billable request. Both reservations require positive `tokens` and `cost_usd`.
+   The payload contains the exact request, including its model and destination.
+4. Call `complete(attempt_id, {outcome, artifact, evidence, reason})` with the normal
+   controller result fields. Usage comes only from settled request receipts, never
+   from the result caller. The controller still validates artifacts and gate evidence.
+
+The transport implements three methods:
+
+- `validate(request)` performs no billable work. It validates the exact payload
+  against enforceable worst-case bounds and returns
+  `{request_hash, basis: 'enforced-worst-case', reservation, evidence_ref}`.
+  Hash and reservation must match the request. An estimated price is not a bound.
+- `sendOnce(request)` runs only after durable admission. It makes exactly one
+  request with the validated payload and returns `{outcome, receipt}`, where
+  `outcome` is `success` or `failed`. No automatic retries, fallbacks, or hidden
+  billable calls are permitted. The host must route every such call through admission.
+- `verifyReceipt(request, receipt, outcome)` returns `true` only after verifying
+  authoritative billing provenance and binding the charge and outcome to that
+  request. A caller-supplied source label alone does not prove billing.
+
+The initial receipt format is a normalized direct OpenRouter response:
+`{source: 'openrouter-response', request_id, session_id, attempt_id, request_hash,
+response: {id, usage}}`. `usage` requires numeric `prompt_tokens`,
+`completion_tokens`, `total_tokens`, and `cost`. The total must equal prompt plus
+completion tokens. Cached prompt and reasoning completion tokens are subsets, not
+additional tokens. Explicit authoritative zero is accepted; missing cost, Kilo
+stored zero, and string-coerced numbers are not. Provider response IDs are unique
+across the run. This parser does not infer billing for LiteLLM or the Kilo gateway.
+
+Every run has a private `<runPath>.kilo.json` ledger beside controller state. Both
+files share the controller's exclusive lock, including during transport calls.
+This first version serializes requests for the run and rejects concurrent writers
+rather than queuing them. Atomic replacement and a write-ahead controller event
+allow restart after either side of the two-file update. The ledger retains session,
+attempt, request, provider response, reservation, and controller event IDs. It stores
+payload hashes, not prompts or model output. Protect both files and their directory.
+
+A timeout, incomplete receipt, or process death retains the reservation and blocks
+new dispatch across the run. `settle(request_id, receipt, outcome)` reconciles an
+already admitted request without sending it again. It requires the same authoritative
+verification as normal settlement. Unknown usage never becomes zero. A settled
+failed request requires a failed or blocked completion followed by an explicit
+controller `retry` and a new attempt/request ID. Controller lifetime retry limits
+still apply. An over-reservation receipt remains charged, blocks the result, and
+permanently halts further adapter admission for that run.
+
+If validation fails before any request is admitted, the host can call
+`cancelUndispatched(attempt_id, reason)`. Under the shared lock, the adapter requires
+an empty request ledger for that attempt and records a blocked completion with zero
+tokens and cost. It retains the invocation count and an audited `no_dispatch` marker;
+continuation still requires an explicit controller `retry`. This proof assumes every
+billable call uses the adapter and `validate` does no billable work. Any admitted
+request, including a reserved, unknown, or settled failed request, forbids this path.
+Missing ledger state is not evidence of zero usage. Cancellation cannot mark a task
+successful or discard a charge.
+
+Repeated identical bindings, requests, settlements, and completions are idempotent;
+conflicting IDs are rejected. A reserved or unknown duplicate is never resent.
+After a crash, inspect the process and both files before removing a stale lock.
+Never delete the ledger, reset the run, or release an unknown reservation to resume.
+Use the adapter for all task starts and completions from the first invocation.
+Other authorized controller events still use the CLI. Direct lifecycle writes are
+detected on the next adapter operation, but writable local state is not tamper-proof.
+
+Live Kilo integration still requires a transport that intercepts every actual
+billable request before dispatch, validates the final serialized context and tool
+payload, enforces worst-case token and monetary limits, and authenticates receipts
+for failures as well as successes. Provider-side hard caps do not follow from
+estimates. Kilo telemetry and cost nudges alone cannot supply these guarantees.
+Worker launch, fresh-session identity verification, artifact digest checks,
+independent QA/security/review execution, and the end-to-end GitHub workflow remain
+runner responsibilities. This foundation does not claim live verification or grant
+merge, deployment, credential, configuration, or policy changes.
+
 ### Pattern 1 — Claude Code subagents (recommended)
 
 All agents live in `.agents/` and are symlinked into `.claude/agents/` so Claude Code picks them up automatically. Open this repo (or any project you installed into) in Claude Code and they're available immediately.
