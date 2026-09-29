@@ -16,7 +16,7 @@ const task = (id, role, kind, depends_on, artifact_kind, extra = {}) => ({
 });
 function input(extra = {}) {
   return {
-    run_id: 'run-1', work_item_id: 'ITEM-1', repository: '/local/repository',
+    run_id: 'run-1', work_item_id: 'ITEM-1', repository: '/local/repository', cost_mode: 'strict',
     base_sha: 'a'.repeat(40), factory_version: 'pilot-1', trusted_adapter_id: 'adapter',
     authorization: { approved: true, approved_by: 'test-operator', scope_ref: 'test:approved-scope' },
     candidate: artifact(),
@@ -70,7 +70,8 @@ function harness(config = input()) {
       check, artifact: artifact(sequence + 100), candidate: state.candidate,
     })) };
     return send('complete', { task_id: id, attempt_id: a.id, outcome: 'success',
-      usage: { tokens: 80, cost_usd: 0.08 }, artifact: artifact(sequence + 10),
+      usage: config.cost_mode === 'strict' ? { tokens: 80, cost_usd: 0.08 } : undefined,
+      artifact: artifact(sequence + 10),
       ...evidence, ...fields }, a.actor_id, now);
   };
   const run = id => {
@@ -630,4 +631,357 @@ test('CLI init/show/apply roundtrip, duplicate events and lock rejection', async
   assert.equal(locked.status, 1); assert.match(locked.stderr, /Concurrent mutation/);
   const invalid = run(['deploy', statePath]); assert.equal(invalid.status, 1);
   assert.equal((await load(statePath)).version, 2);
+});
+
+const observed = (cost_usd, extra = {}) => ({
+  tokens: null, cost_usd, source_ref: 'test:reliable-attempt-receipt', cost_complete: true, ...extra,
+});
+const reportingInput = (extra = {}) => input({ cost_mode: undefined, ...extra });
+const costs = h => report(h.state, { now: NOW }).costs;
+
+test('new default completes all required gates without telemetry or reservations', () => {
+  const h = harness(reportingInput());
+  assert.equal(h.state.schema_version, 2);
+  assert.equal(h.state.config.cost_mode, 'reporting_only');
+  assert.equal(h.state.budget.tokens, null);
+  assert.equal(h.state.budget.cost_usd, null);
+  assert.equal(costs(h).known_subtotal_usd, null);
+  assert.equal(costs(h).actual_cost_usd, null);
+  assert.equal(costs(h).estimate.status, 'unavailable');
+  assert.match(costs(h).estimate.reason, /No defensible whole-feature/);
+  for (const id of ['code', 'qa', 'review', 'security', 'release']) {
+    h.start(id, { reservation: undefined }); h.complete(id, { usage: undefined });
+  }
+  const result = report(h.state, { now: NOW });
+  assert.equal(result.status, 'PRODUCTION_READY');
+  assert.equal(result.costs.status, 'unavailable');
+  assert.equal(result.costs.message, 'Actual cost unavailable');
+  assert.equal(result.costs.unknown_attempts.length, 5);
+  assert.equal(result.costs.known_subtotal_usd, null);
+  assert.equal(result.reserved, null);
+  assert.deepEqual(result.usage, { invocations: 5, tokens: null, cost_usd: null });
+  assert.ok(h.state.tasks.every(t => t.attempts[0].usage.cost_usd === null));
+});
+
+test('whole-feature estimate validates range and assumptions without enforcing the estimate', () => {
+  const estimate = { status: 'available', low_usd: 25, high_usd: 200,
+    scope: 'Planning, code, tests, QA, Security, review, retries and repairs',
+    model: 'Chosen model and expected workload', pricing: 'test:dated-price-source', uncertainty: 'Workload may double' };
+  for (const cost_mode of ['reporting_only', 'strict']) {
+    const h = harness(input({ cost_mode, cost_estimate: estimate }));
+    assert.deepEqual(costs(h).estimate, estimate); assert.equal(h.state.stopped, null);
+    h.start('code');
+  }
+  for (const patch of [{ low_usd: -1 }, { high_usd: Infinity }, { low_usd: NaN },
+    { low_usd: '25' }, { high_usd: 24 }, { scope: '' }, { model: undefined },
+    { pricing: null }, { uncertainty: ' ' }, { price: 2 }, { status: 'guessed' }]) {
+    assert.throws(() => createRun(reportingInput({ cost_estimate: { ...estimate, ...patch } })), /cost_estimate/);
+  }
+  assert.doesNotThrow(() => createRun(reportingInput({ cost_estimate: { ...estimate, low_usd: 0, high_usd: 0 } })));
+  for (const bad of [null, {}, { status: 'unavailable' }, { status: 'unavailable', reason: '' },
+    { status: 'unavailable', reason: 'Unknown price', low_usd: 0 }]) {
+    assert.throws(() => createRun(reportingInput({ cost_estimate: bad })), /cost_estimate/);
+  }
+  const unavailable = { status: 'unavailable', reason: 'No reliable pricing source' };
+  assert.deepEqual(costs(harness(reportingInput({ cost_estimate: unavailable }))).estimate, unavailable);
+});
+
+test('unknown cost, known partial cost and reliable zero stay distinct', () => {
+  for (const usage of [undefined, null, { tokens: 123, cost_usd: null, reason: 'No billing' },
+    observed(0.5, { cost_complete: false, reason: 'One failed call missing' }), observed(0)]) {
+    const h = harness(reportingInput()); h.start('code', { reservation: null }); h.complete('code', { usage });
+    const result = report(h.state, { now: NOW });
+    assert.equal(result.costs.actual_cost_usd, null, 'Unfinished feature has no actual total');
+    assert.equal(result.costs.known_subtotal_usd, usage?.cost_usd ?? null);
+    assert.equal(result.costs.unknown_attempts.length, usage?.cost_complete ? 0 : 1);
+    assert.equal(result.costs.subtotal_is_partial, true);
+    assert.equal(result.usage.tokens, usage?.tokens ?? null);
+    assert.equal(result.usage.cost_usd, null);
+  }
+});
+
+test('reliable zero is a valid actual only after every recorded attempt and gate finishes', () => {
+  const h = harness(reportingInput());
+  for (const id of ['code', 'qa', 'review', 'security', 'release']) {
+    h.start(id); assert.equal(costs(h).actual_cost_usd, null);
+    h.complete(id, { usage: observed(0) });
+  }
+  assert.equal(costs(h).scope, 'recorded_attempts');
+  assert.equal(costs(h).status, 'available');
+  assert.equal(costs(h).actual_cost_usd, 0);
+  assert.equal(costs(h).known_subtotal_usd, 0);
+  assert.equal(costs(h).subtotal_is_partial, false);
+  assert.deepEqual(costs(h).unknown_attempts, []);
+  assert.equal(report(h.state, { now: NOW }).usage.tokens, null, 'Token availability is independent');
+});
+
+test('reporting costs reject unreliable numbers, false completeness and malformed fields', () => {
+  for (const usage of [{ tokens: 0, cost_usd: 0 }, observed(1, { source_ref: '' }),
+    observed(1, { cost_complete: undefined }), observed(1, { cost_complete: 'true' }),
+    observed(null), observed(null, { cost_complete: 'false', reason: 'unknown' }),
+    observed(-1), observed(Infinity), observed(NaN), observed('1'),
+    observed(1, { tokens: -1 }), observed(1, { tokens: 1.5 }),
+    observed(1, { tokens: Number.MAX_SAFE_INTEGER + 1 }), observed(1, { tokens: '1' }),
+    observed(1, { extra: 1 }), observed(1, { cost_complete: false }), {}, []]) {
+    const h = harness(reportingInput()); h.start('code');
+    const before = structuredClone(h.state);
+    assert.throws(() => h.complete('code', { usage }), /usage|Unknown cost/);
+    assert.deepEqual(h.state, before);
+  }
+});
+
+test('reporting passes token/money caps and reservation overruns; strict still stops', () => {
+  const h = harness(reportingInput({ budget: { tokens: 1, cost_usd: 0 } }));
+  h.start('code', { reservation: { tokens: 300000, cost_usd: 50 } });
+  h.complete('code', { usage: observed(100, { tokens: 400000 }) });
+  assert.equal(h.state.stopped, null);
+  assert.equal(h.state.tasks[0].status, 'done');
+  assert.equal(costs(h).known_subtotal_usd, 100);
+  assert.doesNotThrow(() => createRun(reportingInput({ budget: { tokens: 900000, cost_usd: 1000 } })));
+  for (const budget of [{ tokens: -1 }, { cost_usd: Infinity }, { concurrent: 5 }, { invocations: 33 }, { repair_waves: 4 }]) {
+    assert.throws(() => createRun(reportingInput({ budget })), /budget/);
+  }
+  const strict = harness(input()); strict.start('code');
+  strict.complete('code', { usage: { tokens: 400000, cost_usd: 100 } });
+  assert.match(strict.state.stopped.reason, /usage exceeded reservation/);
+  assert.equal(strict.state.usage.cost_usd, 100);
+  const admission = harness(input()); admission.start('code', { reservation: { tokens: 300000, cost_usd: 50 } });
+  assert.match(admission.state.stopped.reason, /Reservation exceeds/);
+});
+
+test('failed, retried, rejected and invalidated reporting attempts count once', () => {
+  const h = harness(reportingInput()); h.start('code');
+  const event = h.complete('code', { outcome: 'failed', reason: 'Compiler failed', usage: observed(1) });
+  assert.equal(reduce(h.state, event, { now: NOW }), h.state);
+  assert.throws(() => reduce(h.state, { ...event, usage: observed(2) }, { now: NOW }), /collision/);
+  h.send('retry', { task_id: 'code', reason: 'Compiler restored' }); h.start('code');
+  h.complete('code', { usage: observed(2) });
+  h.start('qa'); h.complete('qa', { evidence: [], usage: observed(3) });
+  assert.equal(h.state.tasks.find(t => t.id === 'qa').attempts[0].status, 'rejected');
+  h.send('retry', { task_id: 'qa', reason: 'Correct report' }); h.start('qa'); h.complete('qa', { usage: observed(4) });
+  h.finding(); h.repair(); h.start('code'); h.complete('code', { usage: observed(5) });
+  assert.equal(costs(h).known_subtotal_usd, 15);
+  for (const id of ['qa', 'review', 'security', 'recheck:finding-1']) { h.start(id); h.complete(id, { usage: observed(1) }); }
+  h.resolveFinding(); h.start('release'); h.complete('release', { usage: observed(1) });
+  assert.equal(costs(h).actual_cost_usd, 20);
+  assert.equal(h.state.usage.invocations, 10);
+});
+
+test('a failed unknown or partial attempt prevents actual even after a measured retry succeeds', () => {
+  for (const usage of [null, observed(2, { cost_complete: false, reason: 'Missing call receipt' })]) {
+    const h = harness(reportingInput()); h.start('code');
+    h.complete('code', { outcome: 'failed', reason: 'Failure', usage });
+    h.send('retry', { task_id: 'code', reason: 'Retry' });
+    for (const id of ['code', 'qa', 'review', 'security', 'release']) { h.start(id); h.complete(id, { usage: observed(1) }); }
+    assert.equal(report(h.state, { now: NOW }).status, 'PRODUCTION_READY');
+    assert.equal(costs(h).status, 'unavailable');
+    assert.equal(costs(h).actual_cost_usd, null);
+    assert.equal(costs(h).known_subtotal_usd, 5 + (usage?.cost_usd ?? 0));
+    assert.equal(costs(h).unknown_attempts.length, 1);
+  }
+});
+
+test('running attempts prevent actual, but settled measured stopped attempts retain actual', () => {
+  const config = reportingInput({ budget: { elapsed_ms: 10 } });
+  config.tasks.push(task('optional', 'growth', 'work', [], 'growth', { required: false }));
+  const h = harness(config); h.start('code'); h.complete('code', { usage: observed(1) }); h.start('optional');
+  assert.equal(costs(h).known_subtotal_usd, 1);
+  assert.match(costs(h).unknown_attempts[0].reason, /still running/);
+  assert.equal(costs(h).actual_cost_usd, null);
+  h.complete('optional', { usage: observed(2) }, NOW + 10);
+  const result = report(h.state, { now: NOW + 10 });
+  assert.equal(result.status, 'STOPPED');
+  assert.equal(result.costs.known_subtotal_usd, 3);
+  assert.equal(result.costs.actual_cost_usd, 3);
+  assert.equal(result.costs.scope, 'recorded_attempts');
+  assert.equal(result.costs.subtotal_is_partial, false);
+  assert.match(result.costs.reason, /does not establish feature completion/);
+  assert.equal(h.state.tasks.at(-1).attempts[0].status, 'rejected');
+});
+
+test('deadline-rejected measured completion reports actual incurred cost without claiming feature completion', () => {
+  const h = harness(reportingInput({ budget: { elapsed_ms: 100 } })); h.start('code');
+  h.complete('code', { outcome: 'failed', reason: 'Deadline failure', usage: observed(2) }, NOW + 100);
+  const result = report(h.state, { now: NOW + 100 });
+  assert.equal(result.status, 'STOPPED');
+  assert.equal(result.costs.status, 'available');
+  assert.equal(result.costs.actual_cost_usd, 2);
+  assert.equal(result.usage.cost_usd, 2);
+  assert.equal(result.costs.scope, 'recorded_attempts');
+  assert.equal(result.costs.subtotal_is_partial, false);
+  assert.deepEqual(result.costs.unknown_attempts, []);
+  assert.equal(result.costs.pending_tasks.length, 4);
+  assert.match(result.costs.reason, /does not establish feature completion/);
+  assert.equal(h.state.tasks[0].status, 'blocked');
+});
+
+test('advancing report clock cannot erase fully measured finished costs', () => {
+  const h = harness({ ...exampleInput, budget: { elapsed_ms: 100 } });
+  for (const id of ['backend', 'qa', 'security', 'review']) { h.start(id); h.complete(id, { usage: observed(1) }); }
+  const before = structuredClone(h.state);
+  assert.equal(report(h.state, { now: NOW }).status, 'VERIFIED');
+  assert.equal(costs(h).actual_cost_usd, 4);
+  const after = report(h.state, { now: NOW + 100 });
+  assert.equal(after.status, 'STOPPED');
+  assert.equal(after.costs.actual_cost_usd, 4);
+  assert.equal(after.costs.status, 'available');
+  assert.equal(after.costs.subtotal_is_partial, false);
+  assert.deepEqual(after.costs.unknown_attempts, []);
+  assert.deepEqual(h.state, before, 'Report does not modify persisted state');
+});
+
+test('stopped unknown, partial and still-active costs remain unavailable', () => {
+  for (const usage of [null, observed(2, { cost_complete: false, reason: 'Missing final receipt' })]) {
+    const h = harness(reportingInput({ budget: { elapsed_ms: 100 } })); h.start('code');
+    h.complete('code', { usage }, NOW + 100);
+    const result = report(h.state, { now: NOW + 100 });
+    assert.equal(result.status, 'STOPPED');
+    assert.equal(result.costs.actual_cost_usd, null);
+    assert.equal(result.costs.message, 'Actual cost unavailable');
+    assert.equal(result.costs.known_subtotal_usd, usage?.cost_usd ?? null);
+    assert.equal(result.costs.unknown_attempts.length, 1);
+  }
+  const config = reportingInput({ budget: { elapsed_ms: 100 } });
+  config.tasks.push(task('optional', 'growth', 'work', [], 'growth', { required: false }));
+  const h = harness(config); h.start('code'); h.complete('code', { usage: observed(2) }); h.start('optional');
+  const result = report(h.state, { now: NOW + 100 });
+  assert.equal(result.status, 'STOPPED');
+  assert.equal(result.costs.actual_cost_usd, null);
+  assert.equal(result.costs.known_subtotal_usd, 2);
+  assert.match(result.costs.unknown_attempts[0].reason, /still running/);
+});
+
+test('fully settled failed or blocked gates retain incurred actual without passing verification', () => {
+  for (const outcome of ['failed', 'blocked']) {
+    const h = harness(exampleInput);
+    for (const id of ['backend', 'qa', 'security']) { h.start(id); h.complete(id, { usage: observed(1) }); }
+    h.start('review'); h.complete('review', { outcome, reason: 'Review did not pass', usage: observed(1) });
+    assert.equal(report(h.state, { now: NOW }).status, 'BLOCKED');
+    assert.equal(costs(h).actual_cost_usd, 4);
+    assert.equal(costs(h).scope, 'recorded_attempts');
+    h.send('retry', { task_id: 'review', reason: 'Retry pending review' });
+    assert.equal(costs(h).actual_cost_usd, null);
+    assert.equal(costs(h).known_subtotal_usd, 4);
+    assert.equal(costs(h).subtotal_is_partial, true);
+  }
+});
+
+test('reporting mode preserves approval, independent gates, operational caps and immutable settings', () => {
+  assert.throws(() => createRun(reportingInput({ authorization: { approved: false, approved_by: 'test', scope_ref: 'test' } })), /approved/);
+  const config = reportingInput({ budget: { concurrent: 1 } });
+  config.actors.find(a => a.id === 'backend').roles.push('qa');
+  config.tasks.push(task('optional', 'growth', 'work', [], 'growth', { required: false }));
+  const h = harness(config); h.start('code');
+  assert.throws(() => h.start('optional'), /Concurrent/);
+  for (const patch of [{ cost_mode: 'strict' }, { cost_estimate: { status: 'unavailable', reason: 'changed' } },
+    { budget: {} }, { factory_version: 'changed' }, { authorization: {} }]) {
+    assert.throws(() => h.send('tick', patch), /Unknown event field/);
+  }
+  assert.throws(() => h.send('tick', { adapter_id: 'other' }), /attestation/);
+  assert.throws(() => h.send('tick', {}, 'unknown'), /Undeclared/);
+  assert.throws(() => h.send('skip', { task_id: 'qa', reason: 'Cost saving' }), /required/);
+  h.complete('code'); h.send('skip', { task_id: 'optional', reason: 'Optional' });
+  assert.throws(() => h.start('qa', { actor_id: 'backend' }), /Independent/);
+  h.start('qa'); h.complete('qa', { evidence: [] });
+  assert.equal(h.state.tasks.find(t => t.id === 'qa').status, 'blocked');
+  for (let i = 0; i < 2; i++) {
+    h.send('retry', { task_id: 'qa', reason: 'Retry report' }); h.start('qa'); h.complete('qa', { evidence: [] });
+  }
+  assert.throws(() => h.send('retry', { task_id: 'qa', reason: 'More' }), /lifetime retry/);
+  const invocation = harness(reportingInput({ budget: { invocations: 3 } }));
+  assert.match(invocation.state.stopped.reason, /Insufficient invocation/);
+  const repairs = harness(reportingInput({ budget: { repair_waves: 0 } }));
+  repairs.run('code'); repairs.finding(); repairs.repair();
+  assert.match(repairs.state.stopped.reason, /repair wave limit/);
+});
+
+test('invalid modes and mixed persisted schemas fail without migrating legacy strict runs', async t => {
+  for (const mode of [null, 'off', '', 0, {}]) assert.throws(() => createRun(input({ cost_mode: mode })), /cost_mode/);
+  const dir = await mkdtemp(join(tmpdir(), 'factory-legacy-'));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const path = join(dir, 'state.json');
+  const legacy = createRun(input(), { now: NOW });
+  delete legacy.config.cost_mode; delete legacy.config.cost_estimate;
+  await writeFile(path, JSON.stringify(legacy));
+  assert.deepEqual(await load(path), legacy);
+  assert.equal(report(await load(path), { now: NOW }).costs.mode, 'strict');
+  const start = { type: 'start', event_id: 'start', expected_version: 0, actor_id: 'backend', adapter_id: 'adapter', attested: true,
+    task_id: 'code', attempt_id: 'legacy-attempt', inputs: {}, candidate: legacy.candidate };
+  await assert.rejects(apply(path, start, { now: NOW }), /reservation/);
+  await apply(path, { ...start, reservation: { tokens: 100, cost_usd: 0.1 } }, { now: NOW });
+  const finish = { type: 'complete', event_id: 'finish', expected_version: 1, actor_id: 'backend', adapter_id: 'adapter', attested: true,
+    task_id: 'code', attempt_id: 'legacy-attempt', outcome: 'failed', reason: 'Failure' };
+  await assert.rejects(apply(path, finish, { now: NOW }), /usage/);
+  await apply(path, { ...finish, usage: { tokens: 101, cost_usd: 0.2 } }, { now: NOW });
+  const reloaded = await load(path);
+  assert.equal(reloaded.schema_version, 1); assert.equal(reloaded.config.cost_mode, undefined);
+  assert.match(reloaded.stopped.reason, /usage exceeded reservation/);
+  assert.equal(reloaded.usage.cost_usd, 0.2);
+  for (const [schema_version, cost_mode] of [[1, 'reporting_only'], [2, 'strict'], [2, undefined], [3, 'reporting_only'], [1, null]]) {
+    const bad = { ...legacy, schema_version, config: { ...legacy.config, cost_mode } };
+    await writeFile(path, JSON.stringify(bad));
+    await assert.rejects(load(path), /mode\/schema/);
+    assert.throws(() => report(bad, { now: NOW }), /mode\/schema/);
+    assert.throws(() => reduce(bad, start, { now: NOW }), /mode\/schema/);
+  }
+});
+
+test('reporting CLI roundtrip preserves nulls, measured partials, replay and immutable mode', async t => {
+  const dir = await mkdtemp(join(tmpdir(), 'factory-report-cli-'));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const path = join(dir, 'state.json');
+  const call = (command, payload) => spawnSync(process.execPath, [resolve('factory/cli.mjs'), command, path,
+    ...(payload === undefined ? [] : ['-'])], { input: payload === undefined ? undefined : JSON.stringify(payload), encoding: 'utf8' });
+  const initial = call('init', reportingInput()); assert.equal(initial.status, 0, initial.stderr);
+  assert.equal(JSON.parse(initial.stdout).costs.mode, 'reporting_only');
+  let version = 0;
+  for (const usage of [null, observed(1, { cost_complete: false, reason: 'Partial receipt' })]) {
+    const current = JSON.parse(call('show').stdout);
+    const start = { type: 'start', event_id: `start-${version}`, expected_version: version, actor_id: 'backend', adapter_id: 'adapter', attested: true,
+      task_id: 'code', attempt_id: `attempt-${version}`, inputs: {}, candidate: current.candidate };
+    assert.equal(call('apply', start).status, 0); version++;
+    const complete = { ...start, type: 'complete', event_id: `complete-${version}`, expected_version: version, outcome: 'failed', reason: 'Failed', usage };
+    delete complete.inputs; delete complete.candidate;
+    const result = call('apply', complete); assert.equal(result.status, 0, result.stderr); version++;
+    assert.equal(JSON.parse(call('apply', complete).stdout).version, version);
+    if (usage === null) {
+      const retry = { type: 'retry', event_id: 'retry', expected_version: version, actor_id: 'control', adapter_id: 'adapter', attested: true,
+        task_id: 'code', reason: 'Retry' };
+      assert.equal(call('apply', retry).status, 0); version++;
+    }
+  }
+  const result = JSON.parse(call('show').stdout);
+  assert.equal(result.costs.actual_cost_usd, null); assert.equal(result.costs.known_subtotal_usd, 1);
+  assert.equal(result.costs.unknown_attempts.length, 2);
+  const state = await load(path); assert.equal(state.schema_version, 2); assert.equal(state.usage.tokens, null);
+  assert.equal(state.tasks[0].attempts[0].usage.cost_usd, null);
+  const invalid = call('apply', { type: 'tick', event_id: 'switch', expected_version: version, actor_id: 'control', adapter_id: 'adapter', attested: true, cost_mode: 'strict' });
+  assert.equal(invalid.status, 1); assert.match(invalid.stderr, /Unknown event field/);
+  assert.equal((await load(path)).version, version);
+});
+
+test('overflow never serializes an apparent actual cost or token total', () => {
+  const h = harness(reportingInput());
+  for (const id of ['code', 'qa', 'review', 'security', 'release']) {
+    h.start(id); h.complete(id, { usage: observed(Number.MAX_VALUE, { tokens: Number.MAX_SAFE_INTEGER }) });
+  }
+  const result = report(h.state, { now: NOW });
+  assert.equal(result.costs.actual_cost_usd, null); assert.equal(result.costs.known_subtotal_usd, null);
+  assert.equal(result.costs.status, 'unavailable'); assert.match(result.costs.reason, /numeric range/);
+  assert.equal(result.usage.tokens, null);
+});
+
+test('unfinished optional gates prevent final actual even when required gates are verified', () => {
+  const config = structuredClone(exampleInput);
+  config.tasks.push(task('optional-review', 'code-review', 'review', ['backend'], 'review', { required: false }));
+  const h = harness(config);
+  for (const id of ['backend', 'qa', 'security', 'review']) { h.start(id); h.complete(id, { usage: observed(1) }); }
+  assert.equal(report(h.state, { now: NOW }).status, 'VERIFIED');
+  assert.equal(costs(h).actual_cost_usd, null);
+  assert.deepEqual(costs(h).pending_tasks, ['optional-review']);
+  h.start('optional-review');
+  assert.equal(costs(h).actual_cost_usd, null);
+  assert.equal(costs(h).unknown_attempts.length, 1);
+  h.complete('optional-review', { usage: observed(1) });
+  assert.equal(costs(h).actual_cost_usd, 5);
 });

@@ -55,6 +55,10 @@ test('absolute shared CLI isolates two external projects without installation', 
     const initial = execute(project, cli, ['init', statePath, inputPath]);
     assert.equal(initial.run_id, input.run_id);
     assert.equal(initial.version, 0);
+    assert.equal(initial.costs.mode, 'reporting_only');
+    assert.equal(initial.costs.actual_cost_usd, null);
+    assert.equal(initial.costs.known_subtotal_usd, null);
+    assert.equal(initial.costs.message, 'Actual cost unavailable');
     const event = execute(project, example, ['tick']);
     event.event_id = 'same-event-id-in-separate-runs';
     event.expected_version = initial.version;
@@ -68,6 +72,8 @@ test('absolute shared CLI isolates two external projects without installation', 
     const state = JSON.parse(await readFile(statePath, 'utf8'));
     assert.equal(state.config.repository, project);
     assert.equal(state.config.factory_version, 'test-snapshot-1');
+    assert.equal(state.schema_version, 2);
+    assert.equal(state.config.cost_mode, 'reporting_only');
     assert.deepEqual((await readdir(runRoot)).sort(), ['event.json', 'input.json', 'reports', 'state.json']);
     assert.deepEqual(await snapshot(project), projectBefore, 'No config, packages, skills, or state installed in target');
     runs.push({ project, runRoot, statePath, projectBefore });

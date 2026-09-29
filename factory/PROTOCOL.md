@@ -75,7 +75,9 @@ and blockers. These defaults do not migrate persisted state.
 | `actors` | IDs and allowed role names for this run |
 | `candidate` | Retrievable `ref` and lowercase SHA-256 `hash` |
 | `tasks` | DAG of role assignments, required flags, output types, and checks |
-| `budget` | Optional lower pilot limits |
+| `budget` | Optional lower operational limits; token/money fields are informational in reporting-only |
+| `cost_mode` | Optional `reporting_only` default, or explicit `strict`; immutable |
+| `cost_estimate` | Optional whole-feature estimate, or unavailable object with a reason |
 
 Each task declares `id`, `role`, `depends_on`, `required`, `kind`, and
 `artifact_kind`. Code tasks also declare `component` as `backend` or `frontend`.
@@ -106,7 +108,7 @@ The source reducer and executable tests define validation for event payloads.
 
 1. Initialize with the approved baseline and task graph.
 2. For each ready work task, submit `start`, execute the authorized agent, then
-   submit `complete` with measured usage and the produced artifact.
+   submit `complete` with available usage and the produced artifact.
 3. After work settles, publish the actual integrated candidate with `publish`.
    A future hash is not required before implementing a change. Gates wait for
    this explicit publication and receive its exact reference and digest.
@@ -116,8 +118,9 @@ The source reducer and executable tests define validation for event payloads.
 5. Submit `finding` when a stage exposes a defect. `repair` groups unresolved
    findings into a global wave, invalidates affected work, and schedules reruns.
 6. Execute repairs, publish the resulting candidate, then run fresh checks.
-   Dedicated rechecks use ordinary starts, reservations, and completions. They
-   require an actor independent of the source author, including earlier authors.
+   Dedicated rechecks use ordinary starts and completions under the run's cost
+   mode; only strict mode requires reservations. Rechecks require an actor
+   independent of the source author, including earlier authors.
 7. Submit `resolve` against the completed independent recheck. A repaired report
    does not close its own issue. Inspect the final report instead of assuming
    that successful event submission means successful verification.
@@ -132,7 +135,8 @@ Provide distinct role-qualified actors for report repairs, including QA and
 Release Manager reports. A missing eligible verifier blocks rather than permitting
 the original author to approve the repair.
 
-For completion, report actual token and cost usage even when a call failed. Gate
+For completion, retain available token and cost observations even when a call failed.
+Strict mode requires both measured values; reporting-only accepts missing telemetry. Gate
 success needs evidence for every declared check, bound to the exact candidate.
 Rejected evidence still consumes observed usage. A failed task does not become a
 pass because a later retry succeeded; history retains both attempts.
@@ -145,8 +149,8 @@ Unknown ownership is not guessed. Requirement or permission conflicts need a hum
 
 | Event | Fields in addition to the common envelope |
 | --- | --- |
-| `start` | `task_id`, unique `attempt_id`, positive `reservation: {tokens, cost_usd}`, exact `inputs`, exact `candidate` from ready assignment |
-| `complete` | `task_id`, `attempt_id`, `outcome`, observed `usage`; success needs `artifact: {ref, hash}`, gate success also needs `evidence`; failed/blocked needs `reason` |
+| `start` | `task_id`, unique `attempt_id`, exact `inputs`, exact `candidate`; strict requires positive `reservation: {tokens, cost_usd}`, reporting-only may omit it |
+| `complete` | `task_id`, `attempt_id`, `outcome`, `usage` as defined below; success needs `artifact: {ref, hash}`, gate success also needs `evidence`; failed/blocked needs `reason` |
 | `publish` | Actual `candidate: {ref, hash}`; controller actor only |
 | `finding` | `finding_id`, `category`, `subtype`, `source_task_id`, `source_attempt_id`, `source_revision`, exact current `candidate`, `evidence: {ref, hash}` |
 | `repair` | All unresolved `finding_ids`; controller actor only; no future candidate hash |
@@ -166,6 +170,99 @@ and `release`. Categories `schema` and `format` delegate to the declared artifac
 kind's producer. A code source must name its backend/frontend component. Identify
 the broken artifact, not merely the check that exposed it.
 
+## Cost accounting
+
+Apply the [AGENTS.md cost reporting policy](../AGENTS.md#cost-reporting-policy)
+before coding and at completion. It applies to any agent or provider. The controller
+does not select models, change provider settings, or require a telemetry adapter.
+`trusted_adapter_id` and event `adapter_id` remain local caller attestations.
+
+New runs default to `cost_mode: "reporting_only"` and persist schema 2. Explicit
+`strict` persists schema 1 with the original metering contract. Schema 1 without a
+mode also means strict, including after reload. Mixed or unknown schema/mode pairs
+are rejected. No event changes mode, estimate, authorization, pins, or budget.
+Old schema-1-only readers reject schema 2 rather than interpreting null usage as zero.
+
+`cost_estimate` is optional. Omission becomes
+`{"status":"unavailable","reason":"No defensible whole-feature estimate supplied"}`.
+An explicit unavailable object requires a nonempty `reason` and no numeric fields.
+A numeric estimate uses this shape; the numbers here are illustrative, not pricing:
+
+```json
+{
+  "status": "available",
+  "low_usd": 25,
+  "high_usd": 80,
+  "scope": "Whole feature: planning, coding, tests, QA, Security, independent review and expected retries",
+  "model": "Caller-selected model and expected workload assumptions",
+  "pricing": "Dated pricing source and billing assumptions",
+  "uncertainty": "Range includes workload variance and up to two retries"
+}
+```
+
+Bounds must be finite nonnegative numbers with `low_usd <= high_usd`; all four
+assumption strings are required. Estimates above a strict cap are still valid
+reports, not permission to increase that cap. An estimate never justifies a model
+downgrade, skipped checks, or provider/permission changes.
+
+### Reporting-only observations
+
+`complete.usage` may be omitted or null, which records null tokens and cost with
+reason `Usage telemetry unavailable`. An explicit object accepts only `tokens`,
+`cost_usd`, `source_ref`, `cost_complete`, and `reason`. Tokens may independently be
+null or a nonnegative safe integer. Cost may be null or a finite nonnegative number.
+Numeric cost, including reliable zero, requires a nonempty `source_ref` and boolean
+`cost_complete`. The caller must check that source is reliable and attributable to
+this attempt alone, including all internal calls and retries. A reference is not
+verified by the controller and must not merely point at a configured price or a
+default-zero telemetry field. Unknown or partial cost requires a nonempty reason.
+
+```json
+{"tokens":1200,"cost_usd":null,"reason":"Billing not available"}
+```
+
+```json
+{"tokens":null,"cost_usd":0.4,"source_ref":"local-receipt:attempt-1","cost_complete":false,"reason":"Final call receipt missing"}
+```
+
+```json
+{"tokens":null,"cost_usd":0,"source_ref":"local-receipt:attempt-2","cost_complete":true}
+```
+
+The partial example's `cost_usd` is a known subtotal, not an actual attempt total.
+Null cost cannot have `cost_complete: true`. Each completed attempt is accounted
+once, including failed, rejected, retried, and invalidated attempts. Identical event
+replay adds nothing; a conflicting replay is rejected. The caller must avoid charging
+one call to multiple attempts or counting a parent total and its children twice.
+There is no late-cost-reconciliation event; keep unknown coverage visible.
+
+Reports include `costs.mode`, `estimate`, `scope: "recorded_attempts"`, `status`,
+`actual_cost_usd`, `known_subtotal_usd`, `subtotal_is_partial`, `unknown_attempts`,
+`pending_tasks`, and an explanation. Actual is available when every started attempt
+has settled with complete cost and either the run is `STOPPED` or all tasks are
+settled as done, skipped, failed, or blocked. This measures incurred cost, not
+verification success. A stopped run can have an actual for recorded attempts even
+with never-started pending tasks; its explanation does not claim feature completion.
+Advancing the report clock past the deadline preserves fully measured actual costs.
+Nonterminal runs with pending work retain a partial known subtotal. Otherwise actual
+stays null and the message is exactly `Actual cost unavailable`. Active attempts are
+unknown, even after a stop and even if other attempts are measured. An empty ledger
+has null subtotal, not invented zero. Numeric overflow also yields unavailable.
+Reporting `usage.tokens` is null unless every attempt's tokens are known and settled;
+`usage.cost_usd` mirrors actual, never the partial subtotal. Persisted reporting
+`state.usage` holds invocation count and null totals; reports derive costs from attempts.
+
+These totals cover recorded attempts only. Unrecorded discovery, planning, or review
+costs are not included. A client must use `Actual cost unavailable` for the whole
+feature unless it can establish full coverage, and label this subtotal partial.
+
+Reporting-only never enforces token/money caps or reservations. Their budget defaults
+are null; supplied nonnegative values are informational. Reservations can be omitted
+or null; if supplied they retain the positive numeric shape but have no effect.
+Strict mode keeps mandatory positive reservations, numeric `{tokens,cost_usd}` usage,
+pre-dispatch capacity checks, and over-reservation rejection after recording usage.
+Legacy strict observations do not retroactively require source references.
+
 ## Budgets and assurance
 
 The pilot is intentionally conservative. All declared work settles before candidate
@@ -175,11 +272,13 @@ reclassification, role-registration, or approval-edit event. Prepare the role gr
 and independent verifier identities at intake. Preserve blocked state and its usage
 if a human authorizes a corrected plan outside this controller.
 
-Defaults are four concurrent tasks, 32 invocations, three global repair waves,
-200,000 tokens, US$20, and 90 minutes elapsed. All attempts count, including failed
-and invalidated work. Reservations precede execution. The caller must enforce
-per-attempt bounds and submit truthful usage. A local ledger cannot cap external
-spending by itself. Budget limits cannot be increased through events.
+Both modes default to four concurrent tasks, 32 invocations, three global repair
+waves, and 90 minutes elapsed. All attempts count, including failed and invalidated
+work. Strict mode additionally caps 200,000 tokens and US$20. Strict reservations
+precede execution; the caller must enforce per-attempt bounds and submit truthful
+usage. A local ledger cannot cap external spending by itself. Budget limits cannot
+be increased through events. Reporting-only changes none of the operational,
+authorization, candidate, dependency, evidence, or independent-verifier checks.
 
 The report includes version, status, stop reason, candidate, ready tasks, attempts,
 findings, budget, and observed/reserved usage. Successful runs without a required

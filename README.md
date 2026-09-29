@@ -148,17 +148,26 @@ An exclusive lock and atomic state replacement prevent concurrent updates; do no
 manually edit state or delete locks while a writer is active.
 
 The caller declares a task dependency graph, approved scope, actor identities,
-candidate identity, and required checks. It reserves budget before dispatching an
+candidate identity, and required checks. It records attempts before dispatching an
 agent and submits observed results afterward. Findings route to the causal owner;
 repair waves invalidate affected work and transitive consumers. Candidate-specific
 verification, code review, security, and release results must match the current
 candidate. Stale results and self-verification cannot satisfy required gates.
 
-The pilot caps runs at four concurrent tasks, 32 invocations, three global repair
-waves, 200,000 tokens, US$20, and 90 minutes elapsed. Lower limits may be supplied;
-the loop cannot raise them. Usage is caller-reported, not provider billing telemetry.
-No hard external spending guarantee exists without an adapter that enforces each
-reservation and reports actual usage.
+The [AGENTS.md cost reporting policy](AGENTS.md#cost-reporting-policy) requires a
+whole-feature estimate before coding and reliable actual costs at completion, or
+an explicit unavailable report. New runs use `reporting_only`, with no token or
+monetary enforcement and no telemetry integration needed. Missing cost is `null`,
+never zero. Known partial subtotals stay separate from actual totals.
+
+Both modes cap runs at four concurrent tasks, 32 invocations, three global repair
+waves, and 90 minutes elapsed. Explicit `cost_mode: "strict"` also retains the
+200,000-token and US$20 caps and requires per-attempt reservations and measured
+usage. Lower operational limits may be supplied; events cannot raise them.
+Legacy schema 1 states stay strict; new reporting states use schema 2 so old
+readers reject them. Modes cannot change within a run. Usage and source references
+are caller attestations, not provider billing verification. Strict external caps
+still depend on caller-enforced bounds. See [the protocol](factory/PROTOCOL.md).
 
 Actor identity, authorization, artifact hashes, and test evidence are local
 attestations, not cryptographic proof. A caller able to fabricate events can lie

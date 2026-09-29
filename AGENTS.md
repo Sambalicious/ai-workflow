@@ -40,6 +40,35 @@ This section is authoritative for factory role selection in new runs. A generic
 - Existing active pinned runs retain their graph, factory version, approved gates,
   and blockers. These defaults do not migrate or mutate existing runs.
 
+## Cost reporting policy
+
+This policy applies to every coding agent and client, regardless of provider or
+model. New runs default to `reporting_only`; monetary and token estimates are
+reports, not execution limits.
+
+- Before coding, report a whole-feature cost range covering planning, implementation,
+  tests, QA, Security, independent review, and expected retries or repairs. State
+  scope, model and pricing assumptions, and uncertainty. Reuse the shared estimate
+  in role handoffs rather than presenting one worker's cost as the whole feature.
+- If defensible numbers are unavailable, report `Estimate unavailable` and the
+  reason. Never invent a range or substitute zero for missing prices or telemetry.
+- At completion, report actual cost only from reliable, fully attributable sources
+  covering the whole feature, including failed, retried, rejected, and invalidated
+  attempts once each. Otherwise use exactly `Actual cost unavailable`. A known
+  subtotal is explicitly partial, never the actual total; identify missing coverage.
+  A controller total covers recorded attempts only, not unrecorded planning or work.
+- Keep reporting brief: mode, estimate and assumptions, actual or unavailable,
+  partial known subtotal if any, and missing coverage. Retain source references
+  for claimed observations. Tokens and money may be independently unavailable.
+- Estimates never authorize model downgrades, skipped checks, provider or permission
+  changes. Reporting-only requires no telemetry adapter or provider-specific API.
+  QA, Security, fresh independent review, authorization, pins, retry and repair
+  limits, concurrency, invocation limits, and deadlines remain binding.
+- Explicit `strict` is opt-in for new controller runs. Existing schema 1 runs remain
+  strict, including when no mode was stored. A run's mode is immutable; do not edit
+  persisted state or start a replacement run to bypass its limits. The protocol in
+  `factory/PROTOCOL.md` defines both modes and their accounting fields.
+
 ## The team
 
 | Agent | File | Role |
