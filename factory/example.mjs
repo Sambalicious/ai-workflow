@@ -10,6 +10,8 @@ export const exampleInput = {
   base_sha: 'a'.repeat(40),
   factory_version: 'pilot-1',
   trusted_adapter_id: 'local-adapter',
+  cost_mode: 'reporting_only',
+  cost_estimate: { status: 'unavailable', reason: 'No defensible pricing or whole-feature workload estimate supplied' },
   authorization: { approved: true, approved_by: 'REPLACE-WITH-APPROVER', scope_ref: 'REPLACE-WITH-APPROVED-BRIEF' },
   candidate: { ref: 'REPLACE-WITH-CANDIDATE-REF', hash: 'b'.repeat(64) },
   actors: [
@@ -46,10 +48,10 @@ const candidate = { ...exampleInput.candidate, revision: 1 };
 const evidence = { ref: 'REPLACE-WITH-EVIDENCE-REF', hash: 'c'.repeat(64) };
 export const exampleEvents = {
   start: { ...common, type: 'start', task_id: 'backend', attempt_id: 'backend-attempt-1',
-    reservation: { tokens: 5000, cost_usd: 0.5 }, inputs: {}, candidate },
+    inputs: {}, candidate },
   complete: { ...common, expected_version: 1, type: 'complete', task_id: 'backend',
     attempt_id: 'backend-attempt-1', outcome: 'success',
-    usage: { tokens: 3000, cost_usd: 0.3 }, artifact: evidence },
+    usage: { tokens: null, cost_usd: null, reason: 'Usage telemetry unavailable' }, artifact: evidence },
   finding: { ...common, type: 'finding', actor_id: 'qa-session', finding_id: 'finding-1',
     category: 'code', subtype: 'regression', source_task_id: 'backend',
     source_attempt_id: 'backend-attempt-1', source_revision: 1, candidate, evidence },
@@ -61,10 +63,10 @@ export const exampleEvents = {
     verification_task_id: 'recheck:finding-1', verification_attempt_id: 'recheck-attempt-1',
     candidate: { ref: 'REPLACE-WITH-NEW-CANDIDATE', hash: 'd'.repeat(64), revision: 2 } },
   gate_complete: { ...common, type: 'complete', actor_id: 'qa-session', task_id: 'qa',
-    attempt_id: 'qa-attempt-1', outcome: 'success', usage: { tokens: 3000, cost_usd: 0.3 },
+    attempt_id: 'qa-attempt-1', outcome: 'success', usage: null,
     artifact: evidence, evidence: ['regression', 'full-suite'].map(check => ({ check, artifact: evidence, candidate })) },
   failed: { ...common, type: 'complete', task_id: 'backend', attempt_id: 'backend-attempt-1',
-    outcome: 'failed', reason: 'REPLACE-WITH-OBSERVED-FAILURE', usage: { tokens: 3000, cost_usd: 0.3 } },
+    outcome: 'failed', reason: 'REPLACE-WITH-OBSERVED-FAILURE', usage: null },
   skip: { ...common, type: 'skip', actor_id: 'orchestrator', task_id: 'optional-task', reason: 'REPLACE-WITH-REASON' },
   tick: { ...common, type: 'tick', actor_id: 'orchestrator' },
 };

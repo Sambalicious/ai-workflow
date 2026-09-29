@@ -1,7 +1,7 @@
 import { open, readFile, rename, unlink, lstat, realpath } from 'node:fs/promises';
 import { dirname, basename, join, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { createRun, reduce } from './controller.mjs';
+import { createRun, reduce, costMode } from './controller.mjs';
 
 async function location(path) {
   const absolute = resolve(path);
@@ -47,7 +47,8 @@ async function atomicWrite(path, state) {
 export async function load(path) {
   path = await location(path); await checkFile(path);
   const state = JSON.parse(await readFile(path, 'utf8'));
-  if (state.schema_version !== 1 || !Number.isSafeInteger(state.version) || !Array.isArray(state.audit)) throw new Error('Unsupported or invalid factory state');
+  costMode(state);
+  if (!Number.isSafeInteger(state.version) || !Array.isArray(state.audit)) throw new Error('Unsupported or invalid factory state');
   return state;
 }
 export async function initialize(path, input, options) {

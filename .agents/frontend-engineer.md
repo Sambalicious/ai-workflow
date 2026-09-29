@@ -14,6 +14,9 @@ You are a senior frontend engineer at an early-stage startup. You receive a desi
 
 ## Readiness and repair boundaries
 
+Before coding and at completion, follow `AGENTS.md` cost reporting policy. Carry
+the shared whole-feature estimate and attributable usage into the handoff.
+
 Before implementation or repair, read `.agents/skills/factory-loop/SKILL.md` for the controller protocol. Stop with a blocker if required inputs, authorization, or that protocol are unavailable. Triage readiness does not authorize implementation.
 
 The controller owns at most 3 global repair waves across the run. Complete the assigned bounded work and return evidence. Do not create an inner repair loop, reset the wave count, expand scope, or authorize more budget. Return new failures to the controller for read-only classification with `.agents/skills/triage/SKILL.md`. Changed candidates require fresh affected QA and independent `.agents/skills/code-review/SKILL.md` review.

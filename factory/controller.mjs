@@ -55,6 +55,43 @@ function metering(value, name, positive = false) {
   number(value.tokens, `${name}.tokens`, positive, true);
   number(value.cost_usd, `${name}.cost_usd`, positive);
 }
+export function costMode(state) {
+  const mode = state.config?.cost_mode;
+  ensure((state.schema_version === 1 && (mode === undefined || mode === 'strict'))
+    || (state.schema_version === 2 && mode === 'reporting_only'), 'Unsupported or mixed cost mode/schema');
+  return state.schema_version === 1 ? 'strict' : 'reporting_only';
+}
+function costEstimate(value = { status: 'unavailable', reason: 'No defensible whole-feature estimate supplied' }) {
+  if (value?.status === 'unavailable') {
+    object(value, ['status', 'reason'], 'cost_estimate'); text(value.reason, 'cost_estimate.reason');
+  } else {
+    object(value, ['status', 'low_usd', 'high_usd', 'scope', 'model', 'pricing', 'uncertainty'], 'cost_estimate');
+    ensure(value.status === 'available', 'cost_estimate.status must be available or unavailable');
+    number(value.low_usd, 'cost_estimate.low_usd'); number(value.high_usd, 'cost_estimate.high_usd');
+    ensure(value.low_usd <= value.high_usd, 'cost_estimate range is reversed');
+    for (const key of ['scope', 'model', 'pricing', 'uncertainty']) text(value[key], `cost_estimate.${key}`);
+  }
+  return structuredClone(value);
+}
+function costUsage(value) {
+  if (value === undefined || value === null) return {
+    tokens: null, cost_usd: null, cost_complete: false, reason: 'Usage telemetry unavailable',
+  };
+  object(value, ['tokens', 'cost_usd', 'source_ref', 'cost_complete', 'reason'], 'usage');
+  const usage = { ...value, tokens: value.tokens ?? null, cost_usd: value.cost_usd ?? null };
+  if (usage.cost_complete !== undefined) ensure(typeof usage.cost_complete === 'boolean', 'usage.cost_complete must be boolean');
+  if (usage.tokens !== null) number(usage.tokens, 'usage.tokens', false, true);
+  if (usage.cost_usd !== null) {
+    number(usage.cost_usd, 'usage.cost_usd'); text(usage.source_ref, 'usage.source_ref');
+    ensure(typeof usage.cost_complete === 'boolean', 'usage.cost_complete must be boolean');
+  } else {
+    ensure(usage.cost_complete !== true, 'Unknown cost cannot be complete'); usage.cost_complete = false;
+  }
+  if (!usage.cost_complete) text(usage.reason, 'usage.reason');
+  else if (usage.reason !== undefined) text(usage.reason, 'usage.reason');
+  if (usage.source_ref !== undefined) text(usage.source_ref, 'usage.source_ref');
+  return structuredClone(usage);
+}
 function canonical(value) {
   if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`;
   if (value && typeof value === 'object') return `{${Object.keys(value).sort().map(k => `${JSON.stringify(k)}:${canonical(value[k])}`).join(',')}}`;
@@ -108,7 +145,10 @@ function stop(state, reason) { state.stopped = { reason, at: state.updated_at };
 export function createRun(input, { now = Date.now() } = {}) {
   clock(now);
   object(input, ['run_id', 'work_item_id', 'repository', 'base_sha', 'factory_version',
-    'trusted_adapter_id', 'authorization', 'actors', 'candidate', 'tasks', 'budget'], 'input');
+    'trusted_adapter_id', 'authorization', 'actors', 'candidate', 'tasks', 'budget', 'cost_mode', 'cost_estimate'], 'input');
+  const mode = input.cost_mode === undefined ? 'reporting_only' : input.cost_mode;
+  ensure(['strict', 'reporting_only'].includes(mode), 'cost_mode must be strict or reporting_only');
+  const estimate = costEstimate(input.cost_estimate);
   for (const k of ['run_id', 'work_item_id', 'factory_version', 'trusted_adapter_id']) id(input[k], k);
   text(input.repository, 'repository');
   ensure(typeof input.base_sha === 'string' && /^[a-f0-9]{40,64}$/.test(input.base_sha), 'base_sha must be a hexadecimal commit ID');
@@ -126,8 +166,13 @@ export function createRun(input, { now = Date.now() } = {}) {
   }
   ensure(input.actors.some(a => a.roles.includes('controller')), 'Declare a controller actor');
   object(input.budget ?? {}, Object.keys(DEFAULT_BUDGET), 'budget');
-  const budget = { ...DEFAULT_BUDGET, ...input.budget };
+  const budget = { ...DEFAULT_BUDGET,
+    ...(mode === 'reporting_only' ? { tokens: null, cost_usd: null } : {}), ...input.budget };
   for (const [key, value] of Object.entries(budget)) {
+    if (mode === 'reporting_only' && ['tokens', 'cost_usd'].includes(key)) {
+      if (value !== null) number(value, `budget.${key}`, false, key === 'tokens');
+      continue;
+    }
     number(value, `budget.${key}`, key !== 'repair_waves', key !== 'cost_usd');
     ensure(value <= DEFAULT_BUDGET[key], `budget.${key} cannot exceed pilot cap ${DEFAULT_BUDGET[key]}`);
   }
@@ -188,10 +233,11 @@ export function createRun(input, { now = Date.now() } = {}) {
     }
   }
   const state = {
-    schema_version: 1, version: 0, config: structuredClone(input), budget,
+    schema_version: mode === 'strict' ? 1 : 2, version: 0,
+    config: { ...structuredClone(input), cost_mode: mode, cost_estimate: estimate }, budget,
     created_at: now, updated_at: now, candidate: { ...input.candidate, revision: 1 },
     tasks, findings: [], repair_waves: 0, candidate_published: false, blocked_reason: null,
-    usage: { invocations: 0, tokens: 0, cost_usd: 0 }, audit: [], stopped: null,
+    usage: { invocations: 0, tokens: mode === 'strict' ? 0 : null, cost_usd: mode === 'strict' ? 0 : null }, audit: [], stopped: null,
   };
   if (tasks.filter(t => t.effective_required).length > budget.invocations) stop(state, 'Insufficient invocation budget for required tasks and gates');
   return state;
@@ -223,6 +269,7 @@ function readyTasks(state) {
 
 export function report(state, { now = Date.now() } = {}) {
   clock(now);
+  const mode = costMode(state);
   const deadline = expired(state, now);
   const unresolved = state.findings.filter(f => f.status !== 'resolved');
   const done = state.tasks.filter(t => t.effective_required).every(t => t.status === 'done');
@@ -232,10 +279,33 @@ export function report(state, { now = Date.now() } = {}) {
   else if (done && state.candidate_published && unresolved.length === 0 && active(state).length === 0) status = state.tasks.some(t => t.effective_required && t.kind === 'release') ? 'PRODUCTION_READY' : 'VERIFIED';
   else if (!active(state).length && (!ready.length || ready.every(t => !state.config.actors.some(a => a.roles.includes(t.role)
     && (t.kind === 'work' || independent(state, t, a.id)))))) status = 'BLOCKED';
-  const reserved = active(state).reduce((sum, t) => {
+  const reserved = mode === 'reporting_only' ? null : active(state).reduce((sum, t) => {
     const r = attemptFor(t).reservation;
     return { tokens: sum.tokens + r.tokens, cost_usd: sum.cost_usd + r.cost_usd };
   }, { tokens: 0, cost_usd: 0 });
+  const attempts = state.tasks.flatMap(t => t.attempts);
+  const unknown = attempts.filter(a => a.status === 'running' || !a.usage?.cost_complete);
+  const measured = attempts.filter(a => a.usage?.cost_usd != null);
+  const sum = measured.reduce((n, a) => n + a.usage.cost_usd, 0);
+  const subtotal = measured.length && Number.isFinite(sum) ? sum : null;
+  const complete = subtotal !== null && unknown.length === 0
+    && (status === 'STOPPED' || state.tasks.every(t => ['done', 'skipped', 'failed', 'blocked'].includes(t.status)));
+  const tokenSum = attempts.reduce((n, a) => n + (a.usage?.tokens ?? 0), 0);
+  const tokens = attempts.length && attempts.every(a => a.status !== 'running' && a.usage?.tokens != null)
+    && Number.isSafeInteger(tokenSum) ? tokenSum : null;
+  const costs = mode === 'reporting_only' ? {
+    mode, estimate: state.config.cost_estimate, scope: 'recorded_attempts',
+    status: complete ? 'available' : 'unavailable',
+    actual_cost_usd: complete ? subtotal : null,
+    message: complete ? 'Actual cost for recorded attempts' : 'Actual cost unavailable',
+    known_subtotal_usd: subtotal, subtotal_is_partial: !complete,
+    reason: !Number.isFinite(sum) ? 'Cost subtotal exceeds numeric range'
+      : !complete ? 'Run incomplete or cost coverage unknown'
+        : status === 'STOPPED' ? 'Recorded attempts settled; stopped run does not establish feature completion' : null,
+    unknown_attempts: unknown.map(a => ({ attempt_id: a.id,
+      reason: a.status === 'running' ? 'Attempt still running' : a.usage?.reason ?? 'Usage telemetry unavailable' })),
+    pending_tasks: state.tasks.filter(t => t.status === 'pending').map(t => t.id),
+  } : { mode, estimate: state.config.cost_estimate ?? costEstimate() };
   return {
     run_id: state.config.run_id, version: state.version, status,
     reason: state.stopped?.reason ?? (deadline ? 'Elapsed deadline exceeded' : state.blocked_reason
@@ -244,7 +314,8 @@ export function report(state, { now = Date.now() } = {}) {
     assurance: 'Local trusted-adapter attestations only; no tests, agents, merge, deployment, or rule updates are executed.',
     candidate: state.candidate, candidate_published: state.candidate_published,
     repair_waves: state.repair_waves, budget: state.budget,
-    usage: state.usage, reserved,
+    usage: mode === 'strict' ? state.usage
+      : { invocations: state.usage.invocations, tokens, cost_usd: costs.actual_cost_usd }, reserved, costs,
     ready: ready.map(t => ({ task_id: t.id, role: t.role, revision: t.revision,
       eligible_actors: state.config.actors.filter(a => a.roles.includes(t.role) && (t.kind === 'work' || independent(state, t, a.id))).map(a => a.id),
       inputs: inputsFor(state, t), candidate: state.candidate, checks: t.checks })),
@@ -278,6 +349,7 @@ export function routeFinding(task, category) {
 }
 
 export function reduce(previous, event, { now = Date.now() } = {}) {
+  const mode = costMode(previous);
   clock(now); ensure(now >= previous.updated_at, 'Clock cannot move backwards');
   ensure(event && typeof event.type === 'string' && Object.hasOwn(FIELDS, event.type), 'Unknown event type; merge/deploy/rule updates are disabled');
   object(event, [...COMMON, ...FIELDS[event.type]], 'event');
@@ -336,7 +408,7 @@ export function reduce(previous, event, { now = Date.now() } = {}) {
       ensure(readyTasks(state).some(t => t.id === task.id), `Task ${task.id} is not ready; inspect dependencies/findings`);
       if (task.kind !== 'work') ensure(independent(state, task, actor.id), 'Independent gate actor must not be a candidate/dependency author');
       ensure(equal(event.inputs, inputsFor(state, task)), 'Stale or missing dependency attempt/revision/artifact bindings');
-      metering(event.reservation, 'reservation', true);
+      if (mode === 'strict' || event.reservation != null) metering(event.reservation, 'reservation', true);
       const running = active(state);
       ensure(running.length < state.budget.concurrent, 'Concurrent task limit reached; finish a running attempt first');
       const remainingRequired = state.tasks.filter(t => t.effective_required && t.id !== task.id && !['done', 'running'].includes(t.status)).length;
@@ -344,14 +416,14 @@ export function reduce(previous, event, { now = Date.now() } = {}) {
         stop(state, 'Invocation budget cannot cover this task and remaining required work/gates'); break;
       }
       const reserved = running.map(t => attemptFor(t).reservation);
-      if (['tokens', 'cost_usd'].some(k => state.usage[k] + event.reservation[k] + reserved.reduce((n, r) => n + r[k], 0) > state.budget[k])) {
+      if (mode === 'strict' && ['tokens', 'cost_usd'].some(k => state.usage[k] + event.reservation[k] + reserved.reduce((n, r) => n + r[k], 0) > state.budget[k])) {
         stop(state, 'Reservation exceeds remaining token/cost budget'); break;
       }
       task.status = 'running'; delete task.reason;
       if (task.kind === 'work') state.candidate_published = false;
       task.attempts.push({ id: event.attempt_id, revision: task.revision, actor_id: actor.id,
         candidate: structuredClone(state.candidate), inputs: structuredClone(event.inputs),
-        reservation: structuredClone(event.reservation), started_at: now, status: 'running' });
+        reservation: structuredClone(event.reservation ?? null), started_at: now, status: 'running' });
       state.usage.invocations++;
       break;
     }
@@ -361,11 +433,12 @@ export function reduce(previous, event, { now = Date.now() } = {}) {
       ensure(task.status === 'running' && attempt.id === event.attempt_id, 'No matching running attempt');
       ensure(attempt.actor_id === actor.id, 'Only the declared attempt actor may complete it');
       ensure(['success', 'failed', 'blocked'].includes(event.outcome), 'outcome must be success, failed, or blocked');
-      metering(event.usage, 'usage');
-      const over = ['tokens', 'cost_usd'].some(k => event.usage[k] > attempt.reservation[k]);
+      if (mode === 'strict') metering(event.usage, 'usage');
+      const usage = mode === 'strict' ? structuredClone(event.usage) : costUsage(event.usage);
+      const over = mode === 'strict' && ['tokens', 'cost_usd'].some(k => usage[k] > attempt.reservation[k]);
       // Even failed, late, or over-reservation calls are billable and must be retained.
-      for (const k of ['tokens', 'cost_usd']) state.usage[k] += event.usage[k];
-      attempt.usage = structuredClone(event.usage); attempt.finished_at = now;
+      if (mode === 'strict') for (const k of ['tokens', 'cost_usd']) state.usage[k] += usage[k];
+      attempt.usage = usage; attempt.finished_at = now;
       if (over) stop(state, 'Observed usage exceeded reservation; usage recorded, result rejected');
       if (state.stopped) {
         attempt.status = 'rejected'; task.status = 'blocked'; task.reason = state.stopped.reason; break;

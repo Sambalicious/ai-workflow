@@ -117,6 +117,8 @@ state file; a new directory is not a way to reset budgets or repair waves.
    Keep QA, Security, and fresh independent review mandatory. Preserve approved checks
    and blockers; report scope conflicts rather than activating a disabled role.
    Existing pinned runs retain their graph and gates.
+   Apply its cost reporting policy before coding and at completion, for any client
+   or provider. New runs default to reporting-only; telemetry is not a prerequisite.
 3. For intake, load `FACTORY_ROOT/.agents/skills/triage/SKILL.md`. For an approved
    implementation or repair run, load `FACTORY_ROOT/.agents/skills/factory-loop/SKILL.md`
    and `FACTORY_ROOT/factory/PROTOCOL.md`. For independent candidate review, load
@@ -147,6 +149,10 @@ The default template ends at `VERIFIED` on success, not release GO or approval.
 For explicit release assessment, generate `input-with-release` instead of `input`.
 It adds only Release Manager and can yield `PRODUCTION_READY` after all required
 evidence passes. Neither status authorizes deployment or merge.
+The cost mode defaults to `reporting_only`, with nullable usage and explicit
+unavailability. See `PROTOCOL.md` for estimates and reliable source references.
+Choose `strict` only explicitly; legacy schema 1 states remain strict. Resume the
+same immutable mode, pins, and gates. No provider configuration change is needed.
 
 ```bash
 node "$FACTORY_ROOT/factory/cli.mjs" init "$RUN_ROOT/state.json" "$RUN_ROOT/input.json"

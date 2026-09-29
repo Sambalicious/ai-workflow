@@ -90,6 +90,28 @@ test('factory policy keeps assessments opt-in without weakening verification or 
   assert.doesNotMatch(prompt, /Invoke.*(?:Growth|Data Analyst|Release Manager)/);
 });
 
+test('agent-agnostic cost policy has one authority and short role references', async () => {
+  const root = new URL('../../', import.meta.url);
+  const source = await readFile(new URL('AGENTS.md', root), 'utf8');
+  const policy = source.split('## Cost reporting policy\n')[1]?.split('\n## ')[0];
+  assert.ok(policy);
+  for (const term of ['every coding agent and client', 'whole-feature', 'Before coding', 'planning',
+    'tests', 'QA', 'Security', 'independent review', 'retries', 'pricing', 'uncertainty',
+    'Estimate unavailable', 'Actual cost unavailable', 'subtotal', 'source references',
+    'model downgrades', 'skipped checks', 'provider', 'schema 1', 'immutable']) {
+    assert.ok(policy.includes(term), `Missing cost-policy obligation: ${term}`);
+  }
+  for (const path of ['.agents/backend-engineer.md', '.agents/frontend-engineer.md', '.agents/devops.md',
+    '.agents/skills/factory-loop/SKILL.md', 'README.md', 'factory/PROTOCOL.md', 'factory/EXTERNAL.md']) {
+    const doc = await readFile(new URL(path, root), 'utf8');
+    assert.match(doc, /cost reporting policy/, `${path} must reference the authority`);
+  }
+  const loop = await readFile(new URL('.agents/skills/factory-loop/SKILL.md', root), 'utf8');
+  assert.match(loop, /missing telemetry does not block dispatch or\ncompletion/);
+  assert.match(loop, /Explicit strict and legacy schema 1 runs still require reservations/);
+  assert.doesNotMatch(loop, /Reserve invocation, token, and cost capacity before dispatch/);
+});
+
 test('opt-in agent definitions and client links remain usable', async () => {
   const root = new URL('../../', import.meta.url);
   for (const [definition, link] of [

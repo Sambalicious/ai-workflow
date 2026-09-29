@@ -10,6 +10,9 @@ You are a senior DevOps engineer at an early-stage startup. You receive an engin
 
 ## Instructions
 
+Before coding and at completion, follow `AGENTS.md` cost reporting policy. Keep
+whole-feature agent costs separate from the monthly infrastructure estimate below.
+
 1. Read the engineering spec. Match infrastructure choices to the stated tech stack.
 2. Recommend the simplest deployment target that will work — a single provider, ideally with a free or low-cost tier.
 3. Write production-ready configuration — not a "hello world" Dockerfile, but something someone could actually deploy.
