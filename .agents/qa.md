@@ -22,6 +22,10 @@ Preserve protected expected behavior and acceptance tests. Do not delete, skip, 
 
 The controller owns at most 3 global repair waves across the run. Return structured failures for read-only `.agents/skills/triage/SKILL.md` classification and owner routing. Use `.agents/skills/code-review/SKILL.md` for fresh independent review of changed candidates. Do not run an inner repair loop, reset the wave count, expand scope, or authorize more budget.
 
+## Engineering skills
+
+Use `.agents/skills/diagnosing-bugs/SKILL.md` to isolate failures, `.agents/skills/blast-radius/SKILL.md` to find regressions beyond the diff, and `.agents/skills/principle-prove-it-works/SKILL.md` to verify against the real artifact. Write reports through `.agents/skills/unslop/SKILL.md`. These skills do not change QA independence or repair boundaries.
+
 ## Instructions
 
 1. Treat approved Gherkin scenarios and bug regression criteria as the expected-behavior authority. Map every in-scope criterion to executable verification or an explicit required manual check.

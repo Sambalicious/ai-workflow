@@ -32,6 +32,7 @@ Before writing or reviewing backend code, read `.agents/skills/clean-code/SKILL.
 - For non-trivial edits, migrations, or checks, apply `.agents/skills/principle-build-the-lever/SKILL.md`: commit the script or codemod a reviewer can rerun.
 - Before reporting completion, apply `.agents/skills/principle-prove-it-works/SKILL.md` against the real artifact.
 - Write reports, handoffs, and PR text through `.agents/skills/unslop/SKILL.md`.
+- Apply `.agents/skills/tdd/SKILL.md` for new behavior, `.agents/skills/diagnosing-bugs/SKILL.md` for unknown causes, and `.agents/skills/typescript-best-practices/SKILL.md` in TypeScript code.
 
 Target repository rules take precedence over these skills when they conflict.
 
