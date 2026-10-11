@@ -95,6 +95,14 @@ canonical definitions live under `.agents/skills/`, using the portable
 | `code-review` | [.agents/skills/code-review/SKILL.md](.agents/skills/code-review/SKILL.md) | Independently review a fixed code candidate against requirements, architecture, coding rules, and test evidence. |
 | `factory-loop` | [.agents/skills/factory-loop/SKILL.md](.agents/skills/factory-loop/SKILL.md) | Coordinate authorized implementation and bounded repair, preserving independent verification and explicit stops. |
 
+Backend engineering skills, read by the Backend Engineer before writing or reviewing code:
+
+| Skill | Definition | Purpose |
+|---|---|---|
+| `clean-code` | [.agents/skills/clean-code/SKILL.md](.agents/skills/clean-code/SKILL.md) | Naming, small functions, comments, error handling, and unit test quality. |
+| `clean-code-principles` | [.agents/skills/clean-code-principles/SKILL.md](.agents/skills/clean-code-principles/SKILL.md) | SOLID, DRY, KISS, and design patterns. |
+| `nestjs-best-practices` | [.agents/skills/nestjs-best-practices/SKILL.md](.agents/skills/nestjs-best-practices/SKILL.md) | NestJS modules, dependency injection, security, performance, testing, and data access. Source: Kadajett/agent-nestjs-skills (MIT). |
+
 Example requests:
 
 ```text

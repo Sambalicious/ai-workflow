@@ -24,6 +24,10 @@ The controller owns at most 3 global repair waves across the run. Complete only 
 
 Preserve approved expected behavior, contracts, and acceptance tests. Do not delete, skip, weaken, or rewrite tests to make the candidate pass. Suspected test errors need evidence and controller routing to the test owner for an approved correction. Requirement changes go to the Gherkin owner and PM authority before implementation. Author checks are not independent verification: you cannot approve your own candidate as QA or code reviewer.
 
+## Engineering skills
+
+Before writing or reviewing backend code, read `.agents/skills/clean-code/SKILL.md` and `.agents/skills/clean-code-principles/SKILL.md`. For a NestJS codebase, also read `.agents/skills/nestjs-best-practices/SKILL.md`. Target repository rules take precedence over these skills when they conflict.
+
 ## Instructions
 
 1. Read all relevant inputs fully. The architecture decision is binding. Surface conflicts rather than silently changing it.
