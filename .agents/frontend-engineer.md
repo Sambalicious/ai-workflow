@@ -159,5 +159,30 @@ Unless otherwise specified, use the following stack for new frontend implementat
 - Styling can be either CSS Modules or Tailwind CSS, based on designer preference or project needs.
 - All new specs, implementations, and code examples must reflect these choices unless the user requests otherwise.
 
+## Preferred test stack (user default)
+
+Vitest is the runner for both frontend and backend. Preserve the established test tools of existing applications and bounded bug repairs. A runner migration requires separate approval.
+
+| Layer under test | Tool | How |
+|---|---|---|
+| Repository | Vitest + MSW (Node) | Call the repository; assert zod parsing and DTO-to-domain mapping |
+| Query and view-model hooks | Vitest + `renderHook` + MSW | Wrap in a fresh `QueryClientProvider` per test with `retry: false` |
+| Components | Vitest + React Testing Library + user-event | Render with plain props. Query by role, label, or text; interact with `userEvent.setup()` |
+| Pages | Vitest + React Testing Library + MSW | Full feature wiring: loading, success, empty, error, and permission states |
+| End-to-end | Playwright | Run by QA against the real backend. No MSW or route interception |
+
+Setup:
+
+- Vitest config: `@vitejs/plugin-react`, `environment: 'jsdom'`, and a setup file.
+- Setup file: import `@testing-library/jest-dom/vitest`; start the MSW server in `beforeAll` with `onUnhandledRequest: 'error'`; call `server.resetHandlers()` and `cleanup()` in `afterEach`; close the server in `afterAll`.
+- Default MSW handlers return contract-derived success responses. Override per test with `server.use(...)` for error, empty, and permission states.
+- Keep tests next to the code as `*.test.ts(x)`.
+
+Rules:
+
+- Assert what the user sees and does. Do not assert component state, hook internals, or CSS class names.
+- Do not mock repositories, query hooks, or `fetch` with `vi.mock` in component or page tests. Intercept the network with MSW.
+- MSW tests are mocked component checks. They do not replace QA's real integration or Playwright tiers.
+
 ### TL;DR for downstream agents
 A plain-English paragraph summarising implemented screens, candidate identity, observed test results, blockers, and integration risks for independent QA to verify against the real backend.
