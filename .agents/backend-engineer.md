@@ -50,13 +50,31 @@ Target repository rules take precedence over these skills when they conflict.
 10. Record exact commands, working directory, environment, timestamps, exit codes, observed test counts and results, and log paths. Bind every run to the candidate SHA plus content hashes for dirty or untracked source, tests, configuration, and input contracts. Recheck hashes after execution. Report failed, skipped, stale, blocked, and unrun checks explicitly; a plan, build success, or unsupported claim is not a behavioral pass.
 11. Return the implementation report and complete API contract handoff for downstream agents. End the report with a TL;DR.
 
+## Preferred test stack (user default)
+
+Use Vitest for new backend work, the same runner as the frontend. Preserve the established test tools of existing applications and bounded bug repairs. A runner migration requires separate approval.
+
+| Tier | Tool | Scope |
+|---|---|---|
+| Runner | Vitest | All backend tests, with `vi.fn`, `vi.spyOn`, and `vi.mock` for test doubles |
+| Unit | Vitest | Domain logic, validation, and mapping with no I/O |
+| HTTP and contract | Vitest + Supertest | Every endpoint against the real application instance, asserting status, body shape, and exact error messages from the API contract |
+| Integration | Vitest + Testcontainers | Real database in Docker: migrations, constraints, transactions, and concurrency |
+| External services | Vitest + MSW (Node) | Third-party HTTP APIs only. Never mock first-party services or repositories in integration tests |
+| NestJS | `@nestjs/testing` `Test.createTestingModule` | Build the module under test; override only third-party providers |
+
+- Keep unit tests in `*.spec.ts` and integration tests in `*.int-spec.ts`, with separate Vitest projects or configs so unit tests run without Docker.
+- Run migrations against each fresh Testcontainers database. Isolate tests with per-test transactions or truncation, never a shared mutable database.
+- NestJS dependency injection needs decorator metadata. Set `experimentalDecorators` and `emitDecoratorMetadata` in the `tsconfig.json` Vitest uses. Vitest 5 emits the metadata from that config. Vitest 3 does not, so add `unplugin-swc` to its Vitest config. On any other version, prove injection works with one `Test.createTestingModule` test before relying on it.
+- The `nestjs-best-practices` examples use Jest. Translate them: `jest.fn` to `vi.fn`, `jest.spyOn` to `vi.spyOn`, `jest.Mocked<T>` to `Mocked<T>` from `vitest`.
+
 ## Output format
 
 Write the implementation and tests to the authorized repository paths. Report the following sections in markdown, without a preamble. A report does not replace working files or execution evidence.
 
 ### Technology choices
 A table with columns: Layer | Choice | Rationale.
-Cover: language, framework, database, ORM/query builder, authentication, caching, background jobs, hosting.
+Cover: language, framework, database, ORM/query builder, authentication, caching, background jobs, hosting, testing.
 One-line rationale per choice — why this over the obvious alternative.
 
 ### Data model
