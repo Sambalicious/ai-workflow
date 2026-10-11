@@ -95,13 +95,38 @@ canonical definitions live under `.agents/skills/`, using the portable
 | `code-review` | [.agents/skills/code-review/SKILL.md](.agents/skills/code-review/SKILL.md) | Independently review a fixed code candidate against requirements, architecture, coding rules, and test evidence. |
 | `factory-loop` | [.agents/skills/factory-loop/SKILL.md](.agents/skills/factory-loop/SKILL.md) | Coordinate authorized implementation and bounded repair, preserving independent verification and explicit stops. |
 
-Backend engineering skills, read by the Backend Engineer before writing or reviewing code:
+Backend engineering skills, applied by the Backend Engineer when writing, verifying, or reporting on code:
 
 | Skill | Definition | Purpose |
 |---|---|---|
 | `clean-code` | [.agents/skills/clean-code/SKILL.md](.agents/skills/clean-code/SKILL.md) | Naming, small functions, comments, error handling, and unit test quality. |
 | `clean-code-principles` | [.agents/skills/clean-code-principles/SKILL.md](.agents/skills/clean-code-principles/SKILL.md) | SOLID, DRY, KISS, and design patterns. |
 | `nestjs-best-practices` | [.agents/skills/nestjs-best-practices/SKILL.md](.agents/skills/nestjs-best-practices/SKILL.md) | NestJS modules, dependency injection, security, performance, testing, and data access. Source: Kadajett/agent-nestjs-skills (MIT). |
+| `blast-radius` | [.agents/skills/blast-radius/SKILL.md](.agents/skills/blast-radius/SKILL.md) | Find what a change could break beyond the diff and prove the safety facts by running code. |
+| `principle-build-the-lever` | [.agents/skills/principle-build-the-lever/SKILL.md](.agents/skills/principle-build-the-lever/SKILL.md) | Build a rerunnable script, codemod, or check instead of working by hand. |
+| `principle-prove-it-works` | [.agents/skills/principle-prove-it-works/SKILL.md](.agents/skills/principle-prove-it-works/SKILL.md) | Verify against the real artifact before declaring done. |
+| `unslop` | [.agents/skills/unslop/SKILL.md](.agents/skills/unslop/SKILL.md) | Cut AI tells from reports, handoffs, and PR text. |
+
+General engineering skills, available to every role:
+
+| Skill | Purpose |
+|---|---|
+| [`tdd`](.agents/skills/tdd/SKILL.md) | Red-green-refactor and integration-first tests. |
+| [`diagnosing-bugs`](.agents/skills/diagnosing-bugs/SKILL.md) | Diagnosis loop for hard bugs and performance regressions. |
+| [`typescript-best-practices`](.agents/skills/typescript-best-practices/SKILL.md) | TypeScript conventions for `.ts` and `.tsx` files. |
+| [`principle-type-system-discipline`](.agents/skills/principle-type-system-discipline/SKILL.md) | Make illegal states unrepresentable and parse data at boundaries. |
+| [`codebase-design`](.agents/skills/codebase-design/SKILL.md) | Deep modules, interfaces, and seams. |
+| [`domain-modeling`](.agents/skills/domain-modeling/SKILL.md) | Domain terminology, `CONTEXT.md`, and ADRs. |
+| [`prototype`](.agents/skills/prototype/SKILL.md) | Throwaway prototypes that answer one design question. |
+| [`grilling`](.agents/skills/grilling/SKILL.md) | Stress-test a plan or decision with hard questions. |
+| [`principle-sequence-verifiable-units`](.agents/skills/principle-sequence-verifiable-units/SKILL.md) | Split multi-step work and PRs into verifiable units. |
+| [`principle-separate-before-serializing-shared-state`](.agents/skills/principle-separate-before-serializing-shared-state/SKILL.md) | Remove shared writable state before adding locks. |
+| [`principle-guard-the-context-window`](.agents/skills/principle-guard-the-context-window/SKILL.md) | Route bulk output to subagents and keep summaries. |
+| [`show-me-your-work`](.agents/skills/show-me-your-work/SKILL.md) | Decision log for long or unattended runs. |
+| [`resolving-merge-conflicts`](.agents/skills/resolving-merge-conflicts/SKILL.md) | Resolve an in-progress merge or rebase. |
+| [`wizard`](.agents/skills/wizard/SKILL.md) | Bash wizard for steps only a human can perform. |
+| [`technical-writing`](.agents/skills/technical-writing/SKILL.md) | Standard for docs, RFCs, READMEs, PR descriptions, and commits. |
+| [`writing-for-agents`](.agents/skills/writing-for-agents/SKILL.md) | Rules for writing skills and `AGENTS.md`. |
 
 Example requests:
 

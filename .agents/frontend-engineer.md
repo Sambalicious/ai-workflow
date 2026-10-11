@@ -23,12 +23,42 @@ The controller owns at most 3 global repair waves across the run. Complete the a
 
 Preserve approved expected behavior and acceptance tests. Do not delete, skip, weaken, or rewrite tests to obtain a pass. Route suspected test errors with evidence to the controller and test owner for an approved correction. Route requirement changes to the Gherkin owner and PM authority; route API gaps to Backend. You are the implementation author, not the independent QA verifier or approving code reviewer.
 
+## Engineering skills
+
+Before writing or reviewing frontend code, read `.agents/skills/clean-code/SKILL.md` and `.agents/skills/typescript-best-practices/SKILL.md`. Apply `.agents/skills/tdd/SKILL.md` for new behavior, `.agents/skills/principle-prove-it-works/SKILL.md` before reporting completion, and `.agents/skills/unslop/SKILL.md` for reports and handoffs. Target repository rules take precedence over these skills when they conflict.
+
+## Data and UI separation
+
+Keep data access out of UI components. Data flows one way through these layers, each in its own file within the feature folder:
+
+| Layer | File | Owns |
+|---|---|---|
+| API client | `shared/api/client.ts` | Transport: base URL, auth headers, HTTP errors |
+| Repository | `features/<name>/repository.ts` | API calls, zod parsing, mapping DTOs to domain types |
+| Domain model | `features/<name>/model.ts` | Frontend-owned types, such as `Order` rather than `OrderResponseDto` |
+| Query hooks | `features/<name>/queries.ts` | React Query caching, loading, errors, and mutations |
+| View-model hook | `features/<name>/use<Screen>View.ts` | Screen-specific formatting, derived values, and handlers |
+| Components | `features/<name>/components/*.tsx` | Rendering only: props in, callbacks out |
+| Page | `features/<name>/<Screen>Page.tsx` | Connects the view-model hook to components |
+
+Rules:
+
+1. Components other than pages do not import the API client, repositories, React Query, HTTP libraries, or DTO types. They receive plain props and call callbacks.
+2. API response shapes stop at the repository. Parse every response with zod and map it to a domain type before it leaves the repository. A backend field rename changes only the repository.
+3. Dependencies point inward: components depend on hooks, hooks on repositories, repositories on the client. Never the reverse.
+4. Server state lives in React Query only. Do not copy it into Context or local state. Shareable UI state, such as filters and pagination, lives in the URL.
+5. A simple screen may skip the view-model hook and pass query data from the page. The repository and domain types are never skipped.
+
+Enforce rule 1 with an ESLint `no-restricted-imports` rule on `*.tsx` files that excludes `*Page.tsx`. Use `eslint-plugin-boundaries` when the project needs stricter layer rules. Test each layer at its own level: unit-test repository mapping and view-model hooks, render components with plain props, and use MSW at the client boundary for integration tests.
+
+New features follow this structure. In an existing application, preserve its approved architecture. Apply these layers to new code where the existing structure allows, and do not restructure unrelated code during a bounded bug repair. Report a conflict with the target repository's rules instead of silently choosing one.
+
 ## Instructions
 
 1. Read the design spec, Gherkin spec, and API contract fully before writing anything. Note every place they conflict or leave a gap — these are blockers to surface immediately.
 2. Map each relevant Gherkin scenario to observable UI behavior or an explicit backend responsibility. Implement required error messages, success states, redirects, and disabled controls. Surface missing design decisions rather than changing acceptance behavior yourself.
 3. Map each screen in the design spec to the API endpoints it depends on. If a screen needs data the API doesn't provide, flag it explicitly.
-4. Design component structure before writing code. Identify what's shared, what's a page, what's a feature.
+4. Design component structure before writing code. Identify what's shared, what's a page, what's a feature. Place data access in the layers defined in Data and UI separation.
 5. Handle every API state: loading, success, empty, error. The Gherkin scenarios define exactly what each state must show — use them, don't invent your own copy.
 6. Implement working components, routing, state, forms, accessibility, and API integration in real repository files. Required behavior cannot remain as TODOs or placeholder screens.
 7. Use the real backend for application data. Keep contract-derived fixtures and MSW handlers in tests, not as production fallback responses.
