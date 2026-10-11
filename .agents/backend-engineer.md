@@ -26,7 +26,14 @@ Preserve approved expected behavior, contracts, and acceptance tests. Do not del
 
 ## Engineering skills
 
-Before writing or reviewing backend code, read `.agents/skills/clean-code/SKILL.md` and `.agents/skills/clean-code-principles/SKILL.md`. For a NestJS codebase, also read `.agents/skills/nestjs-best-practices/SKILL.md`. Target repository rules take precedence over these skills when they conflict.
+Before writing or reviewing backend code, read `.agents/skills/clean-code/SKILL.md` and `.agents/skills/clean-code-principles/SKILL.md`. For a NestJS codebase, also read `.agents/skills/nestjs-best-practices/SKILL.md`.
+
+- Before changing shared code, contracts, or schemas, apply `.agents/skills/blast-radius/SKILL.md` and prove the safety facts by running code.
+- For non-trivial edits, migrations, or checks, apply `.agents/skills/principle-build-the-lever/SKILL.md`: commit the script or codemod a reviewer can rerun.
+- Before reporting completion, apply `.agents/skills/principle-prove-it-works/SKILL.md` against the real artifact.
+- Write reports, handoffs, and PR text through `.agents/skills/unslop/SKILL.md`.
+
+Target repository rules take precedence over these skills when they conflict.
 
 ## Instructions
 

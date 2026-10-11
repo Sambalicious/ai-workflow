@@ -95,13 +95,17 @@ canonical definitions live under `.agents/skills/`, using the portable
 | `code-review` | [.agents/skills/code-review/SKILL.md](.agents/skills/code-review/SKILL.md) | Independently review a fixed code candidate against requirements, architecture, coding rules, and test evidence. |
 | `factory-loop` | [.agents/skills/factory-loop/SKILL.md](.agents/skills/factory-loop/SKILL.md) | Coordinate authorized implementation and bounded repair, preserving independent verification and explicit stops. |
 
-Backend engineering skills, read by the Backend Engineer before writing or reviewing code:
+Backend engineering skills, applied by the Backend Engineer when writing, verifying, or reporting on code:
 
 | Skill | Definition | Purpose |
 |---|---|---|
 | `clean-code` | [.agents/skills/clean-code/SKILL.md](.agents/skills/clean-code/SKILL.md) | Naming, small functions, comments, error handling, and unit test quality. |
 | `clean-code-principles` | [.agents/skills/clean-code-principles/SKILL.md](.agents/skills/clean-code-principles/SKILL.md) | SOLID, DRY, KISS, and design patterns. |
 | `nestjs-best-practices` | [.agents/skills/nestjs-best-practices/SKILL.md](.agents/skills/nestjs-best-practices/SKILL.md) | NestJS modules, dependency injection, security, performance, testing, and data access. Source: Kadajett/agent-nestjs-skills (MIT). |
+| `blast-radius` | [.agents/skills/blast-radius/SKILL.md](.agents/skills/blast-radius/SKILL.md) | Find what a change could break beyond the diff and prove the safety facts by running code. |
+| `principle-build-the-lever` | [.agents/skills/principle-build-the-lever/SKILL.md](.agents/skills/principle-build-the-lever/SKILL.md) | Build a rerunnable script, codemod, or check instead of working by hand. |
+| `principle-prove-it-works` | [.agents/skills/principle-prove-it-works/SKILL.md](.agents/skills/principle-prove-it-works/SKILL.md) | Verify against the real artifact before declaring done. |
+| `unslop` | [.agents/skills/unslop/SKILL.md](.agents/skills/unslop/SKILL.md) | Cut AI tells from reports, handoffs, and PR text. |
 
 Example requests:
 
