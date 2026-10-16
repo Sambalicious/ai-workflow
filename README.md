@@ -107,6 +107,24 @@ Backend engineering skills, applied by the Backend Engineer when writing, verify
 | `principle-prove-it-works` | [.agents/skills/principle-prove-it-works/SKILL.md](.agents/skills/principle-prove-it-works/SKILL.md) | Verify against the real artifact before declaring done. |
 | `unslop` | [.agents/skills/unslop/SKILL.md](.agents/skills/unslop/SKILL.md) | Cut AI tells from reports, handoffs, and PR text. |
 
+Frontend design skills, applied by the Frontend Engineer (and available to the Designer) when building, reviewing, or polishing UI. They are third-party skills installed with `npx skills add` and pinned in `skills-lock.json`; refresh them with `npx skills update`. The target repository's DESIGN.md, design spec, and approved copy take precedence over their taste rules.
+
+| Skill | Purpose |
+|---|---|
+| [`impeccable`](.agents/skills/impeccable/SKILL.md) | Design, critique, audit, and polish UI: hierarchy, layout, typography, color, motion, UX copy, accessibility, responsive behavior. Source: pbakaus/impeccable (Apache-2.0). |
+| [`emil-design-eng`](.agents/skills/emil-design-eng/SKILL.md) | Design-engineering rules for interfaces, mostly motion. Source: emilkowalski/skills (MIT), as are the rest of this table. |
+| [`break-ui`](.agents/skills/break-ui/SKILL.md) | Stress the UI with worst-case data: long names, huge counts, empty lists. |
+| [`mobile-native`](.agents/skills/mobile-native/SKILL.md) | Make a web app behave natively on phones: tap states, 100vh, input zoom, safe areas. |
+| [`pick-ui-library`](.agents/skills/pick-ui-library/SKILL.md) | Choose a maintained library instead of hand-rolling common components. |
+| [`apple-design`](.agents/skills/apple-design/SKILL.md) | Apple interface and fluid-motion principles, translated for the web. |
+| [`animate`](.agents/skills/animate/SKILL.md) | Build an animation with the right curve, duration, and properties. |
+| [`review-animations`](.agents/skills/review-animations/SKILL.md) | Strict review of existing animations. |
+| [`improve-animations`](.agents/skills/improve-animations/SKILL.md) | Audit all animations and produce prioritized fix plans. |
+| [`find-animation-opportunities`](.agents/skills/find-animation-opportunities/SKILL.md) | Find where motion helps, and where it should not be added. |
+| [`animation-performance`](.agents/skills/animation-performance/SKILL.md) | Fix animations that drop frames. |
+| [`animation-vocabulary`](.agents/skills/animation-vocabulary/SKILL.md) | Precise words for describing the motion you want. |
+| [`ask-sonner`](.agents/skills/ask-sonner/SKILL.md) | Setup, styling, and fixes for the Sonner toast library. |
+
 General engineering skills, available to every role:
 
 | Skill | Purpose |

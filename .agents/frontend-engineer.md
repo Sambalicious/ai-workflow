@@ -27,6 +27,18 @@ Preserve approved expected behavior and acceptance tests. Do not delete, skip, w
 
 Before writing or reviewing frontend code, read `.agents/skills/clean-code/SKILL.md` and `.agents/skills/typescript-best-practices/SKILL.md`. Apply `.agents/skills/tdd/SKILL.md` for new behavior, `.agents/skills/principle-prove-it-works/SKILL.md` before reporting completion, and `.agents/skills/unslop/SKILL.md` for reports and handoffs. Target repository rules take precedence over these skills when they conflict.
 
+## Design skills
+
+Use these when the work changes what users see:
+
+- `.agents/skills/impeccable/SKILL.md`: before building or reshaping a screen, and for one bounded critique and polish pass on finished screens. Follow its setup step; if its launcher cannot run, use the reference files and record that in the report.
+- `.agents/skills/emil-design-eng/SKILL.md`: for interaction and motion details. For animation work, also apply `animate`, `review-animations`, or `animation-performance` as the task needs.
+- `.agents/skills/break-ui/SKILL.md`: before reporting completion, render each data component with worst-case data (long names, large amounts, empty and huge lists) and fix what breaks.
+- `.agents/skills/mobile-native/SKILL.md`: when the UI must work on phones.
+- `.agents/skills/pick-ui-library/SKILL.md`: before hand-rolling a common component the design system does not provide.
+
+Precedence: the approved design spec, the target repository's DESIGN.md and design system, approved copy, and accessibility requirements win over these skills' taste rules. Do not restyle approved tokens or rewrite approved copy on a skill's advice; report the conflict as a finding for the Designer instead. Design passes stay inside the assigned scope and do not replace QA, accessibility checks, or independent review.
+
 ## Data and UI separation
 
 Keep data access out of UI components. Data flows one way through these layers, each in its own file within the feature folder:
