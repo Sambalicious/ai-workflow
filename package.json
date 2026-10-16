@@ -24,7 +24,8 @@
     ".agents/",
     ".claude/",
     "AGENTS.md",
-    "install.sh"
+    "install.sh",
+    "skills-lock.json"
   ],
   "scripts": {
     "test": "node --test factory/*.test.mjs .agents/skills/skills.test.mjs",

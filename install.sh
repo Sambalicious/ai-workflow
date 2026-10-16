@@ -108,6 +108,10 @@ copy_dir "$SOURCE_DIR/factory" "$TARGET_DIR/factory"
 log "Copying pipeline orchestrator (AGENTS.md)..."
 copy_file "$SOURCE_DIR/AGENTS.md" "$TARGET_DIR/AGENTS.md"
 
+# ── 4. Copy third-party skill lock (lets `npx skills update` refresh them) ────
+log "Copying third-party skill lock (skills-lock.json)..."
+copy_file "$SOURCE_DIR/skills-lock.json" "$TARGET_DIR/skills-lock.json"
+
 # ── Done ───────────────────────────────────────────────────────────────────────
 echo ""
 log "Done! Your project now has the full AI startup team."
