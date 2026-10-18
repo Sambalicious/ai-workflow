@@ -112,16 +112,16 @@ See [references/comments-formatting.md](references/comments-formatting.md) when 
 
 **Key insights:**
 - Write the try-catch first — it defines a transaction boundary
-- Prefer unchecked exceptions — checked ones violate the Open/Closed Principle
+- Throw for unexpected failures; return a typed result (e.g. `{ ok: true, value } | { ok: false, error }`) for expected failures the caller must handle
 - Define exception classes by the caller's needs, not the failure type
-- Don't return null (use empty collections, Optional, or throw); don't pass null either
+- Don't return null or undefined to mean "nothing" (use an empty array, a discriminated union, or throw); don't pass them either
 - Special Case / Null Object pattern: return an object with default behavior instead of null
 
 **Code applications:**
 
 | Context | Pattern | Example |
 |---------|---------|---------|
-| **Null returns** | Empty collection or Optional | `return Collections.emptyList()` not `return null` |
+| **Null returns** | Empty array or discriminated union | `return []` not `return null` |
 | **Error codes** | Replace with exceptions | `throw new InsufficientFundsException(balance, amount)` |
 | **Third-party APIs** | Wrap with adapter | `PortfolioService` wraps the vendor API, translates its exceptions |
 | **Special cases** | Null Object pattern | `GuestUser` with default behavior instead of null checks |
@@ -219,7 +219,7 @@ See [references/code-smells.md](references/code-smells.md) when a smell is hard 
 | **Refactoring without tests** | No safety net for regressions | Write characterization tests first |
 | **Drive-by cleanup** | Unrelated edits bury the real change and add regression risk | Keep the diff in scope; report other smells (§7) |
 | **Inconsistent conventions** | Every file feels like a different codebase | Agree on style; enforce with linters and formatters |
-| **Returning null everywhere** | Null checks spread like a virus | Optional, empty collections, or Null Object |
+| **Returning null everywhere** | Null checks spread like a virus | Empty arrays, discriminated unions, or Null Object |
 
 ## Quick Diagnostic
 
