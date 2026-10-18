@@ -1,6 +1,6 @@
 ---
 name: clean-code
-description: 'Write readable, maintainable code through disciplined naming, small functions, and clean error handling. Use when the user mentions "clean up this code", "this function is too long", "code smells", "naming conventions", "boy scout rule", "single responsibility", or "unit test quality". Also trigger when reviewing a pull request for readability, untangling a messy function, debating comment styles, or improving error-handling patterns. Covers SRP, comment discipline, formatting, and unit testing. For refactoring techniques, see refactoring-patterns. For architecture and dependency rules, see clean-architecture.'
+description: 'Write readable, maintainable code through disciplined naming, small functions, and clean error handling. Use when the user mentions "clean up this code", "this function is too long", "code smells", "naming conventions", "boy scout rule", "single responsibility", or "unit test quality". Also trigger when reviewing a pull request for readability, untangling a messy function, debating comment styles, or improving error-handling patterns. Covers SRP, comment discipline, formatting, unit testing, and diff discipline for scoped changes. For refactoring techniques, see refactoring-patterns. For architecture and dependency rules, see clean-architecture.'
 license: MIT
 metadata:
   author: wondelai
@@ -13,7 +13,7 @@ A disciplined approach to writing code that communicates intent, minimizes surpr
 
 ## Core Principle
 
-**Code is read far more often than it is written — optimize for the reader.** The read-to-write ratio is well over 10:1, so every naming choice, function boundary, and formatting decision either adds clarity or adds cost. Clean code reads like well-written prose: names reveal intent, functions tell a story one step at a time, and the Boy Scout Rule applies — always leave the code cleaner than you found it.
+**Code is read far more often than it is written — optimize for the reader.** The read-to-write ratio is well over 10:1, so every naming choice, function boundary, and formatting decision either adds clarity or adds cost. Clean code reads like well-written prose: names reveal intent, functions tell a story one step at a time, and the Boy Scout Rule applies within the scope of your change — leave the code you touch cleaner than you found it (§7).
 
 ## Scoring
 
@@ -27,7 +27,7 @@ A disciplined approach to writing code that communicates intent, minimizes surpr
 
 ## The Clean Code Framework
 
-Six disciplines for writing code that communicates clearly and adapts to change:
+Seven disciplines for writing code that communicates clearly and adapts to change:
 
 ### 1. Meaningful Names
 
@@ -164,7 +164,7 @@ See [references/testing-principles.md](references/testing-principles.md) when wr
 - General smells: duplication, wrong level of abstraction, feature envy, magic numbers
 - Test smells: insufficient coverage, skipped tests, untested boundary conditions and failure paths
 - Refactor in small, tested steps — never refactor and add features simultaneously
-- Boy Scout Rule: leave the code cleaner than you found it
+- Boy Scout Rule: leave the code you touch cleaner than you found it; report smells outside the change instead of fixing them (§7)
 
 **Code applications:**
 
@@ -172,11 +172,38 @@ See [references/testing-principles.md](references/testing-principles.md) when wr
 |---------|---------|---------|
 | **Duplication** | Extract shared logic | Common validation → `validateEmail()` helper |
 | **Feature envy** | Move method to the data's class | `order.calculateTotal()` not `calculator.total(order)` |
-| **Dead code** | Delete it | Remove unused functions, unreachable branches |
+| **Dead code** | Delete it when your change orphaned it; report pre-existing dead code (§7) | Remove imports and helpers your edit made unused |
 | **Magic numbers** | Named constants | `MAX_LOGIN_ATTEMPTS = 5` not bare `5` |
 | **Shotgun surgery** | Consolidate related changes | Group scattered logic into a single module |
 
 See [references/code-smells.md](references/code-smells.md) when a smell is hard to name — the full catalog by category, each paired with its targeted refactoring.
+
+### 7. Diff Discipline
+
+**Core concept:** Every changed line traces to the assigned scope. Write the minimum code that delivers the required behavior, and leave everything else as you found it.
+
+**Why it works:** Reviewers and QA verify diffs. Unrelated edits hide the real change, widen the regression surface, and trigger avoidable repair rounds.
+
+**Key insights:**
+- Match the existing style, naming, and structure of the file, even when you would choose differently
+- Do not reformat, rename, re-comment, or refactor adjacent code that the change does not require
+- Remove imports, variables, and functions that your change made unused; leave pre-existing dead code and report it
+- No speculative abstractions, configuration options, or extension points; a single caller does not need an abstraction
+- No error handling for states the types, contracts, or callers make impossible
+- If the change grows far beyond what the behavior needs, rewrite it smaller before handing off
+- When scope or intent is unclear, state the assumption; in a pipeline run, raise a blocker or contract gap instead of guessing
+
+**Code applications:**
+
+| Context | Pattern | Example |
+|---------|---------|---------|
+| **Nearby smell** | Report, don't fix | Note "duplicated validation in `orders.ts`" in the handoff |
+| **Orphaned import** | Remove it | Delete the `formatDate` import your edit stopped using |
+| **One-off logic** | Inline it | A private function, not a strategy interface with one implementation |
+| **Style mismatch** | Follow the file | Keep `function` declarations if the file uses them |
+| **Required refactor** | Separate step | Refactor in its own tested commit before the behavior change |
+
+**Precedence:** Within a change, §7 limits where §1–§6 apply. Apply naming, function, and smell rules to the code you write or must modify, not to the surrounding file.
 
 ## Common Mistakes
 
@@ -190,6 +217,7 @@ See [references/code-smells.md](references/code-smells.md) when a smell is hard 
 | **Premature optimization** | Obscures intent for marginal gains | Clean first; optimize measured bottlenecks |
 | **God classes** | One 2000-line class does everything | Apply SRP — split by responsibility |
 | **Refactoring without tests** | No safety net for regressions | Write characterization tests first |
+| **Drive-by cleanup** | Unrelated edits bury the real change and add regression risk | Keep the diff in scope; report other smells (§7) |
 | **Inconsistent conventions** | Every file feels like a different codebase | Agree on style; enforce with linters and formatters |
 | **Returning null everywhere** | Null checks spread like a virus | Optional, empty collections, or Null Object |
 
@@ -206,6 +234,7 @@ See [references/code-smells.md](references/code-smells.md) when a smell is hard 
 | Are test names descriptive of behavior? | Failures are hard to interpret | Rename to `shouldDoXWhenY` |
 | Is duplication below 3 occurrences? | Copy-paste spreading bugs | Extract shared logic (§6) |
 | Are magic numbers named constants? | Intent hidden behind raw values | Name the constant (§6) |
+| Does every changed line trace to the assigned scope? | Diff contains unrelated edits | Revert them; report the smells instead (§7) |
 | Do all tests run in under 10 seconds? | Slow tests don't get run | Mock external deps; split integration tests |
 
 ## Further Reading
