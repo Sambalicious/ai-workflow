@@ -272,10 +272,11 @@ reclassification, role-registration, or approval-edit event. Prepare the role gr
 and independent verifier identities at intake. Preserve blocked state and its usage
 if a human authorizes a corrected plan outside this controller.
 
-Both modes default to four concurrent tasks, 32 invocations, three global repair
-waves, and 90 minutes elapsed. All attempts count, including failed and invalidated
-work. Strict mode additionally caps 200,000 tokens and US$20. Strict reservations
-precede execution; the caller must enforce per-attempt bounds and submit truthful
+Both modes default to four concurrent tasks, 32 invocations, and three global repair
+waves. There is no default elapsed-time limit. An operator may set `budget.elapsed_ms`
+to a positive integer for a wall-clock deadline; it has no pilot cap, and `null` means
+no deadline. All attempts count, including failed and invalidated work. Strict mode
+additionally caps 200,000 tokens and US$20. Strict reservations precede execution; the caller must enforce per-attempt bounds and submit truthful
 usage. A local ledger cannot cap external spending by itself. Budget limits cannot
 be increased through events. Reporting-only changes none of the operational,
 authorization, candidate, dependency, evidence, or independent-verifier checks.
