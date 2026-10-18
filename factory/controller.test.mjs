@@ -287,6 +287,25 @@ test('usage exceeding a reservation stops and records billable usage; in-flight 
   assert.deepEqual(report(h.state, { now: NOW }).reserved, { tokens: 0, cost_usd: 0 });
 });
 
+test('runs have no elapsed deadline unless the input sets one', () => {
+  const h = harness(input()); h.start('code');
+  assert.equal(h.state.budget.elapsed_ms, null);
+  const muchLater = NOW + 30 * 24 * 60 * 60 * 1000;
+  assert.equal(report(h.state, { now: muchLater }).status, 'RUNNING');
+  h.complete('code', {}, muchLater);
+  assert.equal(h.state.stopped, null);
+  assert.equal(h.state.tasks[0].status, 'done');
+});
+
+test('an explicit elapsed deadline has no pilot cap but must be a positive integer', () => {
+  const week = 7 * 24 * 60 * 60 * 1000;
+  assert.equal(createRun(input({ budget: { elapsed_ms: week } }), { now: NOW }).budget.elapsed_ms, week);
+  assert.equal(createRun(input({ budget: { elapsed_ms: null } }), { now: NOW }).budget.elapsed_ms, null);
+  for (const bad of [0, -1, 1.5, '90']) {
+    assert.throws(() => createRun(input({ budget: { elapsed_ms: bad } })), /elapsed_ms must be a positive integer/);
+  }
+});
+
 test('deadline uses API clock and records late completion usage without accepting output', () => {
   const h = harness(input({ budget: { elapsed_ms: 10 } })); h.start('code');
   assert.equal(report(h.state, { now: NOW + 10 }).status, 'STOPPED');

@@ -1,8 +1,10 @@
 // Local attestations only: adapter/actor IDs are assertions, not authentication.
 export const DEFAULT_BUDGET = Object.freeze({
   concurrent: 4, invocations: 32, repair_waves: 3,
-  tokens: 200000, cost_usd: 20, elapsed_ms: 90 * 60 * 1000,
+  tokens: 200000, cost_usd: 20, elapsed_ms: null,
 });
+// Optional budget keys: null disables the limit, and a supplied value has no pilot cap.
+const UNCAPPED = ['elapsed_ms'];
 const ROLES = ['controller', 'product-manager', 'gherkin', 'architect', 'designer',
   'backend-engineer', 'frontend-engineer', 'qa', 'devops', 'security', 'growth',
   'data-analyst', 'code-review', 'release-manager'];
@@ -139,7 +141,9 @@ function independent(state, task, actorId) {
     && !sourceAuthors.includes(actorId) && !otherGateAuthors.includes(actorId);
 }
 function active(state) { return state.tasks.filter(t => t.status === 'running'); }
-function expired(state, now) { return now - state.created_at >= state.budget.elapsed_ms; }
+function expired(state, now) {
+  return state.budget.elapsed_ms != null && now - state.created_at >= state.budget.elapsed_ms;
+}
 function stop(state, reason) { state.stopped = { reason, at: state.updated_at }; }
 
 export function createRun(input, { now = Date.now() } = {}) {
@@ -171,6 +175,10 @@ export function createRun(input, { now = Date.now() } = {}) {
   for (const [key, value] of Object.entries(budget)) {
     if (mode === 'reporting_only' && ['tokens', 'cost_usd'].includes(key)) {
       if (value !== null) number(value, `budget.${key}`, false, key === 'tokens');
+      continue;
+    }
+    if (UNCAPPED.includes(key)) {
+      if (value !== null) number(value, `budget.${key}`, true, true);
       continue;
     }
     number(value, `budget.${key}`, key !== 'repair_waves', key !== 'cost_usd');

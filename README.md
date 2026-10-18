@@ -211,8 +211,9 @@ an explicit unavailable report. New runs use `reporting_only`, with no token or
 monetary enforcement and no telemetry integration needed. Missing cost is `null`,
 never zero. Known partial subtotals stay separate from actual totals.
 
-Both modes cap runs at four concurrent tasks, 32 invocations, three global repair
-waves, and 90 minutes elapsed. Explicit `cost_mode: "strict"` also retains the
+Both modes cap runs at four concurrent tasks, 32 invocations, and three global
+repair waves. There is no default elapsed-time limit; set `budget.elapsed_ms` for
+an optional wall-clock deadline. Explicit `cost_mode: "strict"` also retains the
 200,000-token and US$20 caps and requires per-attempt reservations and measured
 usage. Lower operational limits may be supplied; events cannot raise them.
 Legacy schema 1 states stay strict; new reporting states use schema 2 so old
