@@ -197,3 +197,25 @@ test('default copy and SEO roles are wired into the pipeline and client links', 
   assert.match(rule, /\| Frontend Engineer \|.*copy deck \+ SEO plan/);
   assert.match(rule, /\| DevOps \| Backend spec \+ SEO plan/);
 });
+
+test('designer owns layout and copy slots, copywriter owns words, and review mode is wired', async () => {
+  const root = new URL('../../', import.meta.url);
+  const read = path => readFile(new URL(path, root), 'utf8');
+  const designer = await read('.agents/skills/designer.md');
+  for (const section of ['### Screen blueprints', '### Feedback matrix', '### Copy slots', '## Review mode steps', '### Findings']) {
+    assert.ok(designer.includes(section), `designer missing ${section}`);
+  }
+  assert.match(designer, /The Copywriter writes the final words/);
+  assert.match(designer, /BLOCKER\[copywriter\]/);
+  assert.match(designer, /375px and 1280px/);
+  const copywriter = await read('.agents/copywriter.md');
+  assert.match(copywriter, /Designer's slot ID as each string's key/);
+  const frontend = await read('.agents/frontend-engineer.md');
+  assert.match(frontend, /raise `BLOCKER\[designer\]`/);
+  assert.match(frontend, /raise `BLOCKER\[copywriter\]`/);
+  const orchestrator = await read('AGENTS.md');
+  assert.match(orchestrator, /\[6c\] Designer review/);
+  assert.match(orchestrator, /design-review\.md/);
+  const rule = await read('.agents/rules/02-no-pipeline-jump.md');
+  assert.match(rule, /\| Designer \(review mode\) \|/);
+});
