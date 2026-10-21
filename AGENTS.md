@@ -22,10 +22,12 @@ You do not do the work yourself. You delegate to the agents below, collect their
 This section is authoritative for factory role selection in new runs. A generic
 "full pipeline" request uses enabled defaults, not every available role.
 
-- `growth`, `data-analyst`, and `release-manager` are disabled by default. Invoke
-  each only when the user explicitly requests that role or its assessment.
-- Enable only the requested role. A release assessment does not enable Growth
-  or Data Analyst. Keep their definitions and client links available for opt-in use.
+- `growth`, `data-analyst`, `pentester`, and `release-manager` are
+  disabled by default. Invoke each only when the user explicitly requests that
+  role or its assessment.
+- `copywriter` and `seo` are default pipeline roles and run in every feature run.
+- Enable only the requested role. A release assessment does not enable Growth,
+  Data Analyst, or Pentester. Keep their definitions and client links available for opt-in use.
 - Omit disabled tasks and their dependency edges from new graphs. Do not represent
   disabled roles with `required: false`; optional work still waits or becomes required
   through its consumers. Record enabled roles and the user's opt-ins in the handoff.
@@ -83,6 +85,9 @@ reports, not execution limits.
 | DevOps Engineer | `.agents/devops.md` | Turns engineering spec into infra and CI/CD config |
 | Security Reviewer | `.agents/security.md` | Turns engineering spec + DevOps config + frontend spec into a security review |
 | Independent Code Reviewer | `.agents/skills/code-review/SKILL.md` | Reviews the actual candidate and current QA/security evidence |
+| Copywriter | `.agents/copywriter.md` | Turns PRD + design spec + Gherkin into a keyed copy deck and voice guide |
+| SEO Specialist | `.agents/seo.md` | Turns PRD + architecture + design spec into an indexability, metadata, and crawl plan |
+| Pentester (opt-in) | `.agents/pentester.md` | Attacks an authorized running candidate and reports reproduced findings |
 | Growth (opt-in) | `.agents/skills/growth.md` | Turns PRD + architecture + design spec + backend spec into a go-to-market plan |
 | Data Analyst (opt-in) | `.agents/data-analyst.md` | Turns PRD + backend spec into a measurement and instrumentation plan |
 | Release Manager (opt-in) | `.agents/release-manager.md` | Aggregates enabled outputs and required evidence into a go/no-go decision |
@@ -105,8 +110,9 @@ the new-PRD requirement below only for bounded implementation runs. Code review
 uses `.agents/skills/code-review/SKILL.md` in a fresh reviewer context. No verdict
 authorizes merge, deployment, or changes to the factory's own rules.
 
-The diagram below describes the default feature pipeline. Opt-in branches follow
-the same dependency and repair rules.
+The diagram below describes the default feature pipeline. Opt-in branches
+(Growth, Data Analyst, Pentester, Release Manager) follow the same dependency and
+repair rules; Instructions steps 5, 7, and 9 place them.
 
 ```
 Your idea
@@ -131,23 +137,37 @@ Your idea
         architecture decision,                      component inventory,
         data flow, hard decisions                   style decisions, accessibility
    │                                              │
-   └──────────────────┬───────────────────────────┘
-                      ▼
-               [4] Backend Engineer
+   │                                              ▼
+   │                                       [3c] Copywriter
+   │                                            (input: PRD + Gherkin + design spec)
+   │                                            └─ Produces: voice guide, glossary,
+   │                                               keyed copy deck
+   │                                              │
+   └──────────────────┬───────────────────────────┤
+                      │                           ▼
+                      │                    [3d] SEO Specialist
+                      │                         (input: PRD + architecture +
+                      │                          design spec + copy deck)
+                      │                         └─ Produces: indexability map,
+                      │                            metadata, crawl config
+                      ▼                           │
+               [4] Backend Engineer               │
                (input: PRD + Gherkin + architecture + design spec)
                └─ Produces: API contract + implementation/tests + Gherkin coverage map
                             + API contract handoff document
-                      │
+                      │                           │
+         ┌────────────┴───────────────────────────┘
          ▼
 [5a] Frontend Engineer
-     (input: design spec + Gherkin + API contract handoff)
+     (input: design spec + Gherkin + API contract handoff
+      + copy deck + SEO plan)
      Produces: UI, API integration, tests, Gherkin coverage map
          │
          ├────────────┐
          ▼            ▼
       [6a] QA      [6b] DevOps
-      (PRD +       (backend eng spec)
-       Gherkin +
+      (PRD +       (backend eng spec
+       Gherkin +    + SEO plan)
        eng specs)
          │            │
          └────────────┘
@@ -177,13 +197,13 @@ Your idea
 
 1. Start with the raw idea. Pass it to the Product Manager first. Do not skip this step — every downstream agent depends on the PRD.
 2. Run step [2] (Gherkin) immediately after the PRD is ready. The Gherkin file is an input to Backend Engineer, Frontend Engineer, and QA — nothing in steps 4–5 should start without it.
-3. Steps [3a] and [3b] can run in parallel — Architect and Designer both take only the PRD.
+3. Steps [3a] and [3b] can run in parallel — Architect and Designer both take only the PRD. Step [3c] (Copywriter) starts once [2] and [3b] are complete. Step [3d] (SEO) starts once [3a], [3b], and [3c] are complete. Both can run in parallel with Backend. Copy-driven Gherkin changes go through the Revision loop, not direct edits.
 4. Step [4] (Backend Engineer) cannot start until steps [2], [3a], and [3b] are all complete.
-5. Step [5a] (Frontend Engineer) needs the design spec, Gherkin spec, and API contract handoff from step [4]. Only when explicitly requested, Data Analyst and Growth can run in parallel with Frontend. Data Analyst needs the PRD and backend spec. Growth needs the PRD, architecture, design spec, and backend spec.
-6. Steps [6a] (QA) and [6b] (DevOps) can run in parallel once steps [4] and [5a] are both complete.
-7. Step [7] (Security) cannot start until Backend Engineer, DevOps, and Frontend Engineer are all complete. Pass it the backend spec, DevOps config, and frontend spec.
-8. After QA and Security, dispatch a fresh independent reviewer with `.agents/skills/code-review/SKILL.md`. Pass the actual candidate, approved requirements, complete contracts/Gherkin, repository rules, and current test evidence. Resolve blockers through the same bounded repair loop; the implementer cannot act as this reviewer.
-9. Finish with verification and review results and any unresolved blockers. Only when explicitly requested, invoke Release Manager after all enabled outputs and required gates, including independent code review, are ready. Pass those outputs and the role selection. Unrequested Growth and Data assessments are not required inputs unless an approved check requires them. Route blockers from any stage through the Revision loop, capped at 3 global revision rounds.
+5. Step [5a] (Frontend Engineer) needs the design spec, Gherkin spec, copy deck, SEO plan, and API contract handoff from step [4]. Only when explicitly requested, Data Analyst and Growth can run in parallel with Frontend. Data Analyst needs the PRD and backend spec. Growth needs the PRD, architecture, design spec, and backend spec.
+6. Steps [6a] (QA) and [6b] (DevOps) can run in parallel once steps [4] and [5a] are both complete. Pass DevOps the SEO plan's crawl configuration.
+7. Step [7] (Security) cannot start until Backend Engineer, DevOps, and Frontend Engineer are all complete. Pass it the backend spec, DevOps config, and frontend spec. Only when explicitly requested, Pentester runs after Security against an authorized, isolated test deployment of the candidate. Pass it the written authorization, target, security review, API contract handoff, Gherkin, frontend spec, and synthetic accounts. Missing authorization or a production target blocks Pentester, not the rest of the run.
+8. After QA and Security, dispatch a fresh independent reviewer with `.agents/skills/code-review/SKILL.md`. Pass the actual candidate, approved requirements, complete contracts/Gherkin, repository rules, current test evidence, and the pentest report when Pentester is enabled. Resolve blockers through the same bounded repair loop; the implementer cannot act as this reviewer.
+9. Finish with verification and review results and any unresolved blockers. Only when explicitly requested, invoke Release Manager after all enabled outputs and required gates, including independent code review, are ready. Pass those outputs and the role selection. Unrequested Growth, Data, and Pentest assessments are not required inputs unless an approved check requires them. Route blockers from any stage through the Revision loop, capped at 3 global revision rounds.
 
 ## Handoff rules
 
@@ -206,15 +226,15 @@ BLOCKER[devops]: No rollback strategy defined for the database migration step.
 1. Group blockers by agent. Route each to the enabled owner with the blocker description, that agent's original output (TL;DR + relevant sections), and the reporting stage's evidence. If the owner is disabled, surface the conflict for a user decision; do not activate it implicitly or waive the blocker.
 2. Re-run the affected agents. Save revised output as `<file>.r1.md` (e.g. `backend-spec.r1.md`). Increment the suffix on subsequent rounds (`.r2.md`, `.r3.md`).
 3. Re-run every enabled downstream agent that depends on the revised output, in the same dependency order as the original pipeline. Save each with the same `.rN` suffix.
-4. Re-run affected QA, Security, and fresh independent review. If Release Manager is enabled, re-run it with the latest enabled outputs and save `release-report.rN.md`.
+4. Re-run affected QA, Security, Pentester (when enabled), and fresh independent review. If Release Manager is enabled, re-run it with the latest enabled outputs and save `release-report.rN.md`.
 5. Repeat until required gates pass and blockers are resolved, or the round reaches 3. Report `VERIFIED` without release assessment; report a release verdict only when that assessment ran.
 
 If 3 rounds are exhausted with blockers remaining, stop and surface them to the user for manual resolution.
 
 **Downstream reruns:** record every consumed artifact as a task dependency. Changed
 artifacts invalidate their producer and every transitive consumer, which rerun in
-dependency order. Include Growth and Data Analyst only when enabled and consuming changed backend
-artifacts. Candidate changes invalidate candidate-specific verification, review,
+dependency order, including Copywriter and SEO. Include Growth, Data Analyst, and
+Pentester only when enabled and consuming changed artifacts. Candidate changes invalidate candidate-specific verification, review,
 and release evidence. Preserve unaffected artifacts explicitly; filenames alone
 do not establish freshness. The bounded controller computes this closure instead
 of maintaining a separate rerun map.
@@ -277,18 +297,21 @@ Steps:
 2. Invoke the Product Manager to produce a PRD.
 3. Invoke the Gherkin Spec Writer with the PRD.
 4. Invoke the Architect and Designer in parallel with the PRD.
-5. Invoke the Backend Engineer with the PRD, Gherkin spec, architecture, and design spec.
-6. Invoke Frontend Engineer with the design spec, Gherkin spec, and API contract handoff.
-7. Invoke QA and DevOps in parallel.
-8. Invoke Security with the backend spec, DevOps config, frontend spec, and actual candidate evidence.
-9. Invoke a fresh independent reviewer with .agents/skills/code-review/SKILL.md on the candidate and current QA evidence.
-10. Route blockers through bounded repairs and report verification results and remaining blockers, not release approval.
+5. Invoke the Copywriter with the PRD, Gherkin spec, and design spec, then the SEO Specialist with the PRD, architecture, design spec, and copy deck. Both can run in parallel with step 6.
+6. Invoke the Backend Engineer with the PRD, Gherkin spec, architecture, and design spec.
+7. Invoke Frontend Engineer with the design spec, Gherkin spec, copy deck, SEO plan, and API contract handoff.
+8. Invoke QA and DevOps (with the SEO plan) in parallel.
+9. Invoke Security with the backend spec, DevOps config, frontend spec, and actual candidate evidence.
+10. Invoke a fresh independent reviewer with .agents/skills/code-review/SKILL.md on the candidate and current QA evidence.
+11. Route blockers through bounded repairs and report verification results and remaining blockers, not release approval.
 
 Use AGENTS.md role defaults. Save enabled agents' outputs under epics/active/EPIC-XXXX-slug/ and give me the verification summary.
 ```
 
 To enable one role, add an explicit request such as: "Also run Growth to produce
-a go-to-market plan. Keep Data Analyst and Release Manager disabled."
+a go-to-market plan. Keep Data Analyst and Release Manager disabled." For a
+pentest, include the authorization and target: "Also run Pentester against
+https://staging.example.com, authorized techniques: [...], window: [...]."
 
 ## Output files
 
@@ -314,8 +337,11 @@ epics/
 │       ├── devops-config.md
 │       ├── security-review.md
 │       ├── code-review.md
+│       ├── copy-deck.md
+│       ├── seo-plan.md
 │       ├── growth-plan.md             # only with Growth opt-in
 │       ├── data-plan.md               # only with Data Analyst opt-in
+│       ├── pentest-report.md          # only with Pentester opt-in
 │       ├── release-report.md          # only with Release Manager opt-in
 │       ├── backend-spec.r1.md         ← revised after blocker
 │       ├── frontend-spec.r1.md
