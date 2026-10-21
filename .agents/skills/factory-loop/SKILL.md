@@ -107,6 +107,12 @@ Group related findings into one repair wave. The controller invalidates source
 tasks and transitive consumers. Retain unaffected artifacts and historical results.
 Stale in-flight output cannot satisfy current gates.
 
+When a design or architecture repair changes behaviour that existing scenarios
+assert, such as a control's name or role, a state, or quoted copy, file a
+`gherkin` finding against the scenarios in the same wave. Gherkin does not
+depend on design in the graph. Without the finding, those scenarios go stale
+and get edited outside the controller.
+
 Dispatch enabled owners under the same approved constraints. If an owner is disabled,
 report the scope conflict for a user decision. Submit a new candidate and
 rerun affected checks. A changed candidate requires current verification and review,
