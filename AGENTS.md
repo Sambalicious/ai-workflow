@@ -78,14 +78,14 @@ reports, not execution limits.
 | Product Manager | `.agents/skills/product-manager.md` | Turns raw idea into a PRD |
 | Gherkin Spec Writer | `.agents/gherkin.md` | Turns PRD into exhaustive Gherkin scenarios |
 | Architect | `.agents/skills/architect.md` | Turns PRD into system design and key decisions |
-| Product Designer | `.agents/skills/designer.md` | Turns PRD into written UI spec |
+| Product Designer | `.agents/skills/designer.md` | Turns PRD into a design spec with blueprints, feedback matrix, and copy slots; reviews rendered screens |
 | Backend Engineer | `.agents/backend-engineer.md` | Delivers API contract, backend implementation, and tests |
 | Frontend Engineer | `.agents/frontend-engineer.md` | Delivers working UI, API integration, and tests |
 | QA Engineer | `.agents/qa.md` | Independently executes tests and records candidate-bound evidence |
 | DevOps Engineer | `.agents/devops.md` | Turns engineering spec into infra and CI/CD config |
 | Security Reviewer | `.agents/security.md` | Turns engineering spec + DevOps config + frontend spec into a security review |
 | Independent Code Reviewer | `.agents/skills/code-review/SKILL.md` | Reviews the actual candidate and current QA/security evidence |
-| Copywriter | `.agents/copywriter.md` | Turns PRD + design spec + Gherkin into a keyed copy deck and voice guide |
+| Copywriter | `.agents/copywriter.md` | Fills the Designer's copy slots with a keyed copy deck and voice guide |
 | SEO Specialist | `.agents/seo.md` | Turns PRD + architecture + design spec into an indexability, metadata, and crawl plan |
 | Pentester (opt-in) | `.agents/pentester.md` | Attacks an authorized running candidate and reports reproduced findings |
 | Growth (opt-in) | `.agents/skills/growth.md` | Turns PRD + architecture + design spec + backend spec into a go-to-market plan |
@@ -134,8 +134,8 @@ Your idea
 [3a] Architect                             [3b] Product Designer
      (input: PRD)                                (input: PRD)
      └─ Produces: system design,                 └─ Produces: UX flows,
-        architecture decision,                      component inventory,
-        data flow, hard decisions                   style decisions, accessibility
+        architecture decision,                      blueprints, feedback matrix,
+        data flow, hard decisions                   copy slots, accessibility
    │                                              │
    │                                              ▼
    │                                       [3c] Copywriter
@@ -163,14 +163,14 @@ Your idea
       + copy deck + SEO plan)
      Produces: UI, API integration, tests, Gherkin coverage map
          │
-         ├────────────┐
-         ▼            ▼
-      [6a] QA      [6b] DevOps
-      (PRD +       (backend eng spec
-       Gherkin +    + SEO plan)
-       eng specs)
-         │            │
-         └────────────┘
+         ├────────────┬──────────────┐
+         ▼            ▼              ▼
+      [6a] QA      [6b] DevOps    [6c] Designer review
+      (PRD +       (backend eng   (design spec + copy deck
+       Gherkin +    spec + SEO     + DESIGN.md + running build)
+       eng specs)   plan)
+         │            │              │
+         └────────────┴──────────────┘
                       │
                       ▼
                [7] Security Reviewer
@@ -200,7 +200,7 @@ Your idea
 3. Steps [3a] and [3b] can run in parallel — Architect and Designer both take only the PRD. Step [3c] (Copywriter) starts once [2] and [3b] are complete. Step [3d] (SEO) starts once [3a], [3b], and [3c] are complete. Both can run in parallel with Backend. Copy-driven Gherkin changes go through the Revision loop, not direct edits.
 4. Step [4] (Backend Engineer) cannot start until steps [2], [3a], and [3b] are all complete.
 5. Step [5a] (Frontend Engineer) needs the design spec, Gherkin spec, copy deck, SEO plan, and API contract handoff from step [4]. Only when explicitly requested, Data Analyst and Growth can run in parallel with Frontend. Data Analyst needs the PRD and backend spec. Growth needs the PRD, architecture, design spec, and backend spec.
-6. Steps [6a] (QA) and [6b] (DevOps) can run in parallel once steps [4] and [5a] are both complete. Pass DevOps the SEO plan's crawl configuration.
+6. Steps [6a] (QA), [6b] (DevOps), and [6c] (Designer review mode) can run in parallel once steps [4] and [5a] are both complete. Pass DevOps the SEO plan's crawl configuration. For UI-changing work, Designer review is mandatory: it views the rendered screens with Playwright MCP at 375px and 1280px and saves `design-review.md`. Its `BLOCKER[frontend-engineer]`, `BLOCKER[copywriter]`, and `BLOCKER[designer]` findings route through the Revision loop like any other blocker.
 7. Step [7] (Security) cannot start until Backend Engineer, DevOps, and Frontend Engineer are all complete. Pass it the backend spec, DevOps config, and frontend spec. Only when explicitly requested, Pentester runs after Security against an authorized, isolated test deployment of the candidate. Pass it the written authorization, target, security review, API contract handoff, Gherkin, frontend spec, and synthetic accounts. Missing authorization or a production target blocks Pentester, not the rest of the run.
 8. After QA and Security, dispatch a fresh independent reviewer with `.agents/skills/code-review/SKILL.md`. Pass the actual candidate, approved requirements, complete contracts/Gherkin, repository rules, current test evidence, and the pentest report when Pentester is enabled. Resolve blockers through the same bounded repair loop; the implementer cannot act as this reviewer.
 9. Finish with verification and review results and any unresolved blockers. Only when explicitly requested, invoke Release Manager after all enabled outputs and required gates, including independent code review, are ready. Pass those outputs and the role selection. Unrequested Growth, Data, and Pentest assessments are not required inputs unless an approved check requires them. Route blockers from any stage through the Revision loop, capped at 3 global revision rounds.
@@ -226,7 +226,7 @@ BLOCKER[devops]: No rollback strategy defined for the database migration step.
 1. Group blockers by agent. Route each to the enabled owner with the blocker description, that agent's original output (TL;DR + relevant sections), and the reporting stage's evidence. If the owner is disabled, surface the conflict for a user decision; do not activate it implicitly or waive the blocker.
 2. Re-run the affected agents. Save revised output as `<file>.r1.md` (e.g. `backend-spec.r1.md`). Increment the suffix on subsequent rounds (`.r2.md`, `.r3.md`).
 3. Re-run every enabled downstream agent that depends on the revised output, in the same dependency order as the original pipeline. Save each with the same `.rN` suffix.
-4. Re-run affected QA, Security, Pentester (when enabled), and fresh independent review. If Release Manager is enabled, re-run it with the latest enabled outputs and save `release-report.rN.md`.
+4. Re-run affected QA, Designer review (for UI changes), Security, Pentester (when enabled), and fresh independent review. If Release Manager is enabled, re-run it with the latest enabled outputs and save `release-report.rN.md`.
 5. Repeat until required gates pass and blockers are resolved, or the round reaches 3. Report `VERIFIED` without release assessment; report a release verdict only when that assessment ran.
 
 If 3 rounds are exhausted with blockers remaining, stop and surface them to the user for manual resolution.
@@ -300,7 +300,7 @@ Steps:
 5. Invoke the Copywriter with the PRD, Gherkin spec, and design spec, then the SEO Specialist with the PRD, architecture, design spec, and copy deck. Both can run in parallel with step 6.
 6. Invoke the Backend Engineer with the PRD, Gherkin spec, architecture, and design spec.
 7. Invoke Frontend Engineer with the design spec, Gherkin spec, copy deck, SEO plan, and API contract handoff.
-8. Invoke QA and DevOps (with the SEO plan) in parallel.
+8. Invoke QA, DevOps (with the SEO plan), and Designer review mode in parallel.
 9. Invoke Security with the backend spec, DevOps config, frontend spec, and actual candidate evidence.
 10. Invoke a fresh independent reviewer with .agents/skills/code-review/SKILL.md on the candidate and current QA evidence.
 11. Route blockers through bounded repairs and report verification results and remaining blockers, not release approval.
@@ -336,6 +336,7 @@ epics/
 │       ├── test-plan.md
 │       ├── devops-config.md
 │       ├── security-review.md
+│       ├── design-review.md
 │       ├── code-review.md
 │       ├── copy-deck.md
 │       ├── seo-plan.md

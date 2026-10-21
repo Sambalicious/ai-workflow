@@ -14,7 +14,7 @@ A portable set of agent skills that simulate a full startup team. Each agent is 
 | product-manager | `.agents/skills/product-manager.md` | Product Manager | PRD, user stories, acceptance criteria, future backlog |
 | gherkin | `.agents/gherkin.md` | Gherkin Spec Writer | .feature files covering all path types |
 | architect | `.agents/skills/architect.md` | Tech Lead / Architect | System design, architecture decisions, data flow |
-| designer | `.agents/skills/designer.md` | Product Designer | UX flows, component inventory, style decisions |
+| designer | `.agents/skills/designer.md` | Product Designer | Blueprints, feedback matrix, copy slots; rendered design review |
 | backend-engineer | `.agents/backend-engineer.md` | Backend Engineer | API contract, data model, implementation and tests |
 | frontend-engineer | `.agents/frontend-engineer.md` | Frontend Engineer | Working UI, API integration and tests |
 | qa | `.agents/qa.md` | QA Engineer | Independent test execution, evidence and coverage gaps |
@@ -334,9 +334,9 @@ Your idea
    ↓
    frontend-engineer
    ↓
-   ┌─────────┬──────────┐
-   qa        devops     (run in parallel)
-   └─────────┴──────────┘
+   ┌─────────┬──────────┬─────────────────┐
+   qa        devops     designer review   (run in parallel)
+   └─────────┴──────────┴─────────────────┘
    ↓
    security  →  Vuln report
    ↓
