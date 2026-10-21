@@ -25,11 +25,12 @@ A portable set of agent skills that simulate a full startup team. Each agent is 
 | seo | `.agents/seo.md` | SEO Specialist | Indexability map, metadata, crawl config, performance budgets |
 | growth (opt-in) | `.agents/skills/growth.md` | Growth / Marketing | Go-to-market plan, launch copy, acquisition strategy |
 | data-analyst (opt-in) | `.agents/data-analyst.md` | Data Analyst | Measurement plan, event taxonomy, north star metric |
+| pentester (opt-in) | `.agents/pentester.md` | Penetration Tester | Reproduced attacks on a running candidate, coverage, repair owners |
 | release-manager (opt-in) | `.agents/release-manager.md` | Engineering Review Manager | Go/no-go decision, open issues, next steps |
 
 [AGENTS.md role activation policy](AGENTS.md#role-activation-policy) defines the
 defaults. Copywriter and SEO run in every feature run. A generic full pipeline
-keeps Growth, Data Analyst, and Release Manager disabled. Each runs only when the user explicitly requests that role or assessment.
+keeps Growth, Data Analyst, Pentester, and Release Manager disabled. Each runs only when the user explicitly requests that role or assessment.
 QA, Security, fresh independent code review, and bounded repairs remain required.
 Without Release Manager, successful runs end at `VERIFIED`, not release approval.
 Explicit release assessment adds a required gate and can yield `PRODUCTION_READY`.
@@ -326,7 +327,9 @@ Your idea
 
 Copywriter runs after Gherkin and Designer, and SEO runs after Architect, Designer,
 and Copywriter; both feed Frontend, and SEO also feeds DevOps. When explicitly
-requested, Growth and Data Analyst can run after Backend with their required inputs. Release Manager runs after all enabled outputs and required
+requested, Growth and Data Analyst can run after Backend with their required inputs.
+Pentester runs after Security against an authorized, isolated test deployment, and
+its report goes to the independent code reviewer. Release Manager runs after all enabled outputs and required
 gates are ready. An unrequested assessment is not a missing deliverable, but approved
 required checks and unresolved blockers still apply.
 

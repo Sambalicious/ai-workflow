@@ -49,7 +49,7 @@ Unknown fields are rejected rather than silently ignored.
 Apply the [AGENTS.md role activation policy](../AGENTS.md#role-activation-policy)
 before initializing a new run. Record enabled roles and explicit user opt-ins in
 the scope handoff, not new schema fields. The default example omits Growth, Data
-Analyst, and Release Manager actors, tasks, and dependency edges. Marking disabled
+Analyst, Pentester, and Release Manager actors, tasks, and dependency edges. Marking disabled
 tasks `required: false` would still schedule them and can make them required through
 consumers. Keep QA, Security, and fresh independent review required.
 
@@ -165,7 +165,7 @@ entry per declared check. A candidate copied from a report includes its logical
 `revision`; initial input and `publish` use only `ref` and `hash`.
 
 Known routing categories include `code`, `security`, `contract`, `product`, `spec`,
-`gherkin`, `architecture`, `design`, `copy`, `seo`, `test`, `infra`, `growth`, `data`, `review`,
+`gherkin`, `architecture`, `design`, `copy`, `seo`, `pentest`, `test`, `infra`, `growth`, `data`, `review`,
 and `release`. Categories `schema` and `format` delegate to the declared artifact
 kind's producer. A code source must name its backend/frontend component. Identify
 the broken artifact, not merely the check that exposed it.

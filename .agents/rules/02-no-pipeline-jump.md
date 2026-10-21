@@ -48,6 +48,7 @@ the check. Existing pinned graphs and gates remain unchanged.
 | QA | PRD + Gherkin spec + backend spec + frontend spec |
 | DevOps | Backend spec + SEO plan |
 | Security Reviewer | Backend spec + frontend spec + DevOps config + candidate evidence |
+| Pentester (opt-in) | Written authorization + isolated running candidate + security review + API contract handoff + Gherkin spec + frontend spec + synthetic accounts |
 | Independent Code Reviewer | Actual candidate + approved scope + full contracts/Gherkin + repository rules + current QA/security evidence |
 | Release Manager (opt-in) | Enabled outputs and approved required evidence, including QA, security, and independent code review |
 

@@ -6,7 +6,7 @@ export const DEFAULT_BUDGET = Object.freeze({
 // Optional budget keys: null disables the limit, and a supplied value has no pilot cap.
 const UNCAPPED = ['elapsed_ms'];
 const ROLES = ['controller', 'product-manager', 'gherkin', 'architect', 'designer',
-  'backend-engineer', 'frontend-engineer', 'qa', 'devops', 'security', 'copywriter', 'seo', 'growth',
+  'backend-engineer', 'frontend-engineer', 'qa', 'devops', 'security', 'copywriter', 'seo', 'pentester', 'growth',
   'data-analyst', 'code-review', 'release-manager'];
 const KINDS = ['work', 'verification', 'review', 'release'];
 const COMMON = ['type', 'event_id', 'expected_version', 'actor_id', 'adapter_id', 'attested'];
@@ -339,7 +339,7 @@ export function routeFinding(task, category) {
     spec: ['spec', 'product-manager'], gherkin: ['gherkin', 'gherkin'],
     architecture: ['architecture', 'architect'], design: ['design', 'designer'],
     test: ['test', 'qa'], infra: ['infra', 'devops'],
-    copy: ['copy', 'copywriter'], seo: ['seo', 'seo'],
+    copy: ['copy', 'copywriter'], seo: ['seo', 'seo'], pentest: ['pentest', 'pentester'],
     growth: ['growth', 'growth'], data: ['data', 'data-analyst'],
     review: ['review', 'code-review'], release: ['release', 'release-manager'],
   };

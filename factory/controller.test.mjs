@@ -379,7 +379,7 @@ test('repair preserves unaffected work but reruns candidate-specific gates', () 
 
 test('default example requires QA, security and fresh review, then completes VERIFIED', () => {
   const h = harness(exampleInput);
-  const disabled = ['growth', 'data-analyst', 'release-manager'];
+  const disabled = ['growth', 'data-analyst', 'pentester', 'release-manager'];
   assert.ok(exampleInput.actors.every(a => a.roles.every(role => !disabled.includes(role))));
   assert.deepEqual(exampleInput.tasks.map(t => t.role), ['backend-engineer', 'qa', 'security', 'code-review']);
   assert.ok(exampleInput.tasks.every(t => t.required));
@@ -434,7 +434,7 @@ test('example gates reject missing evidence with and without release opt-in', ()
   }
 });
 
-for (const [role, kind] of [['growth', 'growth'], ['data-analyst', 'data'], ['copywriter', 'copy'], ['seo', 'seo']]) {
+for (const [role, kind] of [['growth', 'growth'], ['data-analyst', 'data'], ['copywriter', 'copy'], ['seo', 'seo'], ['pentester', 'pentest']]) {
   test(`${role} can be explicitly added without enabling other assessments`, () => {
     const config = structuredClone(exampleInput);
     config.actors.push({ id: `${role}-session`, roles: [role] });
@@ -578,7 +578,7 @@ test('actual code-review and security are distinct required gates; QA must consu
 });
 
 test('Growth, Data, review, security and release report kinds map without guessing', () => {
-  for (const [category, role] of [['growth', 'growth'], ['data', 'data-analyst'], ['copy', 'copywriter'], ['seo', 'seo'], ['review', 'code-review'],
+  for (const [category, role] of [['growth', 'growth'], ['data', 'data-analyst'], ['copy', 'copywriter'], ['seo', 'seo'], ['pentest', 'pentester'], ['review', 'code-review'],
     ['security', 'security'], ['release', 'release-manager']]) {
     assert.equal(routeFinding({ artifact_kind: category, role, kind: 'verification' }, category).owner, role);
     assert.equal(routeFinding({ artifact_kind: category, role, kind: 'verification' }, 'schema').owner, role);
