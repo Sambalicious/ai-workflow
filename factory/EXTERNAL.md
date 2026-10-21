@@ -112,7 +112,8 @@ state file; a new directory is not a way to reset budgets or repair waves.
    skill discovery or copied agent configuration.
    Apply its role activation policy to new runs. Record enabled roles and explicit
    user opt-ins in the handoff. Generic full pipeline requests use enabled defaults;
-   Growth, Data Analyst, and Release Manager remain disabled unless each is requested.
+   Copywriter and SEO run by default in feature runs. Growth, Data Analyst, and
+   Release Manager remain disabled unless each is requested.
    Omit disabled tasks and their edges, not `required: false` placeholders.
    Keep QA, Security, and fresh independent review mandatory. Preserve approved checks
    and blockers; report scope conflicts rather than activating a disabled role.

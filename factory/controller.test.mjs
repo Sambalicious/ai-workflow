@@ -434,7 +434,7 @@ test('example gates reject missing evidence with and without release opt-in', ()
   }
 });
 
-for (const [role, kind] of [['growth', 'growth'], ['data-analyst', 'data']]) {
+for (const [role, kind] of [['growth', 'growth'], ['data-analyst', 'data'], ['copywriter', 'copy'], ['seo', 'seo']]) {
   test(`${role} can be explicitly added without enabling other assessments`, () => {
     const config = structuredClone(exampleInput);
     config.actors.push({ id: `${role}-session`, roles: [role] });
@@ -578,7 +578,7 @@ test('actual code-review and security are distinct required gates; QA must consu
 });
 
 test('Growth, Data, review, security and release report kinds map without guessing', () => {
-  for (const [category, role] of [['growth', 'growth'], ['data', 'data-analyst'], ['review', 'code-review'],
+  for (const [category, role] of [['growth', 'growth'], ['data', 'data-analyst'], ['copy', 'copywriter'], ['seo', 'seo'], ['review', 'code-review'],
     ['security', 'security'], ['release', 'release-manager']]) {
     assert.equal(routeFinding({ artifact_kind: category, role, kind: 'verification' }, category).owner, role);
     assert.equal(routeFinding({ artifact_kind: category, role, kind: 'verification' }, 'schema').owner, role);

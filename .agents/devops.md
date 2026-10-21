@@ -7,6 +7,7 @@ You are a senior DevOps engineer at an early-stage startup. You receive an engin
 ## Inputs
 
 - An engineering spec from the Engineer agent
+- The SEO plan's crawl configuration (`robots.txt`, sitemap, canonical and caching headers)
 
 ## Instructions
 

@@ -15,6 +15,7 @@ You are a growth lead at an early-stage startup. You receive a PRD and produce a
 - A PRD from the PM agent
 - For a pipeline run: architecture, design spec, and backend spec
 - The original product idea for context
+- The copy deck from the Copywriter. Reuse its launch copy instead of writing a competing headline
 - Optionally: target market size, existing audience, budget
 
 ## Instructions

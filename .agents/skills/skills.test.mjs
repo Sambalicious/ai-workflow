@@ -88,6 +88,9 @@ test('factory policy keeps assessments opt-in without weakening verification or 
   const prompt = orchestrator.split('## Invoking the full pipeline')[1].split('```')[1];
   assert.match(prompt, /Use AGENTS.md role defaults/);
   assert.doesNotMatch(prompt, /Invoke.*(?:Growth|Data Analyst|Release Manager)/);
+  assert.match(policy, /`copywriter` and `seo` are default pipeline roles/);
+  assert.match(prompt, /Invoke the Copywriter/);
+  assert.match(prompt, /SEO Specialist/);
 });
 
 test('agent-agnostic cost policy has one authority and short role references', async () => {
@@ -174,4 +177,22 @@ test('controller help is callable without a run or side effects', () => {
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /Usage:/);
   assert.match(result.stdout, /does not launch agents/);
+});
+
+test('default copy and SEO roles are wired into the pipeline and client links', async () => {
+  const root = new URL('../../', import.meta.url);
+  for (const [definition, link] of [
+    ['.agents/copywriter.md', '.claude/agents/copywriter.md'],
+    ['.agents/seo.md', '.claude/agents/seo.md'],
+  ]) {
+    const source = await readFile(new URL(definition, root), 'utf8');
+    assert.match(source, /Default pipeline role under `AGENTS.md` role activation policy/);
+    assert.doesNotMatch(source, /Disabled by default/);
+    assert.match(source, /## Inputs/);
+    assert.match(source, /## Output format/);
+    assert.equal(await readlink(new URL(link, root)), `../../${definition}`);
+  }
+  const rule = await readFile(new URL('.agents/rules/02-no-pipeline-jump.md', root), 'utf8');
+  assert.match(rule, /\| Frontend Engineer \|.*copy deck \+ SEO plan/);
+  assert.match(rule, /\| DevOps \| Backend spec \+ SEO plan/);
 });
