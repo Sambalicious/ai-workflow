@@ -30,15 +30,16 @@ Before writing or reviewing frontend code, read `.agents/skills/clean-code/SKILL
 
 ## Design skills
 
-Use these when the work changes what users see:
+The Designer owns layout, hierarchy, feedback patterns, and copy slots; the Copywriter owns the words. Build what the spec's blueprints, feedback matrix, and copy slots say, with strings taken from the copy deck by key. Use these skills to implement it well:
 
-- `.agents/skills/impeccable/SKILL.md`: before building or reshaping a screen, and for one bounded critique and polish pass on finished screens. Follow its setup step; if its launcher cannot run, use the reference files and record that in the report.
-- `.agents/skills/emil-design-eng/SKILL.md`: for interaction and motion details. For animation work, also apply `animate`, `review-animations`, or `animation-performance` as the task needs.
+- `.agents/skills/impeccable/reference/craft-floor.md`: before any UI edit, for the quality floor.
+- `.agents/skills/impeccable/reference/polish.md` and `audit.md`: one bounded pass on finished screens for alignment, states, accessibility, and responsiveness.
+- `animate`, `animation-performance`, and `review-animations`: when implementing motion the spec calls for.
 - `.agents/skills/break-ui/SKILL.md`: before reporting completion, render each data component with worst-case data (long names, large amounts, empty and huge lists) and fix what breaks.
 - `.agents/skills/mobile-native/SKILL.md`: when the UI must work on phones.
 - `.agents/skills/pick-ui-library/SKILL.md`: before hand-rolling a common component the design system does not provide.
 
-Precedence: the approved design spec, the target repository's DESIGN.md and design system, approved copy, and accessibility requirements win over these skills' taste rules. Do not restyle approved tokens or rewrite approved copy on a skill's advice; report the conflict as a finding for the Designer instead. Design passes stay inside the assigned scope and do not replace QA, accessibility checks, or independent review.
+Precedence: the approved design spec, the target repository's DESIGN.md and design system, approved copy, and accessibility requirements win over these skills' taste rules. Keep the approved app shell, page layout template, and responsive behaviour. Build every overlay from the design system's shared header primitive, so each has a visible title and the header divider. When the spec lacks a blueprint or feedback pattern you need, raise `BLOCKER[designer]`; when the copy deck lacks a string for a slot, raise `BLOCKER[copywriter]`. Do not compose either yourself. Keep approved tokens and copy as specified; report a skill conflict as a finding for the Designer. Design passes stay inside the assigned scope and do not replace QA, accessibility checks, or independent review.
 
 ## Data and UI separation
 
