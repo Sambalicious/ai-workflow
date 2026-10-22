@@ -197,3 +197,17 @@ test('default copy and SEO roles are wired into the pipeline and client links', 
   assert.match(rule, /\| Frontend Engineer \|.*copy deck \+ SEO plan/);
   assert.match(rule, /\| DevOps \| Backend spec \+ SEO plan/);
 });
+
+test('slash commands have one source and client links', async () => {
+  const root = new URL('../../', import.meta.url);
+  for (const name of ['overnight']) {
+    const source = await readFile(new URL(`.agents/commands/${name}.md`, root), 'utf8');
+    assert.match(source, /^---\r?\ndescription: .+\r?\n/);
+    assert.match(source, /\$ARGUMENTS/);
+    assert.doesNotMatch(source, /[^\x00-\x7F]/, 'Keep the shared definitions ASCII');
+    for (const dir of ['.kilo/command', '.claude/commands']) {
+      const link = await readlink(fileURLToPath(new URL(`${dir}/${name}.md`, root)));
+      assert.equal(link, `../../.agents/commands/${name}.md`);
+    }
+  }
+});
