@@ -101,6 +101,13 @@ mkdir -p "$TARGET_DIR/.claude/skills"
 
 copy_dir "$SOURCE_DIR/.claude/agents" "$TARGET_DIR/.claude/agents"
 copy_dir "$SOURCE_DIR/.claude/skills" "$TARGET_DIR/.claude/skills"
+mkdir -p "$TARGET_DIR/.claude/commands"
+copy_dir "$SOURCE_DIR/.claude/commands" "$TARGET_DIR/.claude/commands"
+
+# ── 2b. Copy Kilo / OpenCode slash commands (.kilo/command/) ──────────────────
+log "Copying Kilo commands (.kilo/command/)..."
+mkdir -p "$TARGET_DIR/.kilo/command"
+copy_dir "$SOURCE_DIR/.kilo/command" "$TARGET_DIR/.kilo/command"
 
 # ── 3. Copy controller and pipeline orchestrator ──────────────────────────────
 log "Copying bounded factory controller (factory/)..."
@@ -123,4 +130,5 @@ echo "    • Claude.ai     — paste any .agents/<name>.md as a system prompt"
 echo "    • Full pipeline — invoke AGENTS.md with your idea"
 echo "    • Repair loop   — read .agents/skills/factory-loop/SKILL.md"
 echo "    • Controller    — node factory/cli.mjs --help"
+echo "    • Overnight     — /overnight in Kilo or Claude Code, or read .agents/commands/overnight.md"
 echo ""

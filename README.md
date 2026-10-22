@@ -171,6 +171,26 @@ Validate their packaging and required report markers with:
 node --test .agents/skills/skills.test.mjs
 ```
 
+### Slash commands
+
+Commands live in `.agents/commands/`, the single source of truth. Client folders
+hold symlinks: `.kilo/command/` for Kilo and OpenCode, `.claude/commands/` for
+Claude Code. Other clients can read the file directly.
+
+| Command | Definition | Purpose |
+|---|---|---|
+| `/overnight [notes]` | [.agents/commands/overnight.md](.agents/commands/overnight.md) | Ask every decision and authority question up front, write a plan in the run root, keep the factory loop running with scheduled check-ins, and leave a morning summary. Merge, deploy, live keys, and real money stay with you. |
+
+To use a command in every project without installing, link it into your global
+client config, for example:
+
+```bash
+ln -s /absolute/path/to/ai-team/.agents/commands/overnight.md ~/.config/kilo/command/overnight.md
+ln -s /absolute/path/to/ai-team/.agents/commands/overnight.md ~/.claude/commands/overnight.md
+```
+
+Without a slash-command client, paste: `Read /absolute/path/to/ai-team/.agents/commands/overnight.md and follow it. Notes: [...]`.
+
 ### Bounded repair controller
 
 The [controller protocol](factory/PROTOCOL.md) describes inputs, events,
