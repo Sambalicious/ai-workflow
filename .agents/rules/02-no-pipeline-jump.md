@@ -21,7 +21,8 @@ the check. Existing pinned graphs and gates remain unchanged.
 - The Gherkin spec is not yet complete and you are the Backend Engineer, Frontend Engineer, or QA.
 - The architecture decision is not yet complete and you are the Backend Engineer.
 - The API contract handoff is not yet complete and you are the Frontend Engineer.
-- The backend spec and DevOps config are not yet complete and you are the Security Reviewer.
+- The API contract handoff is not yet complete and you are the Backend Engineer (implementation task), DevOps, or the Security Reviewer (threat model pass).
+- QA evidence, the threat model, and the DevOps config are not yet complete and you are the Security Reviewer (candidate pass).
 - Any upstream output consumed by your task is marked as a draft, partial, or contains unresolved blockers.
 
 ## Do NOT stop when
@@ -37,20 +38,22 @@ the check. Existing pinned graphs and gates remain unchanged.
 | Agent | Must have before starting |
 |---|---|
 | Gherkin Spec Writer | PRD |
-| Growth (opt-in) | PRD + architecture + design spec + backend spec |
+| Growth (opt-in) | PRD + architecture + design spec + API contract handoff |
 | Architect | PRD |
 | Designer | PRD |
 | Copywriter | PRD + Gherkin spec + design spec (copy slots) |
 | SEO Specialist | PRD + architecture + design spec + copy deck |
-| Backend Engineer | PRD + Gherkin spec + architecture + design spec |
+| Backend Engineer (contract task) | PRD + Gherkin spec + architecture + design spec |
+| Backend Engineer (implementation task) | API contract handoff + the contract task's inputs |
 | Frontend Engineer | Design spec + Gherkin spec + API contract handoff + copy deck + SEO plan |
-| Data Analyst (opt-in) | PRD + backend spec |
+| Data Analyst (opt-in) | PRD + API contract handoff |
 | QA | PRD + Gherkin spec + backend spec + frontend spec |
-| DevOps | Backend spec + SEO plan |
+| DevOps | Architecture + API contract handoff + SEO plan |
 | Designer (review mode) | Design spec + copy deck + DESIGN.md + running build of the candidate |
-| Security Reviewer | Backend spec + frontend spec + DevOps config + candidate evidence |
+| Security Reviewer (threat model pass) | PRD + architecture + API contract handoff |
+| Security Reviewer (candidate pass) | Threat model + backend spec + frontend spec + DevOps config + current QA evidence + candidate |
 | Pentester (opt-in) | Written authorization + isolated running candidate + security review + API contract handoff + Gherkin spec + frontend spec + synthetic accounts |
-| Independent Code Reviewer | Actual candidate + approved scope + full contracts/Gherkin + repository rules + current QA/security evidence |
+| Independent Code Reviewer | Actual candidate + approved scope + full contracts/Gherkin + repository rules + current QA evidence (runs in parallel with the Security candidate pass; also the pentest report when Pentester is enabled) |
 | Release Manager (opt-in) | Enabled outputs and approved required evidence, including QA, security, and independent code review |
 
 ---

@@ -40,6 +40,43 @@ exampleInputWithRelease.actors.push({ id: 'release-session', roles: ['release-ma
 exampleInputWithRelease.tasks.push({ id: 'release', role: 'release-manager', depends_on: ['qa', 'security', 'review'], required: true,
   kind: 'release', artifact_kind: 'release', checks: ['local-release-checklist'] });
 
+// Feature graph: one contract task, then Backend, Frontend, DevOps, and the Security
+// threat model run in parallel. Security candidate review and code review both follow
+// QA and run in parallel. Approved planning artifacts (PRD, Gherkin, architecture,
+// design spec, copy deck, SEO plan) are inputs to this run, not tasks in it.
+export const exampleFeatureInput = {
+  ...structuredClone(exampleInput),
+  run_id: 'example-feature-run',
+  work_item_id: 'EPIC-0000',
+  actors: [
+    { id: 'orchestrator', roles: ['controller'] },
+    { id: 'contract-session', roles: ['backend-engineer'] },
+    { id: 'backend-session', roles: ['backend-engineer'] },
+    { id: 'frontend-session', roles: ['frontend-engineer'] },
+    { id: 'devops-session', roles: ['devops'] },
+    { id: 'threat-model-session', roles: ['security'] },
+    { id: 'qa-session', roles: ['qa'] },
+    { id: 'security-session', roles: ['security'] },
+    { id: 'review-session', roles: ['code-review'] },
+    { id: 'qa-recheck-session', roles: ['qa'] },
+  ],
+  tasks: [
+    { id: 'contract', role: 'backend-engineer', depends_on: [], required: true, kind: 'work', artifact_kind: 'contract' },
+    { id: 'backend', role: 'backend-engineer', depends_on: ['contract'], required: true,
+      kind: 'work', artifact_kind: 'code', component: 'backend' },
+    { id: 'frontend', role: 'frontend-engineer', depends_on: ['contract'], required: true,
+      kind: 'work', artifact_kind: 'code', component: 'frontend' },
+    { id: 'devops', role: 'devops', depends_on: ['contract'], required: true, kind: 'work', artifact_kind: 'infra' },
+    { id: 'threat-model', role: 'security', depends_on: ['contract'], required: true, kind: 'work', artifact_kind: 'security' },
+    { id: 'qa', role: 'qa', depends_on: ['backend', 'frontend', 'devops', 'threat-model'], required: true,
+      kind: 'verification', artifact_kind: 'test', checks: ['affected-scenarios', 'regression', 'e2e'] },
+    { id: 'security', role: 'security', depends_on: ['qa'], required: true,
+      kind: 'verification', artifact_kind: 'security', checks: ['security-review'] },
+    { id: 'review', role: 'code-review', depends_on: ['qa'], required: true,
+      kind: 'review', artifact_kind: 'review', checks: ['independent-review'] },
+  ],
+};
+
 const common = {
   event_id: 'unique-event-id', expected_version: 0,
   actor_id: 'author-session', adapter_id: 'local-adapter', attested: true,
@@ -73,7 +110,8 @@ export const exampleEvents = {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const [name = 'input', ...extra] = process.argv.slice(2);
-  const templates = { input: exampleInput, 'input-with-release': exampleInputWithRelease, ...exampleEvents };
+  const templates = { input: exampleInput, 'input-with-release': exampleInputWithRelease,
+    'input-feature': exampleFeatureInput, ...exampleEvents };
   if (extra.length || !Object.hasOwn(templates, name)) {
     process.stderr.write(`Usage: node factory/example.mjs ${Object.keys(templates).join('|')}\n`);
     process.exitCode = 1;

@@ -6,7 +6,7 @@ import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { createRun, reduce, report, routeFinding, DEFAULT_BUDGET } from './controller.mjs';
 import { initialize, load, apply } from './store.mjs';
-import { exampleInput, exampleInputWithRelease, exampleEvents } from './example.mjs';
+import { exampleInput, exampleInputWithRelease, exampleFeatureInput, exampleEvents } from './example.mjs';
 
 const NOW = 100000;
 const artifact = (n = 1) => ({ ref: `artifact:${n}`, hash: n.toString(16).padStart(64, '0') });
@@ -399,6 +399,60 @@ test('default example requires QA, security and fresh review, then completes VER
   assert.equal(new Set(h.state.tasks.map(t => t.attempts[0].actor_id)).size, 4);
 });
 
+test('feature example runs implementation after the contract and gates after QA in parallel', () => {
+  const h = harness(exampleFeatureInput);
+  const ready = () => report(h.state, { now: NOW }).ready.map(t => t.task_id).sort();
+  assert.ok(exampleFeatureInput.tasks.every(t => t.required));
+  assert.deepEqual(ready(), ['contract']);
+  h.run('contract');
+  const parallel = ['backend', 'devops', 'frontend', 'threat-model'];
+  assert.deepEqual(ready(), parallel);
+  for (const id of parallel) h.start(id);
+  assert.equal(h.state.tasks.filter(t => t.status === 'running').length, 4);
+  for (const id of parallel) h.complete(id);
+  h.send('publish', { candidate: artifact(1001) });
+  assert.deepEqual(ready(), ['qa']);
+  h.run('qa');
+  assert.deepEqual(ready(), ['review', 'security']);
+  const security = report(h.state, { now: NOW }).ready.find(t => t.task_id === 'security');
+  assert.deepEqual(security.eligible_actors, ['security-session']);
+  assert.throws(() => h.start('security', { actor_id: 'threat-model-session' }), /Independent gate actor/);
+  h.start('security'); h.start('review');
+  h.complete('security'); h.complete('review');
+  assert.equal(report(h.state, { now: NOW }).status, 'VERIFIED');
+});
+
+test('contract findings route to the backend contract task and invalidate parallel consumers', () => {
+  const h = harness(exampleFeatureInput);
+  for (const id of ['contract', 'backend', 'frontend', 'devops', 'threat-model']) h.run(id);
+  h.send('publish', { candidate: artifact(1001) });
+  h.run('qa');
+  const source = h.state.tasks.find(t => t.id === 'contract');
+  h.send('finding', { finding_id: 'contract-1', category: 'contract', subtype: 'missing-field',
+    source_task_id: 'contract', source_attempt_id: source.attempts.at(-1).id, source_revision: source.revision,
+    candidate: h.state.candidate, evidence: artifact(500) }, 'qa-session');
+  assert.equal(h.state.findings[0].owner, 'backend-engineer');
+  h.repair();
+  for (const id of ['contract', 'backend', 'frontend', 'devops', 'threat-model', 'qa', 'security', 'review']) {
+    assert.equal(h.state.tasks.find(t => t.id === id).status, 'pending', id);
+  }
+});
+
+test('report timing records per-task durations from controller event times', () => {
+  const h = harness(exampleFeatureInput);
+  assert.deepEqual(report(h.state, { now: NOW }).timing.last_finished_ms, null);
+  h.start('contract');
+  h.complete('contract', {}, NOW + 5000);
+  h.send('tick', {}, undefined, NOW + 7000);
+  const timing = report(h.state, { now: NOW + 9000 }).timing;
+  assert.deepEqual(report(h.state, { now: NOW + 20000 }).timing, timing);
+  assert.equal(timing.recorded_ms, 7000);
+  assert.equal(timing.last_finished_ms, 5000);
+  assert.equal(timing.agent_ms, 5000);
+  assert.deepEqual(timing.tasks.find(t => t.task_id === 'contract'), { task_id: 'contract', attempts: 1, total_ms: 5000, last_ms: 5000 });
+  assert.deepEqual(timing.tasks.find(t => t.task_id === 'backend'), { task_id: 'backend', attempts: 0, total_ms: 0, last_ms: null });
+});
+
 test('release opt-in adds only a required release gate and waits for current evidence', () => {
   assert.deepEqual(exampleInputWithRelease.tasks.slice(0, -1), exampleInput.tasks);
   assert.deepEqual(exampleInputWithRelease.actors.slice(0, -1), exampleInput.actors);
@@ -451,7 +505,7 @@ test('published templates match live schema without claiming verification', () =
   const state = createRun(exampleInput, { now: NOW });
   const next = reduce(state, exampleEvents.start, { now: NOW });
   assert.equal(next.tasks[0].status, 'running');
-  for (const [name, template] of [['input', exampleInput], ['input-with-release', exampleInputWithRelease]]) {
+  for (const [name, template] of [['input', exampleInput], ['input-with-release', exampleInputWithRelease], ['input-feature', exampleFeatureInput]]) {
     const result = spawnSync(process.execPath, [resolve('factory/example.mjs'), name], { encoding: 'utf8' });
     assert.equal(result.status, 0);
     assert.match(result.stderr, /TEMPLATE ONLY/);
@@ -757,7 +811,7 @@ test('reporting passes token/money caps and reservation overruns; strict still s
   assert.equal(h.state.tasks[0].status, 'done');
   assert.equal(costs(h).known_subtotal_usd, 100);
   assert.doesNotThrow(() => createRun(reportingInput({ budget: { tokens: 900000, cost_usd: 1000 } })));
-  for (const budget of [{ tokens: -1 }, { cost_usd: Infinity }, { concurrent: 5 }, { invocations: 33 }, { repair_waves: 4 }]) {
+  for (const budget of [{ tokens: -1 }, { cost_usd: Infinity }, { concurrent: 7 }, { invocations: 33 }, { repair_waves: 4 }]) {
     assert.throws(() => createRun(reportingInput({ budget })), /budget/);
   }
   const strict = harness(input()); strict.start('code');

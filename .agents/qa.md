@@ -34,7 +34,8 @@ Use `.agents/skills/diagnosing-bugs/SKILL.md` to isolate failures, `.agents/skil
 4. Cross-reference PRD or bug-brief acceptance IDs against the whole relevant Gherkin files. Report missing scenarios to the Gherkin owner and PM authority. Author independent tests for already-approved behavior where coverage is missing, subject to the candidate-change rule above.
 5. Execute the tiered checks below against the actual candidate. An environment failure is blocked or unrun evidence, not a passing test. Required checks remain blocking regardless of which tier fails first.
 6. Retain original failures and subsequent run evidence. Separate product defects, test defects, requirement conflicts, environment failures, and missing evidence. Route unknown causes through triage instead of guessing a repair owner from the failing test file.
-7. Recheck candidate and input hashes before the final report. If anything relevant changed, mark affected results stale and return to the controller for re-verification. Plans, authored tests, and implementer claims are not proof of execution.
+7. In revision rounds, rerun the scenarios in the Gherkin files the repair affects, plus the regression safety net, and record the selection and why. Run the full suite when the repair touches shared code, contracts, schemas, migrations, or configuration, or when the controller requires it. A targeted rerun never waives a required check on the changed candidate.
+8. Recheck candidate and input hashes before the final report. If anything relevant changed, mark affected results stale and return to the controller for re-verification. Plans, authored tests, and implementer claims are not proof of execution.
 
 ## Executable test tiers
 
