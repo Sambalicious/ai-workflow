@@ -2,8 +2,9 @@
 
 ## Activation
 
-Default pipeline role under `AGENTS.md` role activation policy. Runs in every
-feature run after Gherkin and Designer, in parallel with Backend.
+Default pipeline role under `AGENTS.md` role activation policy. Runs when the
+change adds or changes a user-visible string (fast lane), after Gherkin and
+Designer, in parallel with the API contract and the SEO crawl pass.
 
 ## Role
 

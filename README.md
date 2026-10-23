@@ -325,15 +325,16 @@ Your idea
    ┌──────────┬────────────┬──────────┐
    gherkin    architect    designer   (run in parallel)
    └──────────┴────────────┴──────────┘
-   ↓                         copywriter → seo
+   ↓                         seo crawl ∥ copywriter* → seo metadata*
    backend-engineer (contract task)  →  API contract
    ↓
-   ┌──────────┬───────────┬─────────┬──────────────────────┐
-   backend    frontend    devops    security threat model   (run in parallel)
-   └──────────┴───────────┴─────────┴──────────────────────┘
+   ┌─────────┬──────────────────┬────────┬──────────────┬─────────────┐
+   backend   frontend           devops   security       qa test      (run in parallel)
+             (+ designer preview)        threat model   authoring
+   └─────────┴──────────────────┴────────┴──────────────┴─────────────┘
    ↓
    ┌─────────┬─────────────────┐
-   qa        designer review   (run in parallel)
+   qa gate   designer review   (run in parallel)
    └─────────┴─────────────────┘
    ↓
    ┌──────────────────────────┬──────────────────────────┐
@@ -343,8 +344,10 @@ Your idea
    Verification summary  →  VERIFIED or unresolved blockers
 ```
 
-Copywriter runs after Gherkin and Designer, and SEO runs after Architect, Designer,
-and Copywriter; both feed Frontend, and SEO also feeds DevOps. Backend publishes the
+`*` Copywriter and SEO run when the change adds user-visible strings or touches
+public routes (fast lane). SEO's crawl pass runs beside Copywriter and feeds DevOps;
+its metadata pass follows the copy deck and feeds Frontend. A separate QA session
+writes the tests during the build; the QA gate runs them on the candidate. Backend publishes the
 API contract as its own task; Frontend builds against MSW mocks derived from it while
 Backend implements it. When explicitly requested, Growth and Data Analyst can run
 after the contract with their required inputs.

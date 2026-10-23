@@ -51,5 +51,8 @@ A focused list of architectural choices that would be expensive to undo after la
 ### What this design defers
 Explicit list of architectural concerns that are out of scope for v1. This is not a weakness — it's a discipline.
 
+### Public routes changed
+`yes` or `no`, then the public routes added or changed, with their rendering strategy. The orchestrator uses this to decide whether SEO runs.
+
 ### TL;DR for downstream agents
 A plain-English paragraph summarising the architecture, key constraints, and the one decision each of the Engineer, DevOps, and Security agents should keep in mind.

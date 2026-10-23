@@ -55,11 +55,14 @@ tasks `required: false` would still schedule them and can make them required thr
 consumers. Keep QA, Security, and fresh independent review required.
 
 For feature runs, `node factory/example.mjs input-feature` declares the parallel
-graph: a `contract` task, then Backend, Frontend, DevOps, and the Security threat
-model, each depending only on the contract; QA after all of them; then Security
+graph: a `contract` task, then Backend, Frontend, DevOps, the Security threat
+model, and QA test authoring (`qa-tests`, a `work` task with `artifact_kind: test`),
+each depending only on the contract; QA after all of them; then Security
 candidate review and code review, each depending only on QA. The threat model and
 candidate review use different Security actors, because a gate actor cannot have
-authored a dependency.
+authored a dependency. For the same reason the QA session that authored `qa-tests`
+cannot run the QA gate. Copywriter, SEO, and Designer preview stay outside the
+controller graph as approved inputs or in-task feedback.
 
 For explicit release assessment, `node factory/example.mjs input-with-release`
 adds a required release task after QA, Security, and review. It does not enable

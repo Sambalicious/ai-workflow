@@ -405,13 +405,15 @@ test('feature example runs implementation after the contract and gates after QA 
   assert.ok(exampleFeatureInput.tasks.every(t => t.required));
   assert.deepEqual(ready(), ['contract']);
   h.run('contract');
-  const parallel = ['backend', 'devops', 'frontend', 'threat-model'];
+  const parallel = ['backend', 'devops', 'frontend', 'qa-tests', 'threat-model'];
   assert.deepEqual(ready(), parallel);
   for (const id of parallel) h.start(id);
-  assert.equal(h.state.tasks.filter(t => t.status === 'running').length, 4);
+  assert.equal(h.state.tasks.filter(t => t.status === 'running').length, 5);
   for (const id of parallel) h.complete(id);
   h.send('publish', { candidate: artifact(1001) });
   assert.deepEqual(ready(), ['qa']);
+  assert.deepEqual(report(h.state, { now: NOW }).ready[0].eligible_actors, ['qa-session', 'qa-recheck-session']);
+  assert.throws(() => h.start('qa', { actor_id: 'qa-author-session' }), /Independent gate actor/);
   h.run('qa');
   assert.deepEqual(ready(), ['review', 'security']);
   const security = report(h.state, { now: NOW }).ready.find(t => t.task_id === 'security');
@@ -424,7 +426,7 @@ test('feature example runs implementation after the contract and gates after QA 
 
 test('contract findings route to the backend contract task and invalidate parallel consumers', () => {
   const h = harness(exampleFeatureInput);
-  for (const id of ['contract', 'backend', 'frontend', 'devops', 'threat-model']) h.run(id);
+  for (const id of ['contract', 'backend', 'frontend', 'devops', 'threat-model', 'qa-tests']) h.run(id);
   h.send('publish', { candidate: artifact(1001) });
   h.run('qa');
   const source = h.state.tasks.find(t => t.id === 'contract');
@@ -433,7 +435,7 @@ test('contract findings route to the backend contract task and invalidate parall
     candidate: h.state.candidate, evidence: artifact(500) }, 'qa-session');
   assert.equal(h.state.findings[0].owner, 'backend-engineer');
   h.repair();
-  for (const id of ['contract', 'backend', 'frontend', 'devops', 'threat-model', 'qa', 'security', 'review']) {
+  for (const id of ['contract', 'backend', 'frontend', 'devops', 'threat-model', 'qa-tests', 'qa', 'security', 'review']) {
     assert.equal(h.state.tasks.find(t => t.id === id).status, 'pending', id);
   }
 });
