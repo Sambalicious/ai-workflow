@@ -40,8 +40,9 @@ exampleInputWithRelease.actors.push({ id: 'release-session', roles: ['release-ma
 exampleInputWithRelease.tasks.push({ id: 'release', role: 'release-manager', depends_on: ['qa', 'security', 'review'], required: true,
   kind: 'release', artifact_kind: 'release', checks: ['local-release-checklist'] });
 
-// Feature graph: one contract task, then Backend, Frontend, DevOps, and the Security
-// threat model run in parallel. Security candidate review and code review both follow
+// Feature graph: one contract task, then Backend, Frontend, DevOps, the Security
+// threat model, and QA test authoring run in parallel. The authoring QA session is a
+// work author, so the controller bars it from the QA gate. Security candidate review and code review both follow
 // QA and run in parallel. Approved planning artifacts (PRD, Gherkin, architecture,
 // design spec, copy deck, SEO plan) are inputs to this run, not tasks in it.
 export const exampleFeatureInput = {
@@ -55,6 +56,7 @@ export const exampleFeatureInput = {
     { id: 'frontend-session', roles: ['frontend-engineer'] },
     { id: 'devops-session', roles: ['devops'] },
     { id: 'threat-model-session', roles: ['security'] },
+    { id: 'qa-author-session', roles: ['qa'] },
     { id: 'qa-session', roles: ['qa'] },
     { id: 'security-session', roles: ['security'] },
     { id: 'review-session', roles: ['code-review'] },
@@ -68,7 +70,8 @@ export const exampleFeatureInput = {
       kind: 'work', artifact_kind: 'code', component: 'frontend' },
     { id: 'devops', role: 'devops', depends_on: ['contract'], required: true, kind: 'work', artifact_kind: 'infra' },
     { id: 'threat-model', role: 'security', depends_on: ['contract'], required: true, kind: 'work', artifact_kind: 'security' },
-    { id: 'qa', role: 'qa', depends_on: ['backend', 'frontend', 'devops', 'threat-model'], required: true,
+    { id: 'qa-tests', role: 'qa', depends_on: ['contract'], required: true, kind: 'work', artifact_kind: 'test' },
+    { id: 'qa', role: 'qa', depends_on: ['backend', 'frontend', 'devops', 'threat-model', 'qa-tests'], required: true,
       kind: 'verification', artifact_kind: 'test', checks: ['affected-scenarios', 'regression', 'e2e'] },
     { id: 'security', role: 'security', depends_on: ['qa'], required: true,
       kind: 'verification', artifact_kind: 'security', checks: ['security-review'] },

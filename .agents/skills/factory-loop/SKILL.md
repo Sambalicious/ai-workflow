@@ -48,7 +48,13 @@ Record actual artifact consumption, not a second handwritten rerun list. Backend
 owns the API contract and publishes it as its own `contract` task. Backend
 implementation, Frontend, DevOps, and the Security threat model depend on the
 contract, not on each other, so they run in parallel. Security candidate review and
-code review both depend on QA, not on each other. Pass
+code review both depend on QA, not on each other. QA test authoring is a work task
+on the contract; its author session is ineligible for the QA gate.
+
+Keep each dispatch small and cache-friendly. Pass the role file, its consumed
+inputs, and only the needed `AGENTS.md` sections, in the stable-to-variable order
+the handoff rules define. Apply the recorded fast-lane decision for Copywriter
+and SEO, and the role model policy, without changing required gates. Pass
 full Gherkin files and API handoffs unchanged. Other handoffs carry a TL;DR plus
 relevant sections and retrievable source references.
 

@@ -29,6 +29,7 @@ the check. Existing pinned graphs and gates remain unchanged.
 
 - A parallel-track dependency is missing but yours is ready — proceed on your track.
 - A non-required optional input is missing — proceed and note the gap.
+- Copywriter or SEO was skipped by the fast-lane decision recorded in the handoff — their outputs are not missing inputs.
 - The dependency exists but contains open questions marked non-blocking — proceed and flag them.
 
 ---
@@ -42,13 +43,16 @@ the check. Existing pinned graphs and gates remain unchanged.
 | Architect | PRD |
 | Designer | PRD |
 | Copywriter | PRD + Gherkin spec + design spec (copy slots) |
-| SEO Specialist | PRD + architecture + design spec + copy deck |
+| SEO Specialist (crawl pass) | PRD + architecture + design spec |
+| SEO Specialist (metadata pass) | Crawl pass + copy deck (or design spec when Copywriter is skipped) |
 | Backend Engineer (contract task) | PRD + Gherkin spec + architecture + design spec |
 | Backend Engineer (implementation task) | API contract handoff + the contract task's inputs |
-| Frontend Engineer | Design spec + Gherkin spec + API contract handoff + copy deck + SEO plan |
+| Frontend Engineer | Design spec + Gherkin spec + API contract handoff; copy deck + SEO plan before using them, when those roles run |
 | Data Analyst (opt-in) | PRD + API contract handoff |
-| QA | PRD + Gherkin spec + backend spec + frontend spec |
-| DevOps | Architecture + API contract handoff + SEO plan |
+| QA (test authoring) | Gherkin spec + API contract handoff |
+| QA (gate) | PRD + Gherkin spec + backend spec + frontend spec + authored tests + published candidate |
+| DevOps | Architecture + API contract handoff + SEO plan (crawl pass, when SEO runs) |
+| Designer (preview mode) | Design spec + DESIGN.md + Frontend preview URL against contract mocks |
 | Designer (review mode) | Design spec + copy deck + DESIGN.md + running build of the candidate |
 | Security Reviewer (threat model pass) | PRD + architecture + API contract handoff |
 | Security Reviewer (candidate pass) | Threat model + backend spec + frontend spec + DevOps config + current QA evidence + candidate |

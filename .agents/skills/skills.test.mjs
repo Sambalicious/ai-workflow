@@ -89,6 +89,10 @@ test('factory policy keeps assessments opt-in without weakening verification or 
   assert.match(prompt, /Use AGENTS.md role defaults/);
   assert.doesNotMatch(prompt, /Invoke.*(?:Growth|Data Analyst|Pentester|Release Manager)/);
   assert.match(policy, /`copywriter` and `seo` are default pipeline roles/);
+  assert.match(policy, /fast lane/);
+  assert.match(policy, /When in doubt, run the role/);
+  assert.match(orchestrator, /## Role model policy/);
+  assert.match(orchestrator.split('## Role model policy\n')[1].split('\n## ')[0], /QA, Security, and independent\s+code review stay on the default model/);
   assert.match(prompt, /Invoke the Copywriter/);
   assert.match(prompt, /SEO Specialist/);
 });
