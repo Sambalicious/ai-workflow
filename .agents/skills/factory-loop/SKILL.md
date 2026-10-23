@@ -45,7 +45,10 @@ unclear, and unsafe requests stop with a reason and owner.
 ## 2. Declare dependencies
 
 Record actual artifact consumption, not a second handwritten rerun list. Backend
-owns the API contract; Frontend starts only after that contract is complete. Pass
+owns the API contract and publishes it as its own `contract` task. Backend
+implementation, Frontend, DevOps, and the Security threat model depend on the
+contract, not on each other, so they run in parallel. Security candidate review and
+code review both depend on QA, not on each other. Pass
 full Gherkin files and API handoffs unchanged. Other handoffs carry a TL;DR plus
 relevant sections and retrievable source references.
 

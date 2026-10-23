@@ -15,6 +15,7 @@ from this checkout or an existing installed project root.
 ```bash
 node factory/cli.mjs --help
 node factory/example.mjs input
+node factory/example.mjs input-feature
 node factory/example.mjs start
 node factory/cli.mjs init /path/to/run.json /path/to/input.json
 node factory/cli.mjs show /path/to/run.json
@@ -52,6 +53,13 @@ the scope handoff, not new schema fields. The default example omits Growth, Data
 Analyst, Pentester, and Release Manager actors, tasks, and dependency edges. Marking disabled
 tasks `required: false` would still schedule them and can make them required through
 consumers. Keep QA, Security, and fresh independent review required.
+
+For feature runs, `node factory/example.mjs input-feature` declares the parallel
+graph: a `contract` task, then Backend, Frontend, DevOps, and the Security threat
+model, each depending only on the contract; QA after all of them; then Security
+candidate review and code review, each depending only on QA. The threat model and
+candidate review use different Security actors, because a gate actor cannot have
+authored a dependency.
 
 For explicit release assessment, `node factory/example.mjs input-with-release`
 adds a required release task after QA, Security, and review. It does not enable
@@ -272,7 +280,7 @@ reclassification, role-registration, or approval-edit event. Prepare the role gr
 and independent verifier identities at intake. Preserve blocked state and its usage
 if a human authorizes a corrected plan outside this controller.
 
-Both modes default to four concurrent tasks, 32 invocations, and three global repair
+Both modes default to six concurrent tasks, 32 invocations, and three global repair
 waves. There is no default elapsed-time limit. An operator may set `budget.elapsed_ms`
 to a positive integer for a wall-clock deadline; it has no pilot cap, and `null` means
 no deadline. All attempts count, including failed and invalidated work. Strict mode
@@ -282,7 +290,10 @@ be increased through events. Reporting-only changes none of the operational,
 authorization, candidate, dependency, evidence, or independent-verifier checks.
 
 The report includes version, status, stop reason, candidate, ready tasks, attempts,
-findings, budget, and observed/reserved usage. Successful runs without a required
+findings, budget, observed/reserved usage, and `timing`. Timing comes from recorded
+event times: `recorded_ms` (run creation to last event), `last_finished_ms`, `agent_ms`
+(sum of settled attempt durations), and per-task `total_ms` and `last_ms`. Comparing
+`last_finished_ms` with `agent_ms` shows how much work ran in parallel. Successful runs without a required
 release task yield `VERIFIED`; with explicit release opt-in they yield
 `PRODUCTION_READY`. Without release assessment, report verification results and
 unresolved blockers, not release GO or approval. Both statuses are conditional local

@@ -195,7 +195,7 @@ test('default copy and SEO roles are wired into the pipeline and client links', 
   }
   const rule = await readFile(new URL('.agents/rules/02-no-pipeline-jump.md', root), 'utf8');
   assert.match(rule, /\| Frontend Engineer \|.*copy deck \+ SEO plan/);
-  assert.match(rule, /\| DevOps \| Backend spec \+ SEO plan/);
+  assert.match(rule, /\| DevOps \| Architecture \+ API contract handoff \+ SEO plan/);
 });
 
 test('merge-only updates get a merge check, not repeated gates', async () => {
@@ -240,7 +240,7 @@ test('designer owns layout and copy slots, copywriter owns words, and review mod
   assert.match(frontend, /raise `BLOCKER\[designer\]`/);
   assert.match(frontend, /raise `BLOCKER\[copywriter\]`/);
   const orchestrator = await read('AGENTS.md');
-  assert.match(orchestrator, /\[6c\] Designer review/);
+  assert.match(orchestrator, /\[6b\] Designer review/);
   assert.match(orchestrator, /design-review\.md/);
   const rule = await read('.agents/rules/02-no-pipeline-jump.md');
   assert.match(rule, /\| Designer \(review mode\) \|/);

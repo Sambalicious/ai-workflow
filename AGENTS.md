@@ -79,12 +79,12 @@ reports, not execution limits.
 | Gherkin Spec Writer | `.agents/gherkin.md` | Turns PRD into exhaustive Gherkin scenarios |
 | Architect | `.agents/skills/architect.md` | Turns PRD into system design and key decisions |
 | Product Designer | `.agents/skills/designer.md` | Turns PRD into a design spec with blueprints, feedback matrix, and copy slots; reviews rendered screens |
-| Backend Engineer | `.agents/backend-engineer.md` | Delivers API contract, backend implementation, and tests |
-| Frontend Engineer | `.agents/frontend-engineer.md` | Delivers working UI, API integration, and tests |
+| Backend Engineer | `.agents/backend-engineer.md` | Publishes the API contract first, then delivers backend implementation and tests |
+| Frontend Engineer | `.agents/frontend-engineer.md` | Builds the UI against the contract in parallel with Backend, then integrates |
 | QA Engineer | `.agents/qa.md` | Independently executes tests and records candidate-bound evidence |
-| DevOps Engineer | `.agents/devops.md` | Turns engineering spec into infra and CI/CD config |
-| Security Reviewer | `.agents/security.md` | Turns engineering spec + DevOps config + frontend spec into a security review |
-| Independent Code Reviewer | `.agents/skills/code-review/SKILL.md` | Reviews the actual candidate and current QA/security evidence |
+| DevOps Engineer | `.agents/devops.md` | Turns architecture + API contract into infra and CI/CD config |
+| Security Reviewer | `.agents/security.md` | Writes a threat model from the contract, then reviews the actual candidate against it |
+| Independent Code Reviewer | `.agents/skills/code-review/SKILL.md` | Reviews the actual candidate and current QA evidence, in parallel with Security |
 | Copywriter | `.agents/copywriter.md` | Fills the Designer's copy slots with a keyed copy deck and voice guide |
 | SEO Specialist | `.agents/seo.md` | Turns PRD + architecture + design spec into an indexability, metadata, and crawl plan |
 | Pentester (opt-in) | `.agents/pentester.md` | Attacks an authorized running candidate and reports reproduced findings |
@@ -112,7 +112,7 @@ authorizes merge, deployment, or changes to the factory's own rules.
 
 The diagram below describes the default feature pipeline. Opt-in branches
 (Growth, Data Analyst, Pentester, Release Manager) follow the same dependency and
-repair rules; Instructions steps 5, 7, and 9 place them.
+repair rules; Instructions steps 4, 7, and 8 place them.
 
 ```
 Your idea
@@ -121,94 +121,92 @@ Your idea
 [1] Product Manager
    └─ Produces: PRD (problem, goals, user stories, acceptance criteria, future backlog)
    │
-   ▼
-[2] Gherkin Spec Writer
-    (input: PRD)
-    └─ Produces: .feature files covering every
-       happy, sad, validation, boundary,
-       permission, duplicate, empty-state,
-       and concurrent path
-   │
-   ├──────────────────────────────────────────────┐
-   ▼                                              ▼
-[3a] Architect                             [3b] Product Designer
-     (input: PRD)                                (input: PRD)
-     └─ Produces: system design,                 └─ Produces: UX flows,
-        architecture decision,                      blueprints, feedback matrix,
-        data flow, hard decisions                   copy slots, accessibility
-   │                                              │
-   │                                              ▼
-   │                                       [3c] Copywriter
-   │                                            (input: PRD + Gherkin + design spec)
-   │                                            └─ Produces: voice guide, glossary,
-   │                                               keyed copy deck
-   │                                              │
-   └──────────────────┬───────────────────────────┤
-                      │                           ▼
-                      │                    [3d] SEO Specialist
-                      │                         (input: PRD + architecture +
-                      │                          design spec + copy deck)
-                      │                         └─ Produces: indexability map,
-                      │                            metadata, crawl config
-                      ▼                           │
-               [4] Backend Engineer               │
-               (input: PRD + Gherkin + architecture + design spec)
-               └─ Produces: API contract + implementation/tests + Gherkin coverage map
-                            + API contract handoff document
-                      │                           │
-         ┌────────────┴───────────────────────────┘
-         ▼
-[5a] Frontend Engineer
-     (input: design spec + Gherkin + API contract handoff
-      + copy deck + SEO plan)
-     Produces: UI, API integration, tests, Gherkin coverage map
-         │
-         ├────────────┬──────────────┐
-         ▼            ▼              ▼
-      [6a] QA      [6b] DevOps    [6c] Designer review
-      (PRD +       (backend eng   (design spec + copy deck
-       Gherkin +    spec + SEO     + DESIGN.md + running build)
-       eng specs)   plan)
-         │            │              │
-         └────────────┴──────────────┘
-                      │
-                      ▼
-               [7] Security Reviewer
-               (input: backend eng spec + DevOps config + frontend spec)
-               └─ Produces: threat model, vuln findings, risk rating
-                      │
-                      ▼
-               [8] Fresh Independent Code Reviewer
-               (input: candidate + approved scope + contracts/Gherkin
-                + repository rules + current QA/security evidence)
-                      │
-           ┌──────────┴──────────┐
-           ▼                     ▼
-        VERIFIED          Blockers tagged
-                          to responsible agents
-                                 │
-                                 ▼
-                       Re-run from earliest
-                       affected step (see
-                       Revision loop section)
+   ├────────────────────────┬─────────────────────────┐
+   ▼                        ▼                         ▼
+[2] Gherkin Spec Writer  [3a] Architect           [3b] Product Designer
+    (input: PRD)              (input: PRD)             (input: PRD)
+    └─ .feature files         └─ system design,        └─ UX flows, blueprints,
+       for every path            data flow,               feedback matrix,
+                                 hard decisions           copy slots, a11y
+   │                        │                         │
+   │                        │                         ▼
+   │                        │                  [3c] Copywriter
+   │                        │                       (input: PRD + Gherkin + design spec)
+   │                        │                       └─ voice guide, glossary, copy deck
+   │                        │                         │
+   │                        │                         ▼
+   │                        │                  [3d] SEO Specialist
+   │                        │                       (input: PRD + architecture +
+   │                        │                        design spec + copy deck)
+   │                        │                       └─ indexability, metadata, crawl config
+   └────────────┬───────────┴─────────────────────────┤
+                ▼                                     │
+[4] API Contract (Backend Engineer, contract mode)    │
+    (input: PRD + Gherkin + architecture + design spec)
+    └─ Produces: API contract handoff + Gherkin responsibility map
+                │                                     │
+   ┌────────────┼──────────────────┬──────────────────┤
+   ▼            ▼                  ▼                  ▼
+[5a] Backend  [5b] Frontend      [5c] DevOps        [5d] Security
+     Engineer      Engineer           (contract +        threat model
+     (contract +   (contract +         architecture +    (contract +
+      inputs [4])   design spec +      SEO plan)          architecture)
+                    Gherkin + copy
+                    deck + SEO plan;
+                    MSW mocks from
+                    the contract)
+   │            │                  │                  │
+   └────────────┴──────────┬───────┴──────────────────┘
+                           ▼
+              Integrated candidate published
+                           │
+            ┌──────────────┴──────────────┐
+            ▼                             ▼
+      [6a] QA                       [6b] Designer review
+      (PRD + Gherkin + specs +      (design spec + copy deck
+       running candidate)            + DESIGN.md + running build)
+            │                             │
+            └──────────────┬──────────────┘
+                           │
+            ┌──────────────┴──────────────┐
+            ▼                             ▼
+      [7] Security candidate review  [8] Fresh Independent Code Reviewer
+      (threat model + candidate +    (candidate + approved scope +
+       DevOps config + QA evidence)   contracts/Gherkin + repository
+                                       rules + current QA evidence)
+            │                             │
+            └──────────────┬──────────────┘
+                 ┌─────────┴──────────┐
+                 ▼                    ▼
+              VERIFIED         Blockers tagged
+                               to responsible agents
+                                      │
+                                      ▼
+                            Re-run from earliest
+                            affected step (see
+                            Revision loop section)
 ```
 
 ## Instructions
 
 1. Start with the raw idea. Pass it to the Product Manager first. Do not skip this step — every downstream agent depends on the PRD.
-2. Run step [2] (Gherkin) immediately after the PRD is ready. The Gherkin file is an input to Backend Engineer, Frontend Engineer, and QA — nothing in steps 4–5 should start without it.
-3. Steps [3a] and [3b] can run in parallel — Architect and Designer both take only the PRD. Step [3c] (Copywriter) starts once [2] and [3b] are complete. Step [3d] (SEO) starts once [3a], [3b], and [3c] are complete. Both can run in parallel with Backend. Copy-driven Gherkin changes go through the Revision loop, not direct edits.
-4. Step [4] (Backend Engineer) cannot start until steps [2], [3a], and [3b] are all complete.
-5. Step [5a] (Frontend Engineer) needs the design spec, Gherkin spec, copy deck, SEO plan, and API contract handoff from step [4]. Only when explicitly requested, Data Analyst and Growth can run in parallel with Frontend. Data Analyst needs the PRD and backend spec. Growth needs the PRD, architecture, design spec, and backend spec.
-6. Steps [6a] (QA), [6b] (DevOps), and [6c] (Designer review mode) can run in parallel once steps [4] and [5a] are both complete. Pass DevOps the SEO plan's crawl configuration. For UI-changing work, Designer review is mandatory: it views the rendered screens with Playwright MCP at 375px and 1280px and saves `design-review.md`. Its `BLOCKER[frontend-engineer]`, `BLOCKER[copywriter]`, and `BLOCKER[designer]` findings route through the Revision loop like any other blocker.
-7. Step [7] (Security) cannot start until Backend Engineer, DevOps, and Frontend Engineer are all complete. Pass it the backend spec, DevOps config, and frontend spec. Only when explicitly requested, Pentester runs after Security against an authorized, isolated test deployment of the candidate. Pass it the written authorization, target, security review, API contract handoff, Gherkin, frontend spec, and synthetic accounts. Missing authorization or a production target blocks Pentester, not the rest of the run.
-8. After QA and Security, dispatch a fresh independent reviewer with `.agents/skills/code-review/SKILL.md`. Pass the actual candidate, approved requirements, complete contracts/Gherkin, repository rules, current test evidence, and the pentest report when Pentester is enabled. Resolve blockers through the same bounded repair loop; the implementer cannot act as this reviewer.
-9. Finish with verification and review results and any unresolved blockers. Only when explicitly requested, invoke Release Manager after all enabled outputs and required gates, including independent code review, are ready. Pass those outputs and the role selection. Unrequested Growth, Data, and Pentest assessments are not required inputs unless an approved check requires them. Route blockers from any stage through the Revision loop, capped at 3 global revision rounds.
+2. Once the PRD is ready, run steps [2] (Gherkin), [3a] (Architect), and [3b] (Designer) in parallel. Each takes only the PRD. Step [3c] (Copywriter) starts once [2] and [3b] are complete. Step [3d] (SEO) starts once [3a], [3b], and [3c] are complete. Copy-driven Gherkin changes go through the Revision loop, not direct edits.
+3. Step [4] (API contract) cannot start until steps [2], [3a], and [3b] are complete. The Backend Engineer runs in contract mode: it publishes the complete API contract handoff and the Gherkin responsibility map, and stops before implementation. The contract has one writer; later changes to it are `contract` findings routed through the Revision loop.
+4. Once the contract is complete, start steps [5a]–[5d] in parallel, each in its own isolated workspace:
+   - [5a] Backend Engineer implements the contract with tests.
+   - [5b] Frontend Engineer builds against MSW handlers derived from the contract, then switches to the real backend at integration. It also needs the design spec, Gherkin, copy deck, and SEO plan.
+   - [5c] DevOps produces infrastructure and CI/CD from the architecture, contract, and SEO crawl configuration.
+   - [5d] Security writes the design-time threat model from the architecture and contract.
+   Only when explicitly requested, Data Analyst and Growth also start here. Data Analyst needs the PRD and contract. Growth needs the PRD, architecture, design spec, and contract.
+5. Each implementer runs its fast checks (format, lint, type check, affected unit tests) before handing off. A failing fast check is fixed by its author before handoff, not routed as a repair wave.
+6. After [5a]–[5d] settle, one integration owner publishes the combined candidate. A Frontend/Backend mismatch with the contract is a `contract` or `code` finding against its owner. Then run [6a] (QA) and, for UI-changing work, [6b] (Designer review) in parallel. Designer review is mandatory for UI changes: it views the rendered screens with Playwright MCP at 375px and 1280px and saves `design-review.md`. Its `BLOCKER[frontend-engineer]`, `BLOCKER[copywriter]`, and `BLOCKER[designer]` findings route through the Revision loop like any other blocker.
+7. After QA, run [7] (Security candidate review) and [8] in parallel: dispatch a fresh independent reviewer for [8]. Security checks the actual candidate, DevOps config, and QA evidence against its threat model. The reviewer uses `.agents/skills/code-review/SKILL.md` with the actual candidate, approved requirements, complete contracts/Gherkin, repository rules, and current QA evidence. Both are required gates; the implementer cannot act as either. Security and code review use different sessions, and the Security session that wrote the threat model cannot give the candidate verdict. Only when explicitly requested, Pentester runs after Security against an authorized, isolated test deployment of the candidate. Pass it the written authorization, target, security review, API contract handoff, Gherkin, frontend spec, and synthetic accounts. Missing authorization or a production target blocks Pentester, not the rest of the run. When Pentester is enabled, the code reviewer also waits for the pentest report.
+8. Finish with verification and review results and any unresolved blockers. Only when explicitly requested, invoke Release Manager after all enabled outputs and required gates, including independent code review, are ready. Pass those outputs and the role selection. Unrequested Growth, Data, and Pentest assessments are not required inputs unless an approved check requires them. Route blockers from any stage through the Revision loop, capped at 3 global revision rounds.
 
 ## Handoff rules
 
 - Every agent ends with a **TL;DR** section. When passing context to a downstream agent, pass the TL;DR plus any section that agent specifically needs — not the full output of every upstream agent.
-- The **API contract handoff** from the Backend Engineer is a self-contained document. Pass it directly to the Frontend Engineer — do not summarise it.
+- The **API contract handoff** from step [4] is a self-contained document. Pass it unchanged to the Backend implementation, Frontend, DevOps, and Security tasks — do not summarise it. Frontend derives its MSW handlers from it rather than writing response shapes by hand.
 - The **Gherkin `.feature` files** are passed whole to Backend Engineer, Frontend Engineer, and QA. Do not summarise them.
 - If any agent flags a **blocker** (a gap, conflict, or unresolved question), tag it with the responsible agent using the format `BLOCKER[agent-name]: description`. Stop that branch and resolve it through the Revision loop before passing downstream. Do not pass a broken handoff.
 
@@ -227,6 +225,7 @@ BLOCKER[devops]: No rollback strategy defined for the database migration step.
 2. Re-run the affected agents. Save revised output as `<file>.r1.md` (e.g. `backend-spec.r1.md`). Increment the suffix on subsequent rounds (`.r2.md`, `.r3.md`).
 3. Re-run every enabled downstream agent that depends on the revised output, in the same dependency order as the original pipeline. Save each with the same `.rN` suffix.
 4. Re-run affected QA, Designer review (for UI changes), Security, Pentester (when enabled), and fresh independent review. If Release Manager is enabled, re-run it with the latest enabled outputs and save `release-report.rN.md`.
+   - Keep each wave small. QA reruns the scenarios in the affected Gherkin files plus the regression safety net, and states the selection; a full run is still required when the repair touches shared code, contracts, schemas, or configuration. Designer review reruns only when the repair changes rendered UI. Security reuses its threat model and checks the changed candidate against it. None of this waives a required gate on the changed candidate.
 5. Repeat until required gates pass and blockers are resolved, or the round reaches 3. Report `VERIFIED` without release assessment; report a release verdict only when that assessment ran.
 
 If 3 rounds are exhausted with blockers remaining, stop and surface them to the user for manual resolution.
@@ -295,15 +294,14 @@ Steps:
    Increment by 1 (zero-padded to 4 digits) to get the next ID.
    Derive a 2–4 word slug from the idea. Combine to form the folder name: epics/active/EPIC-XXXX-slug/.
 2. Invoke the Product Manager to produce a PRD.
-3. Invoke the Gherkin Spec Writer with the PRD.
-4. Invoke the Architect and Designer in parallel with the PRD.
-5. Invoke the Copywriter with the PRD, Gherkin spec, and design spec, then the SEO Specialist with the PRD, architecture, design spec, and copy deck. Both can run in parallel with step 6.
-6. Invoke the Backend Engineer with the PRD, Gherkin spec, architecture, and design spec.
-7. Invoke Frontend Engineer with the design spec, Gherkin spec, copy deck, SEO plan, and API contract handoff.
-8. Invoke QA, DevOps (with the SEO plan), and Designer review mode in parallel.
-9. Invoke Security with the backend spec, DevOps config, frontend spec, and actual candidate evidence.
-10. Invoke a fresh independent reviewer with .agents/skills/code-review/SKILL.md on the candidate and current QA evidence.
-11. Route blockers through bounded repairs and report verification results and remaining blockers, not release approval.
+3. Invoke the Gherkin Spec Writer, Architect, and Designer in parallel with the PRD.
+4. Invoke the Copywriter with the PRD, Gherkin spec, and design spec.
+5. Invoke the SEO Specialist with the PRD, architecture, design spec, and copy deck. Steps 4 and 5 can run in parallel with step 6.
+6. Invoke the Backend Engineer in contract mode with the PRD, Gherkin spec, architecture, and design spec. It publishes the API contract handoff and stops.
+7. In parallel, in isolated workspaces: Backend implementation (contract), Frontend (design spec, Gherkin, copy deck, SEO plan, contract; MSW mocks from the contract), DevOps (architecture, contract, SEO plan), and Security threat model (architecture, contract).
+8. Publish the integrated candidate, then invoke QA and Designer review mode in parallel.
+9. Invoke Security candidate review (threat model, DevOps config, candidate, QA evidence) and a fresh independent reviewer with .agents/skills/code-review/SKILL.md (candidate, QA evidence) in parallel.
+10. Route blockers through bounded repairs and report verification results and remaining blockers, not release approval.
 
 Use AGENTS.md role defaults. Save enabled agents' outputs under epics/active/EPIC-XXXX-slug/ and give me the verification summary.
 ```
@@ -331,11 +329,12 @@ epics/
 │       ├── architecture.md
 │       ├── design-spec.md
 │       ├── backend-spec.md
-│       ├── api-contract.md
+│       ├── api-contract.md            # step [4], written before implementation
 │       ├── frontend-spec.md
 │       ├── test-plan.md
 │       ├── devops-config.md
-│       ├── security-review.md
+│       ├── threat-model.md            # step [5d]
+│       ├── security-review.md         # step [7]
 │       ├── design-review.md
 │       ├── code-review.md
 │       ├── copy-deck.md

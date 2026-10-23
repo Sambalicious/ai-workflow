@@ -1,6 +1,6 @@
 // Local attestations only: adapter/actor IDs are assertions, not authentication.
 export const DEFAULT_BUDGET = Object.freeze({
-  concurrent: 4, invocations: 32, repair_waves: 3,
+  concurrent: 6, invocations: 32, repair_waves: 3,
   tokens: 200000, cost_usd: 20, elapsed_ms: null,
 });
 // Optional budget keys: null disables the limit, and a supplied value has no pilot cap.
@@ -327,9 +327,29 @@ export function report(state, { now = Date.now() } = {}) {
     ready: ready.map(t => ({ task_id: t.id, role: t.role, revision: t.revision,
       eligible_actors: state.config.actors.filter(a => a.roles.includes(t.role) && (t.kind === 'work' || independent(state, t, a.id))).map(a => a.id),
       inputs: inputsFor(state, t), candidate: state.candidate, checks: t.checks })),
+    timing: timing(state),
     tasks: state.tasks.map(t => ({ id: t.id, status: t.status, revision: t.revision,
       effective_required: t.effective_required, retries: t.retries, reason: t.reason ?? null, attempt: attemptFor(t) ?? null })),
     findings: state.findings,
+  };
+}
+
+// Observations from recorded controller event times, so the same state gives the same report.
+// Durations only cover settled attempts.
+function timing(state) {
+  const attempts = state.tasks.flatMap(t => t.attempts.map(a => ({ task_id: t.id, ...a })));
+  const settled = attempts.filter(a => a.finished_at != null);
+  const finishedAt = settled.length ? Math.max(...settled.map(a => a.finished_at)) : null;
+  return {
+    recorded_ms: state.updated_at - state.created_at,
+    last_finished_ms: finishedAt === null ? null : finishedAt - state.created_at,
+    agent_ms: settled.reduce((n, a) => n + a.finished_at - a.started_at, 0),
+    tasks: state.tasks.map(t => {
+      const own = settled.filter(a => a.task_id === t.id);
+      return { task_id: t.id, attempts: t.attempts.length,
+        total_ms: own.reduce((n, a) => n + a.finished_at - a.started_at, 0),
+        last_ms: own.length ? own.at(-1).finished_at - own.at(-1).started_at : null };
+    }),
   };
 }
 

@@ -234,7 +234,7 @@ an explicit unavailable report. New runs use `reporting_only`, with no token or
 monetary enforcement and no telemetry integration needed. Missing cost is `null`,
 never zero. Known partial subtotals stay separate from actual totals.
 
-Both modes cap runs at four concurrent tasks, 32 invocations, and three global
+Both modes cap runs at six concurrent tasks, 32 invocations, and three global
 repair waves. There is no default elapsed-time limit; set `budget.elapsed_ms` for
 an optional wall-clock deadline. Explicit `cost_mode: "strict"` also retains the
 200,000-token and US$20 caps and requires per-attempt reservations and measured
@@ -322,32 +322,32 @@ Your idea
    ↓
    product-manager  →  PRD
    ↓
-   gherkin
+   ┌──────────┬────────────┬──────────┐
+   gherkin    architect    designer   (run in parallel)
+   └──────────┴────────────┴──────────┘
+   ↓                         copywriter → seo
+   backend-engineer (contract task)  →  API contract
    ↓
-   ┌──────────────────────┐
-   architect   designer   (run in parallel)
-   └──────────────────────┘
+   ┌──────────┬───────────┬─────────┬──────────────────────┐
+   backend    frontend    devops    security threat model   (run in parallel)
+   └──────────┴───────────┴─────────┴──────────────────────┘
    ↓
-   copywriter → seo   (in parallel with backend)
+   ┌─────────┬─────────────────┐
+   qa        designer review   (run in parallel)
+   └─────────┴─────────────────┘
    ↓
-   backend-engineer  →  API contract + backend spec
-   ↓
-   frontend-engineer
-   ↓
-   ┌─────────┬──────────┬─────────────────┐
-   qa        devops     designer review   (run in parallel)
-   └─────────┴──────────┴─────────────────┘
-   ↓
-   security  →  Vuln report
-   ↓
-   independent code-review → Candidate findings
+   ┌──────────────────────────┬──────────────────────────┐
+   security candidate review  independent code-review   (run in parallel)
+   └──────────────────────────┴──────────────────────────┘
    ↓
    Verification summary  →  VERIFIED or unresolved blockers
 ```
 
 Copywriter runs after Gherkin and Designer, and SEO runs after Architect, Designer,
-and Copywriter; both feed Frontend, and SEO also feeds DevOps. When explicitly
-requested, Growth and Data Analyst can run after Backend with their required inputs.
+and Copywriter; both feed Frontend, and SEO also feeds DevOps. Backend publishes the
+API contract as its own task; Frontend builds against MSW mocks derived from it while
+Backend implements it. When explicitly requested, Growth and Data Analyst can run
+after the contract with their required inputs.
 Pentester runs after Security against an authorized, isolated test deployment, and
 its report goes to the independent code reviewer. Release Manager runs after all enabled outputs and required
 gates are ready. An unrequested assessment is not a missing deliverable, but approved
