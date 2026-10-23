@@ -198,6 +198,18 @@ test('default copy and SEO roles are wired into the pipeline and client links', 
   assert.match(rule, /\| DevOps \| Backend spec \+ SEO plan/);
 });
 
+test('merge-only updates get a merge check, not repeated gates', async () => {
+  const root = new URL('../../', import.meta.url);
+  const loop = await readFile(new URL('.agents/skills/factory-loop/SKILL.md', root), 'utf8');
+  for (const term of ['merge-only update', 'merge check', 'byte-identical',
+    'passes alone', 'no migration number repeats', 'did not author the merge',
+    'full candidate change', 'fresh independent review']) {
+    assert.ok(loop.includes(term), `factory-loop missing merge-only term: ${term}`);
+  }
+  const overnight = await readFile(new URL('.agents/commands/overnight.md', root), 'utf8');
+  assert.match(overnight, /merge\s+check for a merge-only update/);
+});
+
 test('slash commands have one source and client links', async () => {
   const root = new URL('../../', import.meta.url);
   for (const name of ['overnight']) {

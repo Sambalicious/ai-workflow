@@ -113,6 +113,24 @@ rerun affected checks. A changed candidate requires current verification and rev
 including checks that passed earlier. Authors cannot verify their own candidate
 or independently close their findings.
 
+A **merge-only update** is the exception. The candidate's own diff against the
+base branch is unchanged; only the base moved. The merge's conflicts touch only
+documentation, version numbering, or mechanical renumbering such as migration
+numbers and migration-list pins. A merge-only update needs a merge check, not new
+QA, Security, and review gates. The merge check passes when:
+
+- each conflict keeps both sides, and the renumbered references are complete;
+- every non-documentation file diff against the new base is byte-identical to the
+  diff that passed the gates;
+- typecheck, lint, format, unit, integration, and QA suites run once and pass. A
+  timeout in a file outside the diff counts as a pass if that file passes alone;
+- the candidate merges cleanly with the latest base and no migration number repeats.
+
+A QA actor who did not author the merge runs the check. Any change to the candidate's
+own code, tests, or behaviour is a full candidate change. A fresh independent review
+still covers the final head once before it is offered for merge. Without this
+exception, a fast-moving base restarts every gate after each merge.
+
 Publish the actual candidate after work finishes; never invent a future code hash
 to schedule a repair. Controller-generated recheck tasks use the same cost mode
 and evidence checks. Report corrections require a different actor qualified for

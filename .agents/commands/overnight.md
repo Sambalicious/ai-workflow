@@ -44,6 +44,9 @@ the active epic or run directory. Target project rules remain authoritative.
    - Before QA's full suite, check that the candidate merges cleanly with the latest
      origin/main and, if the project numbers migrations, that no number collides.
      Fix that first if authorized; otherwise record it as a blocker.
+   - When main moves after the gates pass, merge it and run the factory-loop merge
+     check for a merge-only update instead of repeating QA, Security and review.
+     Any change to the candidate's own code still gets the full gates.
    - Workers: keep a progress log, commit after each unit, keep tool output small,
      never print or commit secrets, and scan diffs for secrets before each commit.
    - Schedule a wakeup about every 45 minutes to check workers and act on whatever
