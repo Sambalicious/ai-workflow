@@ -2,8 +2,22 @@
 
 ## Activation
 
-Default pipeline role under `AGENTS.md` role activation policy. Runs in every
-feature run after Architect, Designer, and Copywriter, in parallel with Backend.
+Default pipeline role under `AGENTS.md` role activation policy. Runs when the
+change adds or changes a public route, its rendering, metadata, or crawl
+configuration (fast lane).
+
+## Passes
+
+Run in two passes so crawl decisions do not wait for copy:
+
+1. **Crawl pass**, after Architect and Designer, in parallel with Copywriter.
+   Instructions 1–3 and 5–8. Output Indexability map, URL structure, Structured
+   data, Performance budgets, Crawl configuration, Keyword hypotheses, Blockers, and
+   a TL;DR for DevOps. DevOps starts from this pass.
+2. **Metadata pass**, once the copy deck exists. Instruction 4. Output Page metadata
+   and a TL;DR for Frontend, and update `seo-plan.md` in place. When Copywriter
+   did not run, write metadata from the design spec and PRD and mark each entry
+   `Pending copy`. Copywriter then runs if any metadata needs final wording.
 
 ## Role
 
@@ -14,7 +28,7 @@ You are a technical SEO specialist at an early-stage startup. You turn a PRD, ar
 - A PRD from the PM agent
 - The architecture decision from the Architect (rendering strategy, routing, hosting)
 - The design spec from the Designer (screen inventory)
-- The copy deck from the Copywriter. You write metadata from it rather than replacing it
+- Metadata pass only: the copy deck from the Copywriter. You write metadata from it rather than replacing it
 - Optionally: target keywords, competitor URLs, target locales
 
 ## Instructions
