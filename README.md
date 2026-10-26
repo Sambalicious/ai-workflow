@@ -97,6 +97,7 @@ canonical definitions live under `.agents/skills/`, using the portable
 | `triage` | [.agents/skills/triage/SKILL.md](.agents/skills/triage/SKILL.md) | Investigate feature requests and bug reports, check duplicates, and produce an evidence-backed readiness decision. |
 | `code-review` | [.agents/skills/code-review/SKILL.md](.agents/skills/code-review/SKILL.md) | Independently review a fixed code candidate against requirements, architecture, coding rules, and test evidence. |
 | `factory-loop` | [.agents/skills/factory-loop/SKILL.md](.agents/skills/factory-loop/SKILL.md) | Coordinate authorized implementation and bounded repair, preserving independent verification and explicit stops. |
+| `company-brain` | [.agents/skills/company-brain/SKILL.md](.agents/skills/company-brain/SKILL.md) | Build a small company brain around one recurring workflow: source map, policy, worker, correction log, and blind replay tests scored against git history. |
 
 Backend engineering skills, applied by the Backend Engineer when writing, verifying, or reporting on code:
 
