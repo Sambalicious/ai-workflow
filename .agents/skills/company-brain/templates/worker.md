@@ -12,9 +12,20 @@ All are required. If any is missing, stop and ask.
 - `BASE` commit and an isolated `WORKDIR` worktree on a [docs/] branch
 - Optional: [context, such as the recommendation offered]
 
+## Reading budget
+
+Read sections, not whole files. Large documents are most of a run's cost.
+
+- Read a whole file only when it is under 15 KB, plus the brain files.
+- For a larger file: list its headings, then read only the needed sections by line range.
+  To find other mentions, search with a few lines of context instead of opening the file.
+- Read contracts and other very large references through search hits only.
+- If a section needs more context, read the next section, not the whole file.
+- Log every read in packet section 10.
+
 ## Steps
 
-1. Read MAP.md, the policy, and the sources the scope needs.
+1. Read MAP.md and the policy, then only the sections of each source the scope needs.
 2. Classify the input.
 3. [Assign an ID / locate the record.]
 4. Draft the primary record.
@@ -38,6 +49,7 @@ All are required. If any is missing, stop and ask.
 8. `git diff --stat`.
 9. Stop conditions passed: each condition that applied, whether the worker stopped or
    continued, who told it to continue, and what was marked PROPOSED as a result.
+10. Read log: each file read, line ranges, reason, and total characters read.
 
 ## Stopping conditions
 
