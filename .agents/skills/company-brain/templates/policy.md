@@ -17,3 +17,5 @@ Owner: [decision owner]. Changing this policy needs their approval.
    records share an ID.
 10. Work that changes code, tests, or contracts goes to [implementation process].
 11. Decisions from calls or messages are recorded only after the owner confirms the wording.
+12. A direct contradiction with a durable rule stops for the owner. An unresolved
+    interaction is recorded as an open question with dependent text marked PROPOSED.

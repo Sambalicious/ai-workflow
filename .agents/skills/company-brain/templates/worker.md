@@ -54,7 +54,9 @@ Read sections, not whole files. Large documents are most of a run's cost.
 ## Stopping conditions
 
 - Required input missing, or wording unconfirmed by the owner: stop and ask.
-- Conflict with a durable rule or a gate: stop and ask.
+- The input directly contradicts a durable rule (both cannot be true as written), claims
+  to clear a gate, or answers a legal question: stop and ask. An unresolved interaction
+  is not a stop: record an open question, mark dependent text PROPOSED, and continue.
 - Finishing would require inventing a rule or value: record it as PROPOSED and say so.
 - ID collision: stop.
 - Out-of-scope files: list, do not edit.
