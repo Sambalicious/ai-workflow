@@ -81,7 +81,9 @@ enforce filesystem access, credentials, and evidence provenance.
 
 New runs default to `reporting_only`; missing telemetry does not block dispatch or
 completion. Follow `factory/PROTOCOL.md` for nullable usage and reliable source
-references. Explicit strict and legacy schema 1 runs still require reservations
+references. When a role ran as a Claude Code subagent, submit the `usage` printed by
+`factory/adapters/claude-code/usage.mjs --agent <agentId>` for its attempt.
+Explicit strict and legacy schema 1 runs still require reservations
 and measured usage. Both modes retain invocation, concurrency, deadline, retry,
 repair, and evidence gates. Inspect evidence directly; a success summary is
 insufficient. Finish tasks with versioned artifacts, command results where relevant,

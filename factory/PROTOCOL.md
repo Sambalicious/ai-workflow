@@ -240,6 +240,12 @@ default-zero telemetry field. Unknown or partial cost requires a nonempty reason
 {"tokens":null,"cost_usd":0,"source_ref":"local-receipt:attempt-2","cost_complete":true}
 ```
 
+For an attempt run as a Claude Code subagent, `factory/adapters/claude-code/usage.mjs
+--agent <agentId>` builds this object from the agent's local session logs, including
+agents it launched. Its cost uses the dated API list prices in `prices.json` beside
+it; on a subscription plan that is an API-equivalent figure, not billed spend. Any
+call it cannot price exactly sets `cost_complete: false` with the reason. See `--help`.
+
 The partial example's `cost_usd` is a known subtotal, not an actual attempt total.
 Null cost cannot have `cost_complete: true`. Each completed attempt is accounted
 once, including failed, rejected, retried, and invalidated attempts. Identical event
