@@ -40,6 +40,31 @@ and approved gates.
 For example: "Run the full pipeline. Also run Growth to produce a go-to-market plan.
 Keep Data Analyst and Release Manager disabled."
 
+## Model tiers, subagents and workers
+
+Roles map to tiers, not model names. `.agents/models.json` gives each tier (`lead`,
+`advisor`, `swarm`, and an optional `worker`) a model per client. The read-only
+subagents (`advisor`, `audit`, `explore`) live once in `.agents/agents/`; `node
+scripts/agents/sync.mjs` generates each client's files and the tier table in
+`AGENTS.md` from them. Never edit the generated files. The policy (who runs on
+which tier, the fast lane for small fixes, worker routing, and the `metrics.md`
+tally of worker tasks, rewrites and advisor calls) is in `AGENTS.md` under "Role
+model policy". Long reference text (pipeline diagram, resume and revision prompts)
+is in `.agents/reference/`. To check a worker model before trusting it, run
+`node .agents/benchmarks/worker/run.mjs <repoRoot>`.
+
+After `install.sh`, add these to the project's `package.json` and to CI so stale
+generated files fail the build:
+
+```json
+"agents:sync": "node scripts/agents/sync.mjs",
+"agents:check": "node scripts/agents/sync.mjs --check"
+```
+
+```yaml
+- run: npm run agents:check
+```
+
 ## Use a shared checkout
 
 To use the AI team in a new project, reference

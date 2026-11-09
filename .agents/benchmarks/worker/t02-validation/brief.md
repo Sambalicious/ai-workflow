@@ -1,0 +1,1 @@
+Make `toSlug` in `src/slug.mjs` throw a `TypeError` with the message `toSlug expects a string` when its input is not a string. Keep the output for strings unchanged. Change only files under `src/`. Do not edit `check.test.mjs` or `expected.json`.

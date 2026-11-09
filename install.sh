@@ -115,6 +115,19 @@ copy_dir "$SOURCE_DIR/factory" "$TARGET_DIR/factory"
 log "Copying pipeline orchestrator (AGENTS.md)..."
 copy_file "$SOURCE_DIR/AGENTS.md" "$TARGET_DIR/AGENTS.md"
 
+# ── 3b. Copy model tiers, subagents and the sync script ───────────────────────
+# .agents/ (models.json, agents/, reference/, benchmarks/) came with step 1. The
+# generated client files live outside it; copy them only when missing so a project's
+# own model choices and settings are kept. Edit .agents/models.json, then run
+# `node scripts/agents/sync.mjs` to regenerate them.
+log "Copying model tiers and subagent sync (scripts/agents/, .opencode/agents/)..."
+mkdir -p "$TARGET_DIR/scripts"
+copy_dir "$SOURCE_DIR/scripts/agents" "$TARGET_DIR/scripts/agents"
+mkdir -p "$TARGET_DIR/.opencode"
+copy_dir "$SOURCE_DIR/.opencode/agents" "$TARGET_DIR/.opencode/agents"
+copy_file "$SOURCE_DIR/opencode.json" "$TARGET_DIR/opencode.json"
+copy_file "$SOURCE_DIR/.claude/settings.json" "$TARGET_DIR/.claude/settings.json" ".claude/settings.json"
+
 # ── 4. Copy third-party skill lock (lets `npx skills update` refresh them) ────
 log "Copying third-party skill lock (skills-lock.json)..."
 copy_file "$SOURCE_DIR/skills-lock.json" "$TARGET_DIR/skills-lock.json"
@@ -130,5 +143,6 @@ echo "    • Claude.ai     — paste any .agents/<name>.md as a system prompt"
 echo "    • Full pipeline — invoke AGENTS.md with your idea"
 echo "    • Repair loop   — read .agents/skills/factory-loop/SKILL.md"
 echo "    • Controller    — node factory/cli.mjs --help"
+echo "    • Model tiers   — edit .agents/models.json, then node scripts/agents/sync.mjs (add \"agents:sync\" and \"agents:check\" scripts and a CI step if you use them)"
 echo "    • Overnight     — /overnight in Kilo or Claude Code, or read .agents/commands/overnight.md"
 echo ""

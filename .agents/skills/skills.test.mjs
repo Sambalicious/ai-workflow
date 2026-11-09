@@ -92,7 +92,7 @@ test('factory policy keeps assessments opt-in without weakening verification or 
   assert.match(policy, /fast lane/);
   assert.match(policy, /When in doubt, run the role/);
   assert.match(orchestrator, /## Role model policy/);
-  assert.match(orchestrator.split('## Role model policy\n')[1].split('\n## ')[0], /QA, Security, and independent\s+code review stay on the default model/);
+  assert.match(orchestrator.split('## Role model policy\n')[1].split('\n## ')[0], /QA, Security, and independent code review always run on the advisor\s+tier/);
   assert.match(prompt, /Invoke the Copywriter/);
   assert.match(prompt, /SEO Specialist/);
 });
@@ -244,7 +244,7 @@ test('designer owns layout and copy slots, copywriter owns words, and review mod
   assert.match(frontend, /raise `BLOCKER\[designer\]`/);
   assert.match(frontend, /raise `BLOCKER\[copywriter\]`/);
   const orchestrator = await read('AGENTS.md');
-  assert.match(orchestrator, /\[6b\] Designer review/);
+  assert.match(await read('.agents/reference/pipeline.md'), /\[6b\] Designer review/);
   assert.match(orchestrator, /design-review\.md/);
   const rule = await read('.agents/rules/02-no-pipeline-jump.md');
   assert.match(rule, /\| Designer \(review mode\) \|/);

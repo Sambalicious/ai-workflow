@@ -40,8 +40,9 @@ This section is authoritative for factory role selection in new runs. A generic
 - Omit disabled tasks and their dependency edges from new graphs. Do not represent
   disabled roles with `required: false`; optional work still waits or becomes required
   through its consumers. Record enabled roles and the user's opt-ins in the handoff.
-- QA, Security, and fresh independent code review remain mandatory for implementation
-  runs, with the same bounded repairs. Approved required checks and blockers remain
+- QA, Security, and fresh independent code review remain mandatory for full-lane
+  implementation runs, with the same bounded repairs. The fast lane under Bounded
+  implementation runs replaces the full set only for changes it covers. Approved required checks and blockers remain
   binding even when an assessment role is disabled. Report a scope conflict rather
   than silently activating a role or waiving a gate.
 - Without Release Manager, report verification results and unresolved blockers,
@@ -53,42 +54,126 @@ This section is authoritative for factory role selection in new runs. A generic
 
 ## Cost reporting policy
 
-This policy applies to every coding agent and client, regardless of provider or
-model. New runs default to `reporting_only`; monetary and token estimates are
-reports, not execution limits.
+Applies to every coding agent and client, regardless of provider or model. New runs
+default to `reporting_only`: estimates are reports, not execution limits.
 
 - Before coding, report a whole-feature cost range covering planning, implementation,
-  tests, QA, Security, independent review, and expected retries or repairs. State
-  scope, model and pricing assumptions, and uncertainty. Reuse the shared estimate
-  in role handoffs rather than presenting one worker's cost as the whole feature.
-- If defensible numbers are unavailable, report `Estimate unavailable` and the
-  reason. Never invent a range or substitute zero for missing prices or telemetry.
+  tests, QA, Security, independent review, and expected retries or repairs. State scope,
+  model and pricing assumptions, and uncertainty. Role handoffs reuse this estimate.
+- If numbers are unavailable, report `Estimate unavailable` with the reason. Never
+  invent a range or substitute zero.
 - At completion, report actual cost only from reliable, fully attributable sources
-  covering the whole feature, including failed, retried, rejected, and invalidated
-  attempts once each. Otherwise use exactly `Actual cost unavailable`. A known
-  subtotal is explicitly partial, never the actual total; identify missing coverage.
-  A controller total covers recorded attempts only, not unrecorded planning or work.
-- Keep reporting brief: mode, estimate and assumptions, actual or unavailable,
-  partial known subtotal if any, and missing coverage. Retain source references
-  for claimed observations. Tokens and money may be independently unavailable.
-- Estimates never authorize model downgrades, skipped checks, provider or permission
-  changes. Reporting-only requires no telemetry adapter or provider-specific API.
-  QA, Security, fresh independent review, authorization, pins, retry and repair
-  limits, concurrency, invocation limits, and deadlines remain binding.
-- Explicit `strict` is opt-in for new controller runs. Existing schema 1 runs remain
-  strict, including when no mode was stored. A run's mode is immutable; do not edit
-  persisted state or start a replacement run to bypass its limits. The protocol in
-  `factory/PROTOCOL.md` defines both modes and their accounting fields.
+  covering the whole feature, counting failed, retried, rejected, and invalidated
+  attempts once each. Otherwise report exactly `Actual cost unavailable`. A known
+  subtotal is partial, never the total; name the missing coverage. A controller total
+  covers recorded attempts only.
+- Keep it brief: mode, estimate and assumptions, actual or unavailable, partial
+  subtotal, missing coverage, and source references for claimed observations.
+- Estimates never authorize model downgrades, skipped checks, or provider or permission
+  changes. Reporting-only needs no telemetry adapter. QA, Security, fresh independent
+  review, authorization, pins, retry and repair limits, concurrency, invocation limits,
+  and deadlines stay binding.
+- Explicit `strict` is opt-in for new runs. Existing schema 1 runs stay strict, even
+  with no stored mode. A run's mode is immutable; do not edit state or start a
+  replacement run to bypass limits. `factory/PROTOCOL.md` defines both modes and their
+  accounting fields.
 
 ## Role model policy
 
-Every role uses the caller's default model unless the user explicitly asks for model
-tiering in this run. With that opt-in, Copywriter, SEO, DevOps, and Designer preview
-may use a faster model the user names. PM, Gherkin, Architect, Designer spec,
-the API contract, Backend and Frontend implementation, QA, Security, and independent
-code review stay on the default model. Record the tiering opt-in and model per role
-in the handoff. A cost estimate never selects a tier, and tiering never skips or
-weakens a check.
+Standing tiering for every run, in every client (the optional `worker` tier is T3 `delegate_task` only; see Worker routing). Roles are assigned to tiers, not
+model names. `.agents/models.json` maps each tier to a model per client; when you
+dispatch a role, pass the model that file gives your client for the role's tier,
+since a subagent otherwise inherits the lead model.
+
+<!-- tier-table:start (generated from .agents/models.json by npm run agents:sync; edit models.json) -->
+| Tier | claude-code | opencode |
+|---|---|---|
+| lead | sonnet | anthropic/claude-sonnet-5-5 |
+| advisor | opus | anthropic/claude-opus-5-5 |
+| swarm | haiku | anthropic/claude-haiku-5-5 |
+| worker | opencode-go/deepseek-v4.1-flash | opencode-go/deepseek-v4.1-flash |
+<!-- tier-table:end -->
+
+- **Lead** (main session): orchestration, Backend and Frontend implementation, QA
+  test authoring [5e], DevOps, Copywriter, SEO, Designer preview, and repair-wave
+  fixes.
+- **Advisor**: PM, Gherkin, Architect, Designer spec and review, and the API
+  contract. QA, Security, and independent code review always run on the advisor
+  tier; these gates are never optional consults.
+- **Swarm**: repo maps and searches (`explore`), file inventories, log and
+  test-output triage, and check runs (`audit`). Swarm output is a lead; the lead or
+  advisor tier confirms it before it becomes a finding or evidence. Run a single
+  grep or call-site lookup in the main session directly.
+
+Consult the `advisor` agent at three moments, passing the plan or the failing
+evidence and the relevant file paths rather than the whole session:
+
+1. Before committing to a plan: after the PRD and again before the API contract is
+   published, and before any non-trivial repair plan.
+2. When the same error comes back: the same failing check after two fix attempts,
+   or a second repair wave on the same finding.
+3. Before calling the task done, ahead of the QA, Security, and code review gates.
+
+Keep advisor consults to a handful per task; each one loads its context fresh. A
+client's built-in advisor feature, where it has one, may replace the `advisor`
+agent for consults, never for gates.
+
+The lead checks each builder handoff against the contract, Gherkin, and fast-check
+results before passing it downstream, and sends gaps back to the same builder
+session. A builder that hits a design or contract question escalates to the lead
+rather than guessing.
+
+### Worker routing and metrics
+
+The lead is the orchestrator: it plans, writes scoped sub-tasks, reviews, and
+integrates. Where the client offers a worker tier (for example DeepSeek Flash via
+`delegate_task`; confirm with `orchestrator_capabilities` first and never fall back
+silently), send it bulk, clearly scoped work: implementation, tests, refactors, and
+searches. Workers never plan, decide design, or touch contracts and security rules,
+and never run or replace the QA, Security, or code review gates.
+
+- Each sub-task states goal, files in scope, acceptance check, and what not to
+  touch. Pass only that and the relevant paths, not the session history.
+- The lead reviews every worker result: skim the diff and checks when mechanical,
+  read and re-run when not. Wrong output gets one specific rewrite request; after
+  that the lead fixes it. Two failed attempts on the same problem go to the advisor.
+- Advisor (Opus) is the exception, not the default: architecture, high-stakes
+  decisions, deep diagnosis, and the gates. Name the role and reason before calling.
+
+Keep `metrics.md` in the epic folder (or beside the task notes) and update it after
+each reviewed result: `worker_tasks`; `rewrites` (with a one-line reason each);
+`self_fixes`; `advisor_calls` (with a reason each); `advisor_share` =
+advisor_calls / (worker_tasks + self_fixes + advisor_calls); `rewrite_rate` =
+rewrites / worker_tasks. Report the tally in the final summary. These are
+reports, not limits, and never justify skipping a gate.
+
+Shared agents live in `.agents/agents/`; each client's agent files and model
+settings are generated from them and `.agents/models.json` by
+`npm run agents:sync`. Edit the sources, never the generated files. To add a client,
+add its tier models to `.agents/models.json` and an adapter in
+`scripts/agents/sync.mjs`.
+
+Record the tier and model per role in the handoff. A cost estimate never selects a
+tier, and tiering never skips or weakens a check.
+
+### Lean orchestrator session
+
+The orchestrator session is the largest cost line (about 41% of past spend): every
+step re-reads its whole history. Keep it lean:
+
+- One epic per orchestrator session. Start a fresh session for the next epic and
+  resume from `epics/active/EPIC-XXXX-slug/` and the controller run state.
+- Delegate file-heavy reading, log triage, and check runs to the swarm-tier
+  `explore` and `audit` agents and keep only their TL;DR in the main chat.
+- Pass roles file paths and TL;DRs, not pasted file contents or full reports.
+- At each repair wave close, update the epic's `CURRENT.md` with gate status, open
+  blockers, and the next step, then start a fresh session. Resume with
+  `.agents/reference/resume-prompt.md`. A session reset cannot be enforced by the
+  repository; the wave-close checkpoint is the record that it happened.
+- At most two Opus sessions run at once per epic (the QA gate and one review, as in
+  steps 6 and 7). When a session limit is reached, dispatch no more Opus roles, record
+  the pending gates in `CURRENT.md`, and resume after the reset. Gates are deferred,
+  never waived. Sonnet and worker-tier work may continue.
 
 ## The team
 
@@ -117,78 +202,40 @@ weakens a check.
 
 For an explicitly requested implementation or repair run, use
 `.agents/skills/factory-loop/SKILL.md` and the local `factory/cli.mjs` controller.
-Route findings at every stage, not only after release review. Keep one persistent
-run, at most three global repair waves, and independent verification. The controller
-records local attestations; the caller owns authorized execution and trustworthy
-evidence. The controller does not launch agents.
+Route findings at every stage. Keep one persistent run, at most three global repair
+waves, and independent verification. The controller records local attestations; the
+caller owns authorized execution and trustworthy evidence. The controller does not
+launch agents.
 
 Triage uses `.agents/skills/triage/SKILL.md`. Bugs may proceed with an approved bug
-brief and existing relevant architecture, design, contracts, and full regression
-scenarios. Features require discovery and an approved PRD. This bug route replaces
-the new-PRD requirement below only for bounded implementation runs. Code review
-uses `.agents/skills/code-review/SKILL.md` in a fresh reviewer context. No verdict
+brief plus the existing relevant architecture, design, contracts, and full regression
+scenarios. Features need discovery and an approved PRD. The bug route replaces the
+new-PRD requirement only for bounded runs. Code review uses
+`.agents/skills/code-review/SKILL.md` in a fresh reviewer context. No verdict
 authorizes merge, deployment, or changes to the factory's own rules.
 
-The diagram below describes the default feature pipeline. Opt-in branches
-(Growth, Data Analyst, Pentester, Release Manager) follow the same dependency and
-repair rules; Instructions steps 4, 7, and 8 place them.
+The default feature pipeline diagram is in `.agents/reference/pipeline.md`. Opt-in
+branches follow the same rules; Instructions steps 4, 7, and 8 place them.
 
-```
-Your idea
-   │
-   ▼
-[1] Product Manager ─ PRD
-   │
-   ├──────────────────────┬──────────────────────┐
-   ▼                      ▼                      ▼
-[2] Gherkin            [3a] Architect         [3b] Product Designer
-    (PRD)                   (PRD)                  (PRD)
-   │                      │                      │
-   │                      ├──────────┬───────────┤
-   │                      │          ▼           ▼
-   │                      │   [3d] SEO crawl   [3c] Copywriter*
-   │                      │        pass*            (PRD + Gherkin + design spec)
-   │                      │   (architecture +       │
-   │                      │    design spec)         ▼
-   │                      │          │       [3e] SEO metadata pass*
-   │                      │          │            (crawl pass + copy deck)
-   └──────────┬───────────┘          │            │
-              ▼                      │            │
-[4] API Contract (Backend Engineer, contract task)│
-    (PRD + Gherkin + architecture + design spec)  │
-              │                      │            │
-   ┌──────────┼───────────┬──────────┼──────┬─────┴──────┐
-   ▼          ▼           ▼          ▼      ▼            ▼
-[5a]       [5b]         [5c]       [5d]   [5e]         (Frontend also
-Backend    Frontend     DevOps     Sec.   QA test       takes copy deck
-(contract) (contract,   (contract, threat authoring     + SEO metadata)
-           MSW mocks;   SEO crawl  model  (Gherkin +
-           Designer     pass)             contract)
-           preview
-           mid-task)
-   │          │           │          │      │
-   └──────────┴───────────┴────┬─────┴──────┘
-                               ▼
-                  Integrated candidate published
-                               │
-                ┌──────────────┴──────────────┐
-                ▼                             ▼
-         [6a] QA gate                  [6b] Designer review
-         (runs [5e] tests on the       (screens changed since
-          candidate; separate session)  the preview)
-                │                             │
-                └──────────────┬──────────────┘
-                ┌──────────────┴──────────────┐
-                ▼                             ▼
-         [7] Security candidate review  [8] Fresh Independent Code Reviewer
-                │                             │
-                └──────────────┬──────────────┘
-                     ┌─────────┴──────────┐
-                     ▼                    ▼
-                  VERIFIED         Blockers → Revision loop
+### Fast lane for small fixes
 
-* Fast lane: runs only when its trigger applies (see Role activation policy).
-```
+A change may use the fast lane only when all of these hold:
+
+- It is a one-line change to user-visible text, or a change that only adds or edits one test.
+- It touches no contract, schema, Gherkin scenario, auth, data access, configuration, dependency, or shared module.
+- It changes no layout or rendered structure.
+- The author, the QA check, and the reviewer are different sessions.
+
+Fast-lane steps:
+
+1. The author runs the affected tests and the fast checks, and names the test files they cover.
+2. The lead reads the full diff.
+3. A scoped QA check runs the affected tests and their suite.
+4. One fresh independent review (`.agents/skills/code-review/SKILL.md`) reads the diff and the QA output.
+
+Skipped in the fast lane: the full QA gate session, Security candidate review, and Designer review. The controller's required QA and review tasks still apply, scoped to the change.
+
+Escalate to the full lane when a condition fails, a check fails, or a finding reaches beyond the stated scope. Record the reason. Record `lane: fast` or `lane: full` in the handoff.
 
 ## Instructions
 
@@ -202,7 +249,7 @@ Backend    Frontend     DevOps     Sec.   QA test       takes copy deck
    - [5d] Security writes the design-time threat model from the architecture and contract.
    - [5e] A QA session writes the independent tests from the Gherkin files and contract: Playwright journeys, API integration tests, and fixtures. It writes test files only, never product code. This QA session cannot run the [6a] gate; a different QA session does.
    Only when explicitly requested, Data Analyst and Growth also start here. Data Analyst needs the PRD and contract. Growth needs the PRD, architecture, design spec, and contract.
-5. Each implementer runs its fast checks (format, lint, type check, affected unit tests) before handing off. A failing fast check is fixed by its author before handoff, not routed as a repair wave.
+5. Each implementer runs its fast checks (format, lint, type check, affected unit tests) and the authored [5e] specs that cover its changes against the real app before handing off. The QA gate then adds only the gaps. A failing fast check or spec is fixed by its author before handoff, not routed as a repair wave.
 6. After [5a]–[5e] settle, one integration owner publishes the combined candidate. A Frontend/Backend mismatch with the contract is a `contract` or `code` finding against its owner. Then run [6a] (QA gate) and, for UI-changing work, [6b] (Designer review) in parallel. The QA gate runs the [5e] tests and the existing suites on the candidate and adds tests only for gaps. Designer review is mandatory for UI changes and covers screens and states that changed since the preview, plus any the preview did not see: it views the rendered screens with Playwright MCP at 375px and 1280px and saves `design-review.md`. Its `BLOCKER[frontend-engineer]`, `BLOCKER[copywriter]`, and `BLOCKER[designer]` findings route through the Revision loop like any other blocker.
 7. After QA, run [7] (Security candidate review) and [8] in parallel: dispatch a fresh independent reviewer for [8]. Security checks the actual candidate, DevOps config, and QA evidence against its threat model. The reviewer uses `.agents/skills/code-review/SKILL.md` with the actual candidate, approved requirements, complete contracts/Gherkin, repository rules, and current QA evidence. Both are required gates; the implementer cannot act as either. Security and code review use different sessions, and the Security session that wrote the threat model cannot give the candidate verdict. Only when explicitly requested, Pentester runs after Security against an authorized, isolated test deployment of the candidate. Pass it the written authorization, target, security review, API contract handoff, Gherkin, frontend spec, and synthetic accounts. Missing authorization or a production target blocks Pentester, not the rest of the run. When Pentester is enabled, the code reviewer also waits for the pentest report.
 8. Finish with verification and review results and any unresolved blockers. Only when explicitly requested, invoke Release Manager after all enabled outputs and required gates, including independent code review, are ready. Pass those outputs and the role selection. Unrequested Growth, Data, and Pentest assessments are not required inputs unless an approved check requires them. Route blockers from any stage through the Revision loop, capped at 3 global revision rounds.
@@ -225,6 +272,22 @@ routed as usual. Preview does not replace [6b] on the real candidate.
   the `AGENTS.md` sections it needs (usually the role activation and cost reporting
   policies). Do not pass the whole orchestrator or other roles' files. Roles load
   skills when their trigger applies, not up front.
+- **Epic digest.** Each epic folder carries a `CURRENT.md` (about 2.5K tokens): the
+  latest revision of every artifact, key decisions, and a heading index with line
+  numbers. Roles read it first and open only the section a task needs, using
+  offset and limit. Older `.rN` files are superseded; open one only when a task
+  names it. Verify the digest's latest-file paths with `ls` before relying on them.
+  Refresh it with a lead-tier task after the PRD, architecture, design spec, and API
+  contract land and after each revision round. Moving or deleting revision files is
+  off limits: run records pin their paths.
+- **Whole versus slice.** The API contract and Gherkin files are passed whole to
+  Backend, Frontend, and QA, as stated above. Security, DevOps, Copywriter, SEO,
+  Designer, and fresh code review get the TL;DR plus the digest-indexed sections
+  their task touches, and name any section they skipped.
+- **Reuse the builder.** Repairs for a Backend or Frontend finding go to the
+  existing builder session with SendMessage, carrying the finding and nothing else.
+  Start a fresh builder only when its context is unusable or the independence rule
+  requires one (QA, Security, and code review never reuse the author's session).
 - **Cache-friendly prompt order.** Order each role prompt from most stable to least:
   role file, then repository rules and policies, then approved run artifacts, then
   the task-specific assignment and latest findings. Keep the stable prefix
@@ -234,53 +297,22 @@ routed as usual. Preview does not replace [6b] on the real candidate.
 
 ## Revision loop
 
-When any stage reports blockers, its output must include a **Blockers** section with each issue tagged to the responsible agent:
+Any stage with blockers lists each one in a **Blockers** section, tagged to its owner: `BLOCKER[backend-engineer]: description`.
 
-```
-BLOCKER[backend-engineer]: Payment webhook handler has no idempotency key — duplicate charges possible.
-BLOCKER[devops]: No rollback strategy defined for the database migration step.
-```
+To resolve a round:
 
-**To resolve a revision round:**
+1. Group blockers by owner. Send each owner its blockers, its original output (TL;DR and relevant sections), and the stage's evidence. If the owner is disabled, ask the user for a decision. Never activate the owner or waive the blocker.
+2. Re-run the affected owners. Save revised output as `<file>.rN.md`, where N is the round.
+3. Re-run every enabled downstream consumer in dependency order, with the same suffix.
+4. Re-run the affected gates: QA, Designer review (UI changes only), Security, Pentester (when enabled), fresh review, and Release Manager (when enabled, as `release-report.rN.md`).
+   - Keep each wave small. QA reruns the affected Gherkin scenarios and the regression safety net, and states its selection. A full run is required when the repair touches shared code, contracts, schemas, or configuration. Designer review reruns only when rendered UI changes. Security checks the changed candidate against its existing threat model. No selection waives a required gate on the changed candidate.
+5. Repeat until required gates pass and blockers are resolved, up to 3 rounds. Report `VERIFIED` without a release assessment. Report a release verdict only when one ran.
 
-1. Group blockers by agent. Route each to the enabled owner with the blocker description, that agent's original output (TL;DR + relevant sections), and the reporting stage's evidence. If the owner is disabled, surface the conflict for a user decision; do not activate it implicitly or waive the blocker.
-2. Re-run the affected agents. Save revised output as `<file>.r1.md` (e.g. `backend-spec.r1.md`). Increment the suffix on subsequent rounds (`.r2.md`, `.r3.md`).
-3. Re-run every enabled downstream agent that depends on the revised output, in the same dependency order as the original pipeline. Save each with the same `.rN` suffix.
-4. Re-run affected QA, Designer review (for UI changes), Security, Pentester (when enabled), and fresh independent review. If Release Manager is enabled, re-run it with the latest enabled outputs and save `release-report.rN.md`.
-   - Keep each wave small. QA reruns the scenarios in the affected Gherkin files plus the regression safety net, and states the selection; a full run is still required when the repair touches shared code, contracts, schemas, or configuration. Designer review reruns only when the repair changes rendered UI. Security reuses its threat model and checks the changed candidate against it. None of this waives a required gate on the changed candidate.
-5. Repeat until required gates pass and blockers are resolved, or the round reaches 3. Report `VERIFIED` without release assessment; report a release verdict only when that assessment ran.
+If 3 rounds end with blockers left, stop and surface them to the user.
 
-If 3 rounds are exhausted with blockers remaining, stop and surface them to the user for manual resolution.
+**Downstream reruns:** every consumed artifact is a task dependency. A changed artifact invalidates its producer and every transitive consumer, which rerun in dependency order. This includes Copywriter and SEO, and Growth, Data Analyst, and Pentester only when enabled. A candidate change invalidates candidate-specific verification, review, and release evidence. Keep unaffected artifacts explicitly: filenames never prove freshness. The controller computes this closure.
 
-**Downstream reruns:** record every consumed artifact as a task dependency. Changed
-artifacts invalidate their producer and every transitive consumer, which rerun in
-dependency order, including Copywriter and SEO. Include Growth, Data Analyst, and
-Pentester only when enabled and consuming changed artifacts. Candidate changes invalidate candidate-specific verification, review,
-and release evidence. Preserve unaffected artifacts explicitly; filenames alone
-do not establish freshness. The bounded controller computes this closure instead
-of maintaining a separate rerun map.
-
-**Re-run from step X prompt:**
-
-```
-Continue EPIC-XXXX. A pipeline stage flagged blockers. Resolve each and re-run from the earliest affected step, preserving this run's enabled roles and required gates.
-
-Blockers:
-- BLOCKER[agent-name]: [description]
-
-Revision round: [N of 3]
-
-Steps:
-1. Route each blocker to its enabled owner with its description and original output.
-   If its owner is disabled, report the conflict for a user decision.
-   Save revised output as [file].rN.md.
-2. Re-run affected enabled consumers in dependency order, including mandatory QA,
-   Security, and fresh independent review for changed candidates.
-   Save each as [file].rN.md.
-3. Only if enabled, re-run Release Manager with the latest enabled outputs.
-   Save as release-report.rN.md only when it runs.
-4. Report verification and blockers, or the release verdict when assessed.
-```
+**Re-run prompt:** `.agents/reference/revision-prompt.md`.
 
 ## Epic ID format
 
@@ -312,18 +344,10 @@ I have a product idea. Run the full startup team pipeline on it.
 Idea: [your idea here]
 
 Steps:
-1. List all folders under epics/active/ and epics/completed/ matching EPIC-XXXX-* to find the highest number.
-   Increment by 1 (zero-padded to 4 digits) to get the next ID.
-   Derive a 2–4 word slug from the idea. Combine to form the folder name: epics/active/EPIC-XXXX-slug/.
-2. Invoke the Product Manager to produce a PRD.
-3. Invoke the Gherkin Spec Writer, Architect, and Designer in parallel with the PRD. Record the fast-lane decision for Copywriter and SEO.
-4. Invoke the Copywriter (PRD, Gherkin spec, design spec) and the SEO Specialist crawl pass (architecture, design spec) in parallel, each only when its fast-lane trigger applies.
-5. When triggered, invoke the SEO Specialist metadata pass (crawl pass, copy deck). Steps 4 and 5 run in parallel with step 6.
-6. Invoke the Backend Engineer in contract mode with the PRD, Gherkin spec, architecture, and design spec. It publishes the API contract handoff and stops.
-7. In parallel, in isolated workspaces: Backend implementation (contract), Frontend (design spec, Gherkin, copy deck, SEO metadata, contract; MSW mocks from the contract; Designer preview mid-task), DevOps (architecture, contract, SEO crawl pass), Security threat model (architecture, contract), and QA test authoring (Gherkin, contract).
-8. Publish the integrated candidate, then invoke the QA gate (a different QA session from step 7) and Designer review mode in parallel.
-9. Invoke Security candidate review (threat model, DevOps config, candidate, QA evidence) and a fresh independent reviewer with .agents/skills/code-review/SKILL.md (candidate, QA evidence) in parallel.
-10. Route blockers through bounded repairs and report verification results and remaining blockers, not release approval.
+1. Derive the next EPIC-XXXX ID from epics/active/ and epics/completed/, plus a 2–4 word slug. Create epics/active/EPIC-XXXX-slug/.
+2. Follow AGENTS.md Instructions steps 1–8 in order, using the enabled defaults. The pipeline diagram is in .agents/reference/pipeline.md.
+3. Invoke the Copywriter and the SEO Specialist only when their fast-lane triggers apply.
+4. Route blockers through bounded repairs and report verification results and remaining blockers, not release approval.
 
 Use AGENTS.md role defaults. Save enabled agents' outputs under epics/active/EPIC-XXXX-slug/ and give me the verification summary.
 ```
@@ -335,49 +359,8 @@ https://staging.example.com, authorized techniques: [...], window: [...]."
 
 ## Output files
 
-Each idea gets its own numbered folder under `epics/active/`. When deployed to production, the folder moves to `epics/completed/` via the `/complete-epic` skill.
+The output folder layout is in `.agents/reference/output-files.md`.
 
-```
-epics/
-├── active/
-│   ├── EPIC-0002-ai-git-diff-cli/
-│   │   ├── prd.md
-│   │   └── ...
-│   └── EPIC-0003-habit-streak-app/
-│       ├── prd.md
-│       ├── gherkin/
-│       │   ├── user-registration.feature
-│       │   └── water-logging.feature
-│       ├── architecture.md
-│       ├── design-spec.md
-│       ├── backend-spec.md
-│       ├── api-contract.md            # step [4], written before implementation
-│       ├── frontend-spec.md
-│       ├── test-plan.md               # QA gate; tests authored in step [5e]
-│       ├── devops-config.md
-│       ├── threat-model.md            # step [5d]
-│       ├── security-review.md         # step [7]
-│       ├── design-preview.md          # step [5b] mid-task
-│       ├── design-review.md
-│       ├── code-review.md
-│       ├── copy-deck.md
-│       ├── seo-plan.md                # crawl pass, then metadata pass
-│       ├── growth-plan.md             # only with Growth opt-in
-│       ├── data-plan.md               # only with Data Analyst opt-in
-│       ├── pentest-report.md          # only with Pentester opt-in
-│       ├── release-report.md          # only with Release Manager opt-in
-│       ├── backend-spec.r1.md         ← revised after blocker
-│       ├── frontend-spec.r1.md
-│       ├── test-plan.r1.md
-│       ├── devops-config.r1.md
-│       ├── security-review.r1.md
-│       ├── code-review.r1.md
-│       └── release-report.r1.md       # only with Release Manager opt-in
-│
-└── completed/
-    └── EPIC-0001-water-intake-tracker/
-        └── ...                        ← deployed to production
-```
 
 Create only enabled outputs and needed revisions. QA, Security, and independent
 code-review reports supply the default verification evidence. `release-report.md`
