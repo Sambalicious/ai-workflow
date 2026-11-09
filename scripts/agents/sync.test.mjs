@@ -30,7 +30,10 @@ test('each client gets its own model, and other settings keys survive', async ()
     }));
     await writeFile(join(root, '.agents/agents/explore.md'),
       '---\nname: explore\ndescription: Search.\ntier: swarm\naccess: read-only\noverrides-builtin: true\n---\nBody.\n');
-    await writeFile(join(root, '.claude/settings.json'), '{"permissions":{"allow":[]}}');
+    await writeFile(join(root, '.claude/settings.json'), JSON.stringify({
+      permissions: { allow: [] },
+      hooks: { PreToolUse: [{ matcher: 'Agent', hooks: [{ type: 'command', command: 'node scripts/agents/worker-guard.mjs' }] }] },
+    }));
 
     await sync({ root });
     const claude = await readFile(join(root, '.claude/agents/Explore.md'), 'utf8');
@@ -40,7 +43,12 @@ test('each client gets its own model, and other settings keys survive', async ()
     assert.match(opencode, /^mode: subagent$/m);
     assert.match(opencode, /^model: p\/swarm$/m);
     const settings = JSON.parse(await readFile(join(root, '.claude/settings.json'), 'utf8'));
-    assert.deepEqual(settings, { permissions: { allow: [] }, model: 'sonnet', advisorModel: 'opus' });
+    assert.deepEqual(settings, {
+      permissions: { allow: [] },
+      hooks: { PreToolUse: [{ matcher: 'Agent', hooks: [{ type: 'command', command: 'node scripts/agents/worker-guard.mjs' }] }] },
+      model: 'sonnet',
+      advisorModel: 'opus',
+    });
     assert.equal(JSON.parse(await readFile(join(root, 'opencode.json'), 'utf8')).model, 'p/lead');
     assert.deepEqual(await sync({ root, check: true }), []);
   } finally {
