@@ -249,3 +249,12 @@ test('designer owns layout and copy slots, copywriter owns words, and review mod
   const rule = await read('.agents/rules/02-no-pipeline-jump.md');
   assert.match(rule, /\| Designer \(review mode\) \|/);
 });
+
+test('rule 12 makes agents read the policies before dispatching', async () => {
+  const root = new URL('../../', import.meta.url);
+  const rule = await readFile(new URL('.agents/rules/12-check-policies-first.md', root), 'utf8');
+  assert.match(rule, /Role model policy/);
+  assert.match(rule, /\.agents\/models\.json/);
+  assert.match(rule, /orchestrator_capabilities/);
+  assert.match(rule, /never fall back on your own/);
+});
