@@ -137,8 +137,24 @@ and never run or replace the QA, Security, or code review gates.
 - The lead reviews every worker result: skim the diff and checks when mechanical,
   read and re-run when not. Wrong output gets one specific rewrite request; after
   that the lead fixes it. Two failed attempts on the same problem go to the advisor.
+- Implementation escalation ladder: worker (Flash), then one worker rewrite, then
+  the lead (Sonnet), then the advisor (Opus) if the lead's fix also fails. Work
+  never starts above the worker tier when it fits "Workers may take". Record each
+  step up in `metrics.md`. Provider blocks and outages are retried on the worker
+  tier and are not failures.
 - Advisor (Opus) is the exception, not the default: architecture, high-stakes
   decisions, deep diagnosis, and the gates. Name the role and reason before calling.
+
+- Workers may take: audits and inventories; copy changes checked by grep; mechanical
+  plumbing (migration-number specs, schema markers, renames); test fixes after a UI
+  change; ADR and digest drafts from a written design; bug fixes with a failing test
+  first; tests written from a written spec; and features or review-finding repairs
+  from a written design, committed in steps. Not to workers: contract, architecture,
+  auth, RLS, secrets and truth-guard design; unclear requirements; real money, live
+  keys, deploys and merges.
+- A worker stops and reports when two documents disagree or the code does not match
+  the design. Race and integration tests must pass twice in a row. Pull a task type
+  back to the lead tier when its rewrite rate passes about 1 in 7 over ten tasks.
 
 Keep `metrics.md` in the epic folder (or beside the task notes) and update it after
 each reviewed result: `worker_tasks`; `rewrites` (with a one-line reason each);
