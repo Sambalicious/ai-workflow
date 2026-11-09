@@ -1,4 +1,17 @@
 {
   "model": "sonnet",
-  "advisorModel": "opus"
+  "advisorModel": "opus",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/agents/worker-guard.mjs\""
+          }
+        ]
+      }
+    ]
+  }
 }

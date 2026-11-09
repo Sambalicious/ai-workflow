@@ -132,6 +132,10 @@ silently), send it bulk, clearly scoped work: implementation, tests, refactors, 
 searches. Workers never plan, decide design, or touch contracts and security rules,
 and never run or replace the QA, Security, or code review gates.
 
+Dispatch with `.agents/skills/dispatch-worker/SKILL.md`. The `worker-guard`
+`PreToolUse` hook (`scripts/agents/worker-guard.mjs`) warns, without blocking, when
+an `Agent` call starts implementation on the lead tier.
+
 - Each sub-task states goal, files in scope, acceptance check, and what not to
   touch. Pass only that and the relevant paths, not the session history.
 - The lead reviews every worker result: skim the diff and checks when mechanical,
