@@ -1,0 +1,1 @@
+Remove the `skipped` entry under `tabs` and the `excludedLink` entry from `src/copy.mjs`, since those tabs and links no longer exist in the product. Keep every other key and value unchanged. Change only files under `src/`. Do not edit `check.test.mjs` or `expected.json`.

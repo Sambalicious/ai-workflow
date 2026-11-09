@@ -62,7 +62,7 @@ Concurrent workers need isolated writable files, branches, databases, and ports.
 One integration owner publishes the combined candidate. Shared contracts and
 lockfiles have one writer. Declare optional work before execution, not after failure.
 
-QA, fresh independent code review, and security review remain required gates.
+QA, fresh independent code review, and security review remain required gates on the full lane. The fast lane in AGENTS.md scopes QA to the affected tests and keeps fresh review; it skips security and Designer review.
 Release assessment is a required gate only when enabled. Omit disabled tasks and
 their dependency edges; `required: false` still schedules work and can become
 required through consumers. Preserve all approved required checks. A scope conflict

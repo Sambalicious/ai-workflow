@@ -1,0 +1,1 @@
+Rename the exported function `calcTotal` to `computeTotal` everywhere under `src/` in this task folder, including its callers and imports. Keep behavior identical. Change only files under `src/`. Do not edit `check.test.mjs` or `expected.json`.

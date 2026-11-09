@@ -28,7 +28,9 @@
     "skills-lock.json"
   ],
   "scripts": {
-    "test": "node --test factory/*.test.mjs factory/adapters/*/*.test.mjs .agents/skills/skills.test.mjs",
-    "factory": "node factory/cli.mjs"
+    "test": "node --test factory/*.test.mjs factory/adapters/*/*.test.mjs scripts/agents/*.test.mjs .agents/skills/skills.test.mjs",
+    "factory": "node factory/cli.mjs",
+    "agents:sync": "node scripts/agents/sync.mjs",
+    "agents:check": "node scripts/agents/sync.mjs --check"
   }
 }

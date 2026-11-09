@@ -52,7 +52,7 @@ before initializing a new run. Record enabled roles and explicit user opt-ins in
 the scope handoff, not new schema fields. The default example omits Growth, Data
 Analyst, Pentester, and Release Manager actors, tasks, and dependency edges. Marking disabled
 tasks `required: false` would still schedule them and can make them required through
-consumers. Keep QA, Security, and fresh independent review required.
+consumers. Keep QA, Security, and fresh independent review required on the full lane. The fast lane in AGENTS.md scopes QA and keeps fresh review.
 
 For feature runs, `node factory/example.mjs input-feature` declares the parallel
 graph: a `contract` task, then Backend, Frontend, DevOps, the Security threat

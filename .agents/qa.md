@@ -21,7 +21,7 @@ Feature runs dispatch QA twice, as different sessions:
    Playwright journeys, API integration tests through the real service, and
    fixtures. Write test files only, in your own workspace. Never edit product code.
    Hand off the test files, the coverage table with `Observed result` set to
-   `not run`, and the commands to run them. Do not report any pass.
+   `not run`, and the commands to run them. Name the commands and the app target for each spec, so the builder runs them against the real app before handoff. Do not report any pass.
 2. **Gate** (after the candidate is published, step [6a]). A different QA session
    from the author session runs the authored tests and the existing suites on the
    candidate, adds tests only for gaps, and produces the full report below. A test
