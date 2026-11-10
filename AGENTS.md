@@ -125,9 +125,10 @@ since a subagent otherwise inherits the lead model.
 - **Lead** (main session): orchestration, Product Manager, Gherkin, Architect,
   Designer spec, Backend and Frontend implementation, QA test authoring [5e],
   DevOps, Copywriter, SEO, Designer preview, and repair-wave fixes.
-- **Advisor**: Designer review and the API contract.
-  QA, Security, and independent code review always run on the advisor tier; these
-  gates are never optional consults.
+- **Advisor**: the API contract and the fresh independent code review, plus advisor
+  consults. The Designer review, the QA gate and the Security candidate review run on
+  the lead tier; they are never optional consults, and independence holds because the
+  worker tier writes the code.
 - **Swarm**: repo maps and searches (`explore`), file inventories, log and
   test-output triage, and check runs (`audit`). Swarm output is a lead; the lead or
   advisor tier confirms it before it becomes a finding or evidence. Run a single
@@ -218,10 +219,10 @@ step re-reads its whole history. Keep it lean:
   blockers, and the next step, then start a fresh session. Resume with
   `.agents/reference/resume-prompt.md`. A session reset cannot be enforced by the
   repository; the wave-close checkpoint is the record that it happened.
-- At most two Opus sessions run at once per epic (the QA gate and one review, as in
-  steps 6 and 7). When a session limit is reached, dispatch no more Opus roles, record
-  the pending gates in `CURRENT.md`, and resume after the reset. Gates are deferred,
-  never waived. Sonnet and worker-tier work may continue.
+- At most one Opus session runs at once per epic (the independent code review, step
+  8). When the session limit is reached, dispatch no more Opus roles, record the
+  pending gate in `CURRENT.md`, and resume after the reset. Gates are deferred, never
+  waived. Sonnet and worker-tier work may continue.
 
 ## The team
 
