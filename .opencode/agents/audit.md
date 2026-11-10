@@ -1,7 +1,7 @@
 ---
 description: "Runs checks (format, lint, typecheck, unit and integration tests) against a given worktree and reports raw results. Use for check runs and test-output triage; it never replaces the QA gate."
 mode: subagent
-model: anthropic/claude-haiku-5-5
+model: opencode-go/deepseek-v4.1-flash
 permissions:
   - action: edit
     resource: "*"
