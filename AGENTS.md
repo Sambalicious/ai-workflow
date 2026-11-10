@@ -122,12 +122,12 @@ since a subagent otherwise inherits the lead model.
 | worker | opencode-go/deepseek-v4.1-flash | opencode-go/deepseek-v4.1-flash |
 <!-- tier-table:end -->
 
-- **Lead** (main session): orchestration, Backend and Frontend implementation, QA
-  test authoring [5e], DevOps, Copywriter, SEO, Designer preview, and repair-wave
-  fixes.
-- **Advisor**: PM, Gherkin, Architect, Designer spec and review, and the API
-  contract. QA, Security, and independent code review always run on the advisor
-  tier; these gates are never optional consults.
+- **Lead** (main session): orchestration, Product Manager, Gherkin, Architect,
+  Designer spec, Backend and Frontend implementation, QA test authoring [5e],
+  DevOps, Copywriter, SEO, Designer preview, and repair-wave fixes.
+- **Advisor**: Designer review and the API contract.
+  QA, Security, and independent code review always run on the advisor tier; these
+  gates are never optional consults.
 - **Swarm**: repo maps and searches (`explore`), file inventories, log and
   test-output triage, and check runs (`audit`). Swarm output is a lead; the lead or
   advisor tier confirms it before it becomes a finding or evidence. Run a single
