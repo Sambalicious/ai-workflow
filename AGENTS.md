@@ -11,6 +11,34 @@ handoff reports under `RUN_ROOT/reports/`, overriding the relative report locati
 in pipeline examples below. Keep state outside source and the factory read-only.
 Existing installed usage is described in the external entry.
 
+## Run start: verify the rules before dispatching
+
+A target project can vendor an old `.agents/` and an old copy of this file. A stale
+copy silently overrides the current policy — no later step can catch it, so check it
+first, every run, before any role is dispatched.
+
+1. Resolve `FACTORY_ROOT` to an absolute path and record it in the run brief with
+   `git -C "$FACTORY_ROOT" rev-parse HEAD` and `git -C "$FACTORY_ROOT" status --short`.
+   Inside the factory checkout itself, that commit is this file's. A branch or a
+   repository URL is not a pin.
+2. Read `factory/EXTERNAL.md`, `.agents/models.json` and
+   `.agents/skills/dispatch-worker/SKILL.md` from `FACTORY_ROOT`, never from a target's
+   copy when the two differ.
+3. When the target is not the factory, compare its `.agents/` with `FACTORY_ROOT`'s.
+   `.agents/factory-version`, written by `install.sh`, records the commit it was
+   installed from; when that differs from `FACTORY_ROOT`'s commit, the factory wins and
+   the run brief says so. When the target's tier table has no `worker` row, the copy is
+   stale: stop and report it rather than dispatching.
+4. Quote the `worker` row from `models.json` in the run brief, so the tier in use is
+   visible in the artifact rather than only in a prompt.
+5. After any delegate reports failure, timeout or a rate limit, check the artifact it
+   was writing on disk before reporting it as missing. A provider error can arrive
+   after the file landed.
+6. Before accepting a worker result, run `pnpm agents:boundary` (or
+   `node scripts/agents/worker-guard.mjs --base <ref>`) and send anything it lists back
+   to the lead or the advisor. It checks the real diff, including untracked files,
+   against the worker boundary, so a brief that quietly widens scope still fails.
+
 ## Role
 
 You are the orchestrator of an AI startup team. When given a raw product idea, run the enabled pipeline from idea through independent verification and review. Pass each enabled agent the required upstream outputs.

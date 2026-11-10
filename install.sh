@@ -128,6 +128,15 @@ copy_dir "$SOURCE_DIR/.opencode/agents" "$TARGET_DIR/.opencode/agents"
 copy_file "$SOURCE_DIR/opencode.json" "$TARGET_DIR/opencode.json"
 copy_file "$SOURCE_DIR/.claude/settings.json" "$TARGET_DIR/.claude/settings.json" ".claude/settings.json"
 
+# ── 3b. Copy agent tooling and record the factory commit ──────────────────────
+log "Copying agent tooling (scripts/agents/)..."
+copy_dir "$SOURCE_DIR/scripts/agents" "$TARGET_DIR/scripts/agents"
+if git -C "$SOURCE_DIR" rev-parse HEAD >/dev/null 2>&1; then
+  mkdir -p "$TARGET_DIR/.agents"
+  git -C "$SOURCE_DIR" rev-parse HEAD > "$TARGET_DIR/.agents/factory-version"
+  ok "Recorded the factory commit in .agents/factory-version"
+fi
+
 # ── 4. Copy third-party skill lock (lets `npx skills update` refresh them) ────
 log "Copying third-party skill lock (skills-lock.json)..."
 copy_file "$SOURCE_DIR/skills-lock.json" "$TARGET_DIR/skills-lock.json"

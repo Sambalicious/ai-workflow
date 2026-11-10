@@ -1,7 +1,7 @@
 {
   "name": "ai-workflow",
   "version": "1.0.0",
-  "description": "Full AI startup team — agents, skills, and pipeline orchestrator for any project",
+  "description": "Full AI startup team \u2014 agents, skills, and pipeline orchestrator for any project",
   "keywords": [
     "ai",
     "agents",
@@ -31,6 +31,8 @@
     "test": "node --test factory/*.test.mjs factory/adapters/*/*.test.mjs scripts/agents/*.test.mjs .agents/skills/skills.test.mjs",
     "factory": "node factory/cli.mjs",
     "agents:sync": "node scripts/agents/sync.mjs",
-    "agents:check": "node scripts/agents/sync.mjs --check"
+    "agents:check": "node scripts/agents/sync.mjs --check",
+    "agents:test": "node --test scripts/agents/sync.test.mjs scripts/agents/worker-guard.test.mjs",
+    "agents:boundary": "node scripts/agents/worker-guard.mjs --base origin/main"
   }
 }

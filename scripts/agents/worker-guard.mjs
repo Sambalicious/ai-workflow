@@ -3,6 +3,7 @@
 // Warns, never blocks, when a subagent starts implementation work on the lead
 // model instead of the worker tier (DeepSeek Flash via T3 delegate_task).
 // Reads the hook JSON from stdin and always exits 0.
+import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 // Escalation ladder, most specific first. Counts are per distinct category so
@@ -72,6 +73,51 @@ export const REMINDER =
   + 'the tally (worker_tasks, rewrites, self_fixes, advisor_calls) in metrics.md. See '
   + '.agents/skills/dispatch-worker/SKILL.md.';
 
+/**
+ * Paths a worker must never change, from `AGENTS.md` "Worker routing and metrics": contract,
+ * architecture, auth, RLS, secrets and truth-guard design belong to the lead or the advisor. The
+ * model-choice hook warns; this list is checked against a real diff, so the boundary holds even when
+ * the agent doing the work is the one that forgot it.
+ */
+const FORBIDDEN_PATHS = [
+  { reason: 'contract', pattern: /^packages\/contracts\// },
+  { reason: 'contract', pattern: /(^|\/)application-board\.ts$/ },
+  { reason: 'rls', pattern: /^apps\/api\/src\/db\// },
+  { reason: 'auth', pattern: /(^|\/)auth\// },
+  { reason: 'secrets', pattern: /(^|\/)\.env(\.|$)/ },
+  { reason: 'architecture', pattern: /^epics\/.*\/architecture[^/]*\.md$/ },
+  { reason: 'truth-guard', pattern: /(^|\/)claim-check\.ts$/ },
+  { reason: 'truth-guard', pattern: /(^|\/)document-claims\.ts$/ },
+  { reason: 'truth-guard', pattern: /(^|\/)blocked-claim\.ts$/ },
+  { reason: 'truth-guard', pattern: /(^|\/)company-direction\.ts$/ },
+  { reason: 'truth-guard', pattern: /(^|\/)contact-detail\.ts$/ },
+  { reason: 'truth-guard', pattern: /(^|\/)letter-keyword-cap\.ts$/ },
+];
+
+/** The reason this path is off limits to a worker, or null when the worker may change it. */
+export function classifyPath(path) {
+  const value = String(path).replace(/^\.\//, '');
+  const hit = FORBIDDEN_PATHS.find((entry) => entry.pattern.test(value));
+  return hit ? hit.reason : null;
+}
+
+/** Every forbidden path in `paths`, with its reason, in the order given. */
+export function forbiddenPaths(paths) {
+  return [...paths]
+    .map((path) => ({ path, reason: classifyPath(path) }))
+    .filter((entry) => entry.reason !== null);
+}
+
+/** One line per finding, for a reviewer to paste into a handoff. */
+export function boundaryReport(paths) {
+  const findings = forbiddenPaths(paths);
+  if (findings.length === 0) return 'Worker boundary: clear.';
+  return [
+    'Worker boundary: these files belong to the lead or the advisor, not the worker:',
+    ...findings.map((finding) => `  ${finding.path} (${finding.reason})`),
+  ].join('\n');
+}
+
 export function warning() {
   return {
     hookSpecificOutput: {
@@ -87,7 +133,35 @@ async function readStdin() {
   return Buffer.concat(chunks).toString('utf8');
 }
 
+function gitPaths(base) {
+  const run = (args) => {
+    const result = spawnSync('git', args, { encoding: 'utf8' });
+    if (result.status !== 0) throw new Error(result.stderr || `git ${args.join(' ')} failed`);
+    return result.stdout.split('\n').map((line) => line.trim()).filter(Boolean);
+  };
+  // Untracked files count: a worker's new file is exactly how a forbidden path usually appears.
+  return [...new Set([...run(['diff', '--name-only', base]), ...run(['ls-files', '--others', '--exclude-standard'])])];
+}
+
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  // Check a real diff against the worker boundary, before a worker result is accepted.
+  const baseArgument = process.argv.indexOf('--base');
+  if (baseArgument !== -1) {
+    const base = process.argv[baseArgument + 1];
+    if (!base) {
+      console.error('usage: node scripts/agents/worker-guard.mjs --base <git ref>');
+      process.exit(2);
+    }
+    const report = boundaryReport(gitPaths(base));
+    console.log(report);
+    process.exit(report.startsWith('Worker boundary: clear.') ? 0 : 1);
+  }
+  // Same, for a list of paths on stdin (one per line).
+  if (process.argv.includes('--paths')) {
+    const report = boundaryReport((await readStdin()).split('\n').map((line) => line.trim()).filter(Boolean));
+    console.log(report);
+    process.exit(report.startsWith('Worker boundary: clear.') ? 0 : 1);
+  }
   try {
     const raw = await readStdin();
     let hook = null;
