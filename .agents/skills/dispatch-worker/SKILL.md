@@ -52,9 +52,14 @@ procedure.
    }
    ```
 
+   Claude targets (`sonnet`, `opus`) go in the same place with
+   `options: { "effort": "medium" }`. Raise it only for a named problem, and say why
+   in the handoff (AGENTS.md, Cost discipline).
+
 4. Review the result yourself: read the diff, confirm it matches the brief and
    touches nothing out of scope, run the stated checks when the change is not
-   mechanical, and check each acceptance point.
+   mechanical, and check each acceptance point. Send test output to a file under
+   the run root and read the summary, never the raw transcript.
 5. Close the task: accept, send one specific rewrite, or escalate one rung. Update
    `metrics.md` in the same step.
 

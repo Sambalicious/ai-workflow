@@ -106,6 +106,30 @@ default to `reporting_only`: estimates are reports, not execution limits.
   replacement run to bypass limits. `factory/PROTOCOL.md` defines both modes and their
   accounting fields.
 
+## Cost discipline
+
+Four rules bind every run, every client, and the orchestrator itself.
+`.agents/skills/skills.test.mjs` fails when this section is removed or weakened.
+
+1. **Effort.** Dispatch Claude sessions at `medium` effort. Use `high` only when the
+   owner or the orchestrator names the specific problem it is for, and record that
+   reason in the handoff. Thinking tokens bill as output: on 2026-11-10 the `high`
+   gate sessions produced 666k thinking tokens against 6k the day before.
+2. **Test scope.** A recheck runs the affected specs plus the regression suite of every
+   file the change touches. Run a project's full suite only when the change touches a
+   contract, schema, migration, configuration, dependency, or shared module. Never run
+   the same suite twice against an unchanged candidate; a changed candidate invalidates
+   the earlier evidence.
+3. **Authored specs before implementation.** Implementation starts only when the `[5e]`
+   QA spec files for its Gherkin exist on disk. A missing `[5e]` is `BLOCKER[qa]` at
+   handoff, not a discovery at the gate.
+4. **Evidence in files, verdict in chat.** Test output, logs and full reports are written
+   under the run root (`RUN_ROOT/reports`, `RUN_ROOT/logs`) and passed by path. The chat
+   and the handoff carry the verdict, the counts and the failing names only.
+
+These four never replace a gate. They make each gate run once, on the right candidate,
+with evidence that can be re-read without paying for it again.
+
 ## Role model policy
 
 Standing tiering for every run, in every client (the optional `worker` tier is T3 `delegate_task` only; see Worker routing). Roles are assigned to tiers, not

@@ -44,6 +44,9 @@ unclear, and unsafe requests stop with a reason and owner.
 
 ## 2. Declare dependencies
 
+Implementation does not start until the `[5e]` QA spec files for its Gherkin exist on
+disk. A missing `[5e]` is `BLOCKER[qa]` at handoff, not a discovery at the gate.
+
 Record actual artifact consumption, not a second handwritten rerun list. Backend
 owns the API contract and publishes it as its own `contract` task. Backend
 implementation, Frontend, DevOps, and the Security threat model depend on the
