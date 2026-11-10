@@ -16,4 +16,4 @@ jobs:
       - name: Generated agent files are in sync
         run: node scripts/agents/sync.mjs --check
       - name: Policy, factory and guard tests
-        run: node --test factory/*.test.mjs factory/adapters/*/*.test.mjs scripts/agents/*.test.mjs .agents/skills/skills.test.mjs
+        run: node --test factory/*.test.mjs factory/adapters/*/*.test.mjs scripts/agents/*.test.mjs .agents/skills/skills.test.mjs .agents/skills/cost-discipline.test.mjs

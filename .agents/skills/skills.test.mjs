@@ -99,16 +99,6 @@ test('factory policy keeps assessments opt-in without weakening verification or 
   assert.match(prompt, /SEO Specialist/);
 });
 
-test('cost discipline rules are binding', async () => {
-  const root = new URL('../../', import.meta.url);
-  const orchestrator = await readFile(new URL('AGENTS.md', root), 'utf8');
-  assert.match(orchestrator, /Dispatch Claude sessions at `medium` effort/);
-  assert.match(orchestrator, /Run a project's full suite only when the change touches a\s+contract, schema, migration, configuration, dependency, or shared module/);
-  assert.match(orchestrator, /Implementation starts only when the `\[5e\]`\s+QA spec files for its Gherkin exist on disk/);
-  assert.match(orchestrator, /Evidence in files, verdict in chat/);
-  assert.match(orchestrator, /Never run\s+the same suite twice against an unchanged candidate/);
-});
-
 test('agent-agnostic cost policy has one authority and short role references', async () => {
   const root = new URL('../../', import.meta.url);
   const source = await readFile(new URL('AGENTS.md', root), 'utf8');
