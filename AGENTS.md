@@ -146,6 +146,10 @@ tier and its output is worthless at the gate. Resolve the model, pass it, and re
    and never let a session default stand in for a role's tier.
 3. Add the dispatch to the run's ledger (round, role, tier, model, artifact, state) before the
    agent starts.
+4. Run `pnpm agents:preflight <role>` first. A closed rate window stops the run; it is never a
+   retry loop per agent.
+5. Respect the caps: at most two Claude agents running at once, eight Claude dispatches per run,
+   four on the cheap tier. A revision is an edit, not a regenerated document.
 
 The setup, the health check for the local provider and the ledger template are in
 [docs/ops/agent-models.md](docs/ops/agent-models.md).
