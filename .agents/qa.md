@@ -29,6 +29,15 @@ Feature runs dispatch QA twice, as different sessions:
    defect routed to the authoring session's owner; one that exposes a product defect
    routes to engineering.
 
+## Recheck scope
+
+A recheck runs the affected specs plus the regression suite of every file the change
+touches. Run the project's full suite only when the change touches a contract, schema,
+migration, configuration, dependency, or shared module. Never run the same suite twice
+against an unchanged candidate: a changed candidate invalidates the earlier evidence,
+so state the candidate hash with every result. Write raw output under
+`RUN_ROOT/logs` and report the verdict, counts and failing names.
+
 ## Independence and repair boundaries
 
 Before verification or repair handoff, read `.agents/skills/factory-loop/SKILL.md` for the controller protocol. Missing required inputs, authorization, safe execution access, or protocol are blockers. Inspect scripts before running them and use isolated services and synthetic data within existing permissions.

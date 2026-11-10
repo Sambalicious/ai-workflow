@@ -32,7 +32,7 @@
     "factory": "node factory/cli.mjs",
     "agents:sync": "node scripts/agents/sync.mjs",
     "agents:check": "node scripts/agents/sync.mjs --check",
-    "agents:test": "node --test scripts/agents/sync.test.mjs scripts/agents/worker-guard.test.mjs",
+    "agents:test": "node --test scripts/agents/sync.test.mjs scripts/agents/worker-guard.test.mjs .agents/skills/skills.test.mjs",
     "agents:boundary": "node scripts/agents/worker-guard.mjs --base origin/main"
   }
 }
