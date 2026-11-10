@@ -132,10 +132,23 @@ with evidence that can be re-read without paying for it again.
 
 ## Role model policy
 
-Standing tiering for every run, in every client (the optional `worker` tier is T3 `delegate_task` only; see Worker routing). Roles are assigned to tiers, not
-model names. `.agents/models.json` maps each tier to a model per client; when you
-dispatch a role, pass the model that file gives your client for the role's tier,
-since a subagent otherwise inherits the lead model.
+Standing tiering for every run, in every client. Roles are assigned to tiers, not model
+names. `.agents/models.json` maps each role to a tier and each tier to a model per client.
+
+**A dispatch without an explicit model is a protocol error.** A subagent inherits the session
+model when the dispatch does not name one, so a lead or advisor role silently runs on the cheap
+tier and its output is worthless at the gate. Resolve the model, pass it, and record it:
+
+1. `pnpm agents:model <role>` prints the model for this client, and exits 1 when the role, the
+   tier or the client's model is missing.
+2. Pass that model in the dispatch. Confirm it resolves in the client's provider list. If it
+   does not, stop the run and report it; never substitute a tier without the owner's agreement,
+   and never let a session default stand in for a role's tier.
+3. Add the dispatch to the run's ledger (round, role, tier, model, artifact, state) before the
+   agent starts.
+
+The setup, the health check for the local provider and the ledger template are in
+[docs/ops/agent-models.md](docs/ops/agent-models.md).
 
 <!-- tier-table:start (generated from .agents/models.json by npm run agents:sync; edit models.json) -->
 | Tier | claude-code | opencode |
