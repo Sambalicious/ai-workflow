@@ -1,7 +1,7 @@
 {
   "tiers": {
-    "lead": "Main session and orchestration; Product Manager, Gherkin, Architect, Designer spec, Backend and Frontend implementation, QA test authoring, DevOps, Copywriter, SEO, Designer preview, repair fixes.",
-    "advisor": "Designer review, API contract; QA gate, Security candidate review, independent code review; advisor consults.",
+    "lead": "Main session and orchestration; Product Manager, Gherkin, Architect, Designer spec and review, Backend and Frontend implementation, QA test authoring, QA gate, Security candidate review, DevOps, Copywriter, SEO, Designer preview, repair fixes.",
+    "advisor": "API contract; fresh independent code review; advisor consults.",
     "swarm": "Read-only search and repo maps, file inventories, log and test-output triage, check runs.",
     "worker": "Bulk scoped work delegated by the lead via delegate_task (T3 only): implementation, tests, refactors, searches. Never plans, design, contracts, security, or any gate."
   },
