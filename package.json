@@ -28,11 +28,11 @@
     "skills-lock.json"
   ],
   "scripts": {
-    "test": "node --test factory/*.test.mjs factory/adapters/*/*.test.mjs scripts/agents/*.test.mjs .agents/skills/skills.test.mjs",
+    "test": "node --test factory/*.test.mjs factory/adapters/*/*.test.mjs scripts/agents/*.test.mjs .agents/skills/skills.test.mjs .agents/skills/cost-discipline.test.mjs",
     "factory": "node factory/cli.mjs",
     "agents:sync": "node scripts/agents/sync.mjs",
     "agents:check": "node scripts/agents/sync.mjs --check",
-    "agents:test": "node --test scripts/agents/sync.test.mjs scripts/agents/worker-guard.test.mjs .agents/skills/skills.test.mjs",
+    "agents:test": "node --test scripts/agents/sync.test.mjs scripts/agents/worker-guard.test.mjs .agents/skills/skills.test.mjs .agents/skills/cost-discipline.test.mjs",
     "agents:boundary": "node scripts/agents/worker-guard.mjs --base origin/main"
   }
 }
