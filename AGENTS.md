@@ -118,7 +118,7 @@ since a subagent otherwise inherits the lead model.
 |---|---|---|
 | lead | sonnet | anthropic/claude-sonnet-5-5 |
 | advisor | opus | anthropic/claude-opus-5-5 |
-| swarm | haiku | anthropic/claude-haiku-5-5 |
+| swarm | haiku | opencode-go/deepseek-v4.1-flash |
 | worker | opencode-go/deepseek-v4.1-flash | opencode-go/deepseek-v4.1-flash |
 <!-- tier-table:end -->
 

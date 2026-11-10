@@ -15,7 +15,7 @@
     "opencode": {
       "lead": "anthropic/claude-sonnet-5-5",
       "advisor": "anthropic/claude-opus-5-5",
-      "swarm": "anthropic/claude-haiku-5-5",
+      "swarm": "opencode-go/deepseek-v4.1-flash",
       "worker": "opencode-go/deepseek-v4.1-flash"
     }
   }

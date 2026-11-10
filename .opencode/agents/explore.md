@@ -1,7 +1,7 @@
 ---
 description: "Read-only repo mapping and search. Use for broad sweeps across many files, directories, or naming conventions when only the conclusion is needed, not the file dumps."
 mode: subagent
-model: anthropic/claude-haiku-5-5
+model: opencode-go/deepseek-v4.1-flash
 permissions:
   - action: edit
     resource: "*"
