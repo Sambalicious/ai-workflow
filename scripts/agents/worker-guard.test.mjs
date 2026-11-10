@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { classify, isLeadTierModel, shouldWarn, warning } from './worker-guard.mjs';
+import { boundaryReport, classify, classifyPath, forbiddenPaths, isLeadTierModel, shouldWarn, warning } from './worker-guard.mjs';
 
 const SCRIPT = fileURLToPath(new URL('./worker-guard.mjs', import.meta.url));
 
@@ -87,4 +87,71 @@ test('bad or empty input never throws', () => {
     assert.equal(shouldWarn(payload), false);
   }
   assert.equal(classify(undefined), 'other');
+});
+
+// Worker boundary (AGENTS.md "Worker routing and metrics"): contract, RLS, auth, secrets,
+// architecture and truth-guard design are not the worker's to change, whatever the brief says.
+test('the four files EPIC-0009 got wrong are worker-forbidden', () => {
+  assert.equal(classifyPath('packages/contracts/src/documents.ts'), 'contract');
+  assert.equal(classifyPath('apps/api/src/db/migrations/0039-blocked-claim-cause.ts'), 'rls');
+  assert.equal(classifyPath('apps/api/src/career-profile/claim-check.ts'), 'truth-guard');
+  assert.equal(classifyPath('apps/api/src/documents/blocked-claim.ts'), 'truth-guard');
+});
+
+test('copy, tests, fixtures and plumbing stay the worker\'s to change', () => {
+  for (const path of [
+    'apps/web/src/entities/application/model/copy.ts',
+    'apps/web/src/entities/application/api/application-repository.ts',
+    'apps/web/src/app/__tests__/application-detail.test.tsx',
+    'apps/api/src/documents/documents.repository.ts',
+    'apps/api/src/documents/documents.service.ts',
+    'apps/api/src/records/details-deletion.ts',
+    'epics/active/EPIC-0009-blocked-claim-detail/prd.r2.md',
+  ]) {
+    assert.equal(classifyPath(path), null, path);
+  }
+});
+
+test('architecture, auth and secrets are forbidden too', () => {
+  assert.equal(classifyPath('epics/active/EPIC-0009-blocked-claim-detail/architecture.r2.md'), 'architecture');
+  assert.equal(classifyPath('apps/api/src/auth/session.ts'), 'auth');
+  assert.equal(classifyPath('.env.local'), 'secrets');
+  assert.equal(classifyPath('./packages/contracts/src/documents.ts'), 'contract');
+});
+
+test('forbiddenPaths keeps order and drops the allowed paths', () => {
+  assert.deepEqual(
+    forbiddenPaths([
+      'apps/web/src/entities/application/model/copy.ts',
+      'packages/contracts/src/documents.ts',
+      'apps/api/src/db/schema.ts',
+    ]),
+    [
+      { path: 'packages/contracts/src/documents.ts', reason: 'contract' },
+      { path: 'apps/api/src/db/schema.ts', reason: 'rls' },
+    ],
+  );
+});
+
+test('boundaryReport names every finding, and clears an allowed diff', () => {
+  assert.match(boundaryReport(['apps/web/src/pages/application-detail/ui/application-detail-page.tsx']), /^Worker boundary: clear\.$/);
+  const report = boundaryReport(['packages/contracts/src/documents.ts', 'apps/api/src/career-profile/claim-check.ts']);
+  assert.match(report, /packages\/contracts\/src\/documents\.ts \(contract\)/);
+  assert.match(report, /apps\/api\/src\/career-profile\/claim-check\.ts \(truth-guard\)/);
+});
+
+test('the --paths CLI fails on a forbidden path and passes on a clean one', () => {
+  const forbidden = spawnSync(process.execPath, [SCRIPT, '--paths'], {
+    input: 'apps/web/src/entities/application/model/copy.ts\npackages/contracts/src/documents.ts\n',
+    encoding: 'utf8',
+  });
+  assert.equal(forbidden.status, 1);
+  assert.match(forbidden.stdout, /\(contract\)/);
+
+  const clean = spawnSync(process.execPath, [SCRIPT, '--paths'], {
+    input: 'apps/web/src/entities/application/model/copy.ts\n',
+    encoding: 'utf8',
+  });
+  assert.equal(clean.status, 0);
+  assert.match(clean.stdout, /clear/);
 });
