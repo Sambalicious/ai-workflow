@@ -95,6 +95,10 @@ log "Copying agent definitions (.agents/)..."
 copy_dir "$SOURCE_DIR/.agents" "$TARGET_DIR/.agents"
 
 # ── 2. Copy .claude/ (Claude Code agent symlinks + skills) ────────────────────
+# .claude/skills holds single-file links to agent skills that some clients load by
+# path. They are asserted by .agents/skills/skills.test.mjs and
+# factory/portability.test.mjs, so keep them even though they look redundant next to
+# the .agents/skills/<name>/SKILL.md layout.
 log "Copying Claude Code config (.claude/)..."
 mkdir -p "$TARGET_DIR/.claude/agents"
 mkdir -p "$TARGET_DIR/.claude/skills"

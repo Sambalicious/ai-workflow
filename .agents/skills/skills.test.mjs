@@ -1,10 +1,20 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, readlink, rm, writeFile, access } from 'node:fs/promises';
+import { mkdtemp, readFile, readlink, readdir, rm, writeFile, access } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
+
+// install.sh never installs into the factory itself, so its presence marks the
+// factory checkout. Installs carry their own README.md, package.json and no
+// installer, so the factory-only assertions are skipped there instead of failing
+// and training everyone to ignore a red suite.
+const factoryRoot = new URL('../../', import.meta.url);
+const isFactory = await access(new URL('install.sh', factoryRoot)).then(() => true, () => false);
+const factoryOnly = isFactory
+  ? {}
+  : { skip: 'factory checkout only: installs ship their own README.md and package.json' };
 
 const skills = {
   triage: [
@@ -37,7 +47,7 @@ for (const [name, verdicts] of Object.entries(skills)) {
   });
 }
 
-test('usage links and package rules include the shared skills', async () => {
+test('usage links and package rules include the shared skills', factoryOnly, async () => {
   const root = new URL('../../', import.meta.url);
   const readme = await readFile(new URL('README.md', root), 'utf8');
   const packageJson = JSON.parse(await readFile(new URL('package.json', root), 'utf8'));
@@ -47,7 +57,7 @@ test('usage links and package rules include the shared skills', async () => {
   }
 });
 
-test('factory integration references executable roles and controller', async () => {
+test('factory integration references executable roles and controller', factoryOnly, async () => {
   const root = new URL('../../', import.meta.url);
   const packageJson = JSON.parse(await readFile(new URL('package.json', root), 'utf8'));
   assert.ok(packageJson.files.includes('factory/'));
@@ -65,7 +75,7 @@ test('factory integration references executable roles and controller', async () 
   }
 });
 
-test('factory policy keeps assessments opt-in without weakening verification or pinned runs', async () => {
+test('factory policy keeps assessments opt-in without weakening verification or pinned runs', factoryOnly, async () => {
   const root = new URL('../../', import.meta.url);
   const orchestrator = await readFile(new URL('AGENTS.md', root), 'utf8');
   const policy = orchestrator.split('## Role activation policy\n')[1]?.split('\n## ')[0];
@@ -99,7 +109,7 @@ test('factory policy keeps assessments opt-in without weakening verification or 
   assert.match(prompt, /SEO Specialist/);
 });
 
-test('agent-agnostic cost policy has one authority and short role references', async () => {
+test('agent-agnostic cost policy has one authority and short role references', factoryOnly, async () => {
   const root = new URL('../../', import.meta.url);
   const source = await readFile(new URL('AGENTS.md', root), 'utf8');
   const policy = source.split('## Cost reporting policy\n')[1]?.split('\n## ')[0];
@@ -152,7 +162,7 @@ test('release assessment distinguishes unrequested plans from required evidence'
   assert.match(source, /scope\s+conflict for a user decision/);
 });
 
-test('installer includes controller, preserves files, and force avoids nested copies', async () => {
+test('installer includes controller, preserves files, and force avoids nested copies', factoryOnly, async () => {
   const root = new URL('../../', import.meta.url);
   const destination = await mkdtemp(join(tmpdir(), 'factory-install-'));
   const install = (...args) => {
@@ -216,16 +226,19 @@ test('merge-only updates get a merge check, not repeated gates', async () => {
   assert.match(overnight, /merge\s+check for a merge-only update/);
 });
 
-test('slash commands have one source and client links', async () => {
+test('every shared command has one source and client links', async () => {
   const root = new URL('../../', import.meta.url);
-  for (const name of ['overnight', 'retro']) {
-    const source = await readFile(new URL(`.agents/commands/${name}.md`, root), 'utf8');
+  const commands = (await readdir(new URL('.agents/commands/', root))).filter(file => file.endsWith('.md'));
+  assert.ok(commands.length > 0, 'expected at least one shared command');
+  for (const file of commands) {
+    const name = file.replace(/\.md$/, '');
+    const source = await readFile(new URL(`.agents/commands/${file}`, root), 'utf8');
     assert.match(source, /^---\r?\ndescription: .+\r?\n/);
     assert.match(source, /\$ARGUMENTS/);
     assert.doesNotMatch(source, /[^\x00-\x7F]/, 'Keep the shared definitions ASCII');
     for (const dir of ['.kilo/command', '.claude/commands']) {
-      const link = await readlink(fileURLToPath(new URL(`${dir}/${name}.md`, root)));
-      assert.equal(link, `../../.agents/commands/${name}.md`);
+      const link = await readlink(fileURLToPath(new URL(`${dir}/${file}`, root)));
+      assert.equal(link, `../../.agents/commands/${file}`, `${dir}/${file} must link to its source`);
     }
   }
 });

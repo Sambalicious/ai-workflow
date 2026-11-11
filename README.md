@@ -118,7 +118,12 @@ The sync copies `.agents/skills/` and `.agents/commands/` and recreates the
 `factory/`, and any project-only skill in place, and names the project-only ones it
 skipped. It prints the source branch and commit it copied from; run it from a merged
 commit, or point it at a clean checkout with `--source <path>`, so an unmerged feature
-branch does not leak into a project.
+branch does not leak into a project. The target records its source in
+`.agents/skills-source.json`, and a stale or unmerged source shows up on the next run.
+
+Installed projects also get a green test run: `.agents/skills/skills.test.mjs` skips
+the factory-only assertions (README links, package `files`, the installer) and keeps
+the skill, policy, and command-link checks.
 
 The package exposes `software-factory` for the controller. It is not a project
 installer. This checkout does not contain the previously advertised `ai-workflow`

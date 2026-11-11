@@ -125,6 +125,29 @@ test('a symlinked payload path is replaced without writing through the link', as
   }
 });
 
+test('the target records which factory commit its skills came from', async () => {
+  const { source, target } = await fixture();
+  try {
+    const git = (...args) => spawnSync('git', ['-C', source, ...args], { encoding: 'utf8' });
+    git('init', '-q', '-b', 'main');
+    git('add', '-A');
+    git('-c', 'user.email=a@b', '-c', 'user.name=t', 'commit', '-qm', 'fixture');
+
+    await syncSkills({ source, target });
+    const recorded = JSON.parse(await readFile(join(target, '.agents/skills-source.json'), 'utf8'));
+    assert.equal(recorded.branch, 'main');
+    assert.equal(recorded.dirty, false);
+    assert.equal(recorded.commit, git('rev-parse', 'HEAD').stdout.trim());
+
+    await rm(join(target, '.agents/skills-source.json'));
+    await syncSkills({ source, target, check: true });
+    await assert.rejects(readFile(join(target, '.agents/skills-source.json'), 'utf8'), /ENOENT/);
+  } finally {
+    await rm(source, { recursive: true, force: true });
+    await rm(target, { recursive: true, force: true });
+  }
+});
+
 test('--source points the CLI at another factory checkout', async () => {
   const { source, target } = await fixture();
   try {

@@ -8,7 +8,7 @@
 // per-client command symlinks. AGENTS.md, .agents/models.json, the role files,
 // rules, reference docs, factory/ and the client model settings carry per-project
 // decisions, so they stay with install.sh and the target's own review.
-import { chmod, copyFile, lstat, mkdir, readFile, readdir, readlink, rm, symlink } from 'node:fs/promises';
+import { chmod, copyFile, lstat, mkdir, readFile, readdir, readlink, rm, symlink, writeFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { basename, dirname, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -121,6 +121,11 @@ export async function syncSkills({ source = ROOT, target, check = false } = {}) 
         await chmod(action.path, mode);
       }
     }
+    const info = gitInfo(source);
+    if (info) {
+      await mkdir(join(target, dirname(PROVENANCE)), { recursive: true });
+      await writeFile(join(target, PROVENANCE), `${JSON.stringify(info, null, 2)}\n`);
+    }
   }
 
   delete report.actions;
@@ -129,13 +134,26 @@ export async function syncSkills({ source = ROOT, target, check = false } = {}) 
 
 export const isDirty = (report) => report.added.length > 0 || report.updated.length > 0;
 
-function provenance(source) {
+export const PROVENANCE = '.agents/skills-source.json';
+
+// Records which factory commit a target was synced from. Without it, an unmerged
+// branch can leak into a project and nothing can tell you where a skill came from.
+export function gitInfo(source) {
   const git = (...args) => spawnSync('git', ['-C', source, ...args], { encoding: 'utf8' });
-  if (git('rev-parse', '--is-inside-work-tree').status !== 0) return `${source} (not a git checkout)`;
-  const branch = git('rev-parse', '--abbrev-ref', 'HEAD').stdout.trim();
-  const sha = git('rev-parse', '--short', 'HEAD').stdout.trim();
-  const dirty = git('status', '--porcelain').stdout.trim() ? ', dirty' : '';
-  return `${branch} @ ${sha}${dirty}`;
+  if (git('rev-parse', '--is-inside-work-tree').status !== 0) return null;
+  return {
+    factory: basename(source),
+    commit: git('rev-parse', 'HEAD').stdout.trim(),
+    branch: git('rev-parse', '--abbrev-ref', 'HEAD').stdout.trim(),
+    dirty: Boolean(git('status', '--porcelain').stdout.trim()),
+  };
+}
+
+function provenance(source) {
+  const info = gitInfo(source);
+  if (!info) return `${source} (not a git checkout)`;
+  const short = info.commit.slice(0, 7);
+  return `${info.branch} @ ${short}${info.dirty ? ', dirty' : ''}`;
 }
 
 async function main(argv) {
@@ -148,12 +166,20 @@ async function main(argv) {
     console.error('Usage: node scripts/agents/sync-skills.mjs <target> [--check] [--source <factory-checkout>]');
     return 2;
   }
+  const info = gitInfo(source);
   console.log(`Source: ${provenance(source)}`);
+  if (info && (info.branch !== 'main' || info.dirty)) {
+    console.log(`Warning: ${info.branch} is not a clean main. Pass --source to sync from a merged checkout.`);
+  }
   const report = await syncSkills({ source, target, check });
   const line = (label, paths) => paths.length && console.log(`${label}: ${paths.join(', ')}`);
   line(check ? 'would add' : 'added', report.added);
   line(check ? 'would update' : 'updated', report.updated);
   if (report.extra.length) console.log(`left alone (target only): ${report.extra.join(', ')}`);
+  const recorded = JSON.parse(await readFile(join(target, PROVENANCE), 'utf8').catch(() => 'null'));
+  if (recorded?.commit && info?.commit && recorded.commit !== info.commit) {
+    console.log(`Target was synced from ${recorded.commit.slice(0, 7)} (${recorded.branch}); source is ${info.commit.slice(0, 7)}.`);
+  }
   if (check && isDirty(report)) {
     console.error('Skills are out of date. Run without --check to refresh them.');
     return 1;

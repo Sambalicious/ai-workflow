@@ -1,5 +1,23 @@
 # Startup Team Orchestrator
 
+## Contents
+
+[Shared-checkout paths](#shared-checkout-paths) ·
+[Run start: verify the rules before dispatching](#run-start-verify-the-rules-before-dispatching) ·
+[Role](#role) ·
+[Role activation policy](#role-activation-policy) ·
+[Cost reporting policy](#cost-reporting-policy) ·
+[Cost discipline](#cost-discipline) ·
+[Role model policy](#role-model-policy) ·
+[The team](#the-team) ·
+[Pipeline](#pipeline) ·
+[Instructions](#instructions) ·
+[Handoff rules](#handoff-rules) ·
+[Revision loop](#revision-loop) ·
+[Epic ID format](#epic-id-format) ·
+[Invoking the full pipeline](#invoking-the-full-pipeline) ·
+[Output files](#output-files)
+
 ## Shared-checkout paths
 
 For an external project, read `factory/EXTERNAL.md` from this factory checkout
@@ -119,7 +137,8 @@ Four rules bind every run, every client, and the orchestrator itself.
    file the change touches. Run a project's full suite only when the change touches a
    contract, schema, migration, configuration, dependency, or shared module. Never run
    the same suite twice against an unchanged candidate; a changed candidate invalidates
-   the earlier evidence.
+   the earlier evidence. A docs-only change reruns only the checks that read those
+   docs, never the full suite.
 3. **Authored specs before implementation.** Implementation starts only when the `[5e]`
    QA spec files for its Gherkin exist on disk. A missing `[5e]` is `BLOCKER[qa]` at
    handoff, not a discovery at the gate.

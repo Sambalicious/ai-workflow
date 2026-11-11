@@ -83,6 +83,20 @@ implementation agent, wherever the repo has both.
 - A project doc such as `CONTEXT.md` or `DESIGN.md`: a reference file reached through
   a pointer. Look for an existing doc before proposing a new one.
 
+### Where the session lives
+
+Read the transcript, not a reconstruction of it.
+
+- OpenCode: `~/.local/share/opencode/` holds `opencode.db` (sessions and messages),
+  plus `log/` and `tool-output/` with the raw tool results.
+- Claude Code: `~/.claude/projects/<project-path-with-dashes>/<session-id>.jsonl`.
+- Kilo: the client's session directory under its application-data folder.
+- Installed runs: `RUN_ROOT/logs/` and `RUN_ROOT/reports/` hold what the run wrote;
+  git history holds the rest.
+
+If the transcript is unreachable, say so, audit from the run root and git instead,
+and label the output as artifact-based.
+
 ### Output
 
 End with a **TL;DR** section listing the recommended candidates in order, one line
