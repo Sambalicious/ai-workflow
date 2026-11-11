@@ -151,10 +151,27 @@ with evidence that can be re-read without paying for it again.
 
 ## Role model policy
 
-Standing tiering for every run, in every client (the optional `worker` tier is T3 `delegate_task` only; see Worker routing). Roles are assigned to tiers, not
-model names. `.agents/models.json` maps each tier to a model per client; when you
-dispatch a role, pass the model that file gives your client for the role's tier,
-since a subagent otherwise inherits the lead model.
+Standing tiering for every run, in every client. Roles are assigned to tiers, not model
+names. `.agents/models.json` maps each role to a tier and each tier to a model per client.
+
+**A dispatch without an explicit model is a protocol error.** A subagent inherits the session
+model when the dispatch does not name one, so a lead or advisor role silently runs on the cheap
+tier and its output is worthless at the gate. Resolve the model, pass it, and record it:
+
+1. `pnpm agents:model <role>` prints the model for this client, and exits 1 when the role, the
+   tier or the client's model is missing.
+2. Pass that model in the dispatch. Confirm it resolves in the client's provider list. If it
+   does not, stop the run and report it; never substitute a tier without the owner's agreement,
+   and never let a session default stand in for a role's tier.
+3. Add the dispatch to the run's ledger (round, role, tier, model, artifact, state) before the
+   agent starts.
+4. Run `pnpm agents:preflight <role>` first. A closed rate window stops the run; it is never a
+   retry loop per agent.
+5. Respect the caps: at most two Claude agents running at once, eight Claude dispatches per run,
+   four on the cheap tier. A revision is an edit, not a regenerated document.
+
+The setup, the health check for the local provider and the ledger template are in
+[docs/ops/agent-models.md](docs/ops/agent-models.md).
 
 <!-- tier-table:start (generated from .agents/models.json by npm run agents:sync; edit models.json) -->
 | Tier | claude-code | opencode |
@@ -165,9 +182,11 @@ since a subagent otherwise inherits the lead model.
 | worker | opencode-go/deepseek-v4.1-flash | opencode-go/deepseek-v4.1-flash |
 <!-- tier-table:end -->
 
-- **Lead** (main session): orchestration, Product Manager, Gherkin, Architect,
-  Designer spec, Backend and Frontend implementation, QA test authoring [5e],
-  DevOps, Copywriter, SEO, Designer preview, and repair-wave fixes.
+- **Lead** (main session, decisions only): orchestration, Product Manager, Gherkin
+  authorship of new scenarios, Architect, Designer spec and review, Copywriter, SEO,
+  DevOps, the QA gate, the Security candidate review, and repair-wave decisions.
+  The lead does not author implementation or tests; it scopes them and reviews them.
+
 - **Advisor**: the API contract and the fresh independent code review, plus advisor
   consults. The Designer review, the QA gate and the Security candidate review run on
   the lead tier; they are never optional consults, and independence holds because the
@@ -194,6 +213,17 @@ The lead checks each builder handoff against the contract, Gherkin, and fast-che
 results before passing it downstream, and sends gaps back to the same builder
 session. A builder that hits a design or contract question escalates to the lead
 rather than guessing.
+
+### Authoring is worker tier
+
+Code, tests, fixtures, refactors and mechanical edits to a document or a copy deck are authored on
+the worker tier and reviewed by the lead. Decisions, product language, contracts and gates are not:
+Product Manager, Gherkin authorship, Architect, Designer spec and review, Copywriter, SEO, the API
+contract, the QA gate, the Security review and the independent code review keep their lead or advisor
+tier.
+
+The test is not how important the change feels. It is whether the work needs a decision. "Rewrite this
+table to match the decision already recorded" is worker work. "Decide what the table says" is lead work.
 
 ### Worker routing and metrics
 
