@@ -3,7 +3,7 @@
     "lead": "Main session and orchestration; Product Manager, Gherkin, Architect, Designer spec and review, Backend and Frontend implementation, QA test authoring, QA gate, Security candidate review, DevOps, Copywriter, SEO, Designer preview, repair fixes.",
     "advisor": "API contract; fresh independent code review; advisor consults.",
     "swarm": "Read-only search and repo maps, file inventories, log and test-output triage, check runs.",
-    "worker": "Bulk scoped work delegated by the lead: implementation, tests, refactors, searches. Never plans, design, contracts, security, or any gate."
+    "worker": "Authoring: implementation, tests and fixtures, refactors, mechanical document and copy edits, searches. Never plans, decides design, writes a contract, runs a gate, or reviews security."
   },
   "clients": {
     "claude-code": {
@@ -29,14 +29,15 @@
     "copywriter": "lead",
     "seo": "lead",
     "devops": "lead",
-    "backend-engineer": "lead",
-    "frontend-engineer": "lead",
-    "qa-authoring": "lead",
     "qa-gate": "lead",
     "security-review": "lead",
     "api-contract": "advisor",
     "code-review": "advisor",
     "advisor-consult": "advisor",
+    "backend-engineer": "worker",
+    "frontend-engineer": "worker",
+    "qa-authoring": "worker",
+    "mechanical-edit": "worker",
     "explore": "swarm",
     "audit": "swarm",
     "worker": "worker"

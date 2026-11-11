@@ -163,9 +163,11 @@ The setup, the health check for the local provider and the ledger template are i
 | worker | opencode-go/deepseek-v4.1-flash | opencode-go/deepseek-v4.1-flash |
 <!-- tier-table:end -->
 
-- **Lead** (main session): orchestration, Product Manager, Gherkin, Architect,
-  Designer spec, Backend and Frontend implementation, QA test authoring [5e],
-  DevOps, Copywriter, SEO, Designer preview, and repair-wave fixes.
+- **Lead** (main session, decisions only): orchestration, Product Manager, Gherkin
+  authorship of new scenarios, Architect, Designer spec and review, Copywriter, SEO,
+  DevOps, the QA gate, the Security candidate review, and repair-wave decisions.
+  The lead does not author implementation or tests; it scopes them and reviews them.
+
 - **Advisor**: the API contract and the fresh independent code review, plus advisor
   consults. The Designer review, the QA gate and the Security candidate review run on
   the lead tier; they are never optional consults, and independence holds because the
@@ -192,6 +194,17 @@ The lead checks each builder handoff against the contract, Gherkin, and fast-che
 results before passing it downstream, and sends gaps back to the same builder
 session. A builder that hits a design or contract question escalates to the lead
 rather than guessing.
+
+### Authoring is worker tier
+
+Code, tests, fixtures, refactors and mechanical edits to a document or a copy deck are authored on
+the worker tier and reviewed by the lead. Decisions, product language, contracts and gates are not:
+Product Manager, Gherkin authorship, Architect, Designer spec and review, Copywriter, SEO, the API
+contract, the QA gate, the Security review and the independent code review keep their lead or advisor
+tier.
+
+The test is not how important the change feels. It is whether the work needs a decision. "Rewrite this
+table to match the decision already recorded" is worker work. "Decide what the table says" is lead work.
 
 ### Worker routing and metrics
 
