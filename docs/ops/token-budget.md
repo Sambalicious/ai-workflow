@@ -29,9 +29,12 @@ signal for each agent.
 
 ## Routing
 
-About 80% of dispatches should be `worker`: implementation, tests, refactors, migration pins,
-MSW handlers. `lead` is for decisions, specs and review. `advisor` is for the contract and the
-final independent review, nothing else.
+Authoring is worker tier: implementation, tests and fixtures, refactors, migration pins, MSW
+handlers, and mechanical edits to a spec or a copy deck. `lead` is for decisions, product language,
+specs and the gates. `advisor` is for the contract and the final independent review, nothing else.
+
+The question to ask before every dispatch is whether the output needs a decision. If the decision is
+already recorded and the work is to apply it, it goes to the worker, and the lead reviews the diff.
 
 ## Prompt shape
 
