@@ -25,6 +25,7 @@ epics/
 │       ├── design-preview.md          # step [5b] mid-task
 │       ├── design-review.md
 │       ├── code-review.md
+│       ├── retro.md                    # /retro proposals, written at epic close
 │       ├── copy-deck.md
 │       ├── seo-plan.md                # crawl pass, then metadata pass
 │       ├── growth-plan.md             # only with Growth opt-in

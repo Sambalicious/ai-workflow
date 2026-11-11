@@ -104,6 +104,27 @@ roles, controller, and orchestrator. Shared-checkout use does not run it:
 ./install.sh /path/to/my-project --force
 ```
 
+Refresh an installed project's skills and slash commands from this checkout after a
+skill changes, without recopying roles, `AGENTS.md`, or model settings:
+
+```bash
+node scripts/agents/sync-skills.mjs /path/to/my-project
+node scripts/agents/sync-skills.mjs /path/to/my-project --check   # exit 1 on drift
+```
+
+The sync copies `.agents/skills/`, `.agents/commands/`, `.agents/rules/`,
+`.agents/reference/`, and recreates the `.claude/commands/` and `.kilo/command/`
+links. It leaves `AGENTS.md`, `.agents/models.json`, the role files, `factory/`, and
+any project-only skill in place, and names the project-only ones it skipped. It prints
+the source branch and commit it copied from; run it from a merged commit, or point it
+at a clean checkout with `--source <path>`, so an unmerged feature branch does not leak
+into a project. The target records its source in `.agents/skills-source.json`, and a
+stale or unmerged source shows up on the next run.
+
+Installed projects also get a green test run: `.agents/skills/skills.test.mjs` skips
+the factory-only assertions (README links, package `files`, the installer) and keeps
+the skill, policy, and command-link checks.
+
 The package exposes `software-factory` for the controller. It is not a project
 installer. This checkout does not contain the previously advertised `ai-workflow`
 installer CLI. Node.js 18 or newer is required; no controller dependencies are needed.
@@ -174,6 +195,7 @@ General engineering skills, available to every role:
 | [`wizard`](.agents/skills/wizard/SKILL.md) | Bash wizard for steps only a human can perform. |
 | [`technical-writing`](.agents/skills/technical-writing/SKILL.md) | Standard for docs, RFCs, READMEs, PR descriptions, and commits. |
 | [`writing-for-agents`](.agents/skills/writing-for-agents/SKILL.md) | Rules for writing skills and `AGENTS.md`. |
+| [`retro`](.agents/skills/retro/SKILL.md) | Retrospective on a session: propose environment fixes, most severe first. |
 
 Example requests:
 

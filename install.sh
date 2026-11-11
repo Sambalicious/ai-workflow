@@ -95,6 +95,10 @@ log "Copying agent definitions (.agents/)..."
 copy_dir "$SOURCE_DIR/.agents" "$TARGET_DIR/.agents"
 
 # ── 2. Copy .claude/ (Claude Code agent symlinks + skills) ────────────────────
+# .claude/skills holds single-file links to agent skills that some clients load by
+# path. They are asserted by .agents/skills/skills.test.mjs and
+# factory/portability.test.mjs, so keep them even though they look redundant next to
+# the .agents/skills/<name>/SKILL.md layout.
 log "Copying Claude Code config (.claude/)..."
 mkdir -p "$TARGET_DIR/.claude/agents"
 mkdir -p "$TARGET_DIR/.claude/skills"
@@ -153,5 +157,6 @@ echo "    • Full pipeline — invoke AGENTS.md with your idea"
 echo "    • Repair loop   — read .agents/skills/factory-loop/SKILL.md"
 echo "    • Controller    — node factory/cli.mjs --help"
 echo "    • Model tiers   — edit .agents/models.json, then node scripts/agents/sync.mjs (add \"agents:sync\" and \"agents:check\" scripts and a CI step if you use them)"
+echo "    • Skill refresh — node scripts/agents/sync-skills.mjs $TARGET_DIR (re-run after a factory skill changes)"
 echo "    • Overnight     — /overnight in Kilo or Claude Code, or read .agents/commands/overnight.md"
 echo ""

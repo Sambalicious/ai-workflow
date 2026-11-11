@@ -35,14 +35,21 @@ Close out a shipped epic by appending a completion stamp to its existing report 
 
    Replace `YYYY-MM-DD` with today's date and record the actual actor and deployment evidence.
 
-5. **Move the folder**:
+5. **Offer a retrospective** before the folder moves. Follow
+   `.agents/skills/retro/SKILL.md` against this epic's run and write `retro.md` into
+   the epic folder, so the proposals travel with the epic. The retro is advisory and
+   never blocks closing: if the user declines, write `Declined` in `retro.md` and
+   continue. Do not edit steering files, rules, or checks while closing an epic;
+   findings leave as proposals for the next run.
+
+6. **Move the folder**:
    ```bash
    mv "$PROJECT_ROOT/epics/active/EPIC-XXXX-slug" "$PROJECT_ROOT/epics/completed/EPIC-XXXX-slug"
    ```
    Use the confirmed target `PROJECT_ROOT`. Create `PROJECT_ROOT/epics/completed/`
    first if it does not exist. Keep any separate `RUN_ROOT` state and reports in place.
 
-6. **Confirm** with a short summary:
+7. **Confirm** with a short summary:
    ```
    ✓ EPIC-XXXX-slug marked as completed.
    Moved: epics/active/EPIC-XXXX-slug → epics/completed/EPIC-XXXX-slug
