@@ -4,10 +4,10 @@
 // Usage: node scripts/agents/sync-skills.mjs <target> [--check]
 // --check writes nothing and exits 1 when the target is out of date.
 //
-// Scope is deliberately narrow: .agents/skills/, .agents/commands/, and the
-// per-client command symlinks. AGENTS.md, .agents/models.json, the role files,
-// rules, reference docs, factory/ and the client model settings carry per-project
-// decisions, so they stay with install.sh and the target's own review.
+// Scope is deliberately narrow: .agents/skills/, .agents/commands/, .agents/rules/,
+// .agents/reference/, and the per-client command symlinks. AGENTS.md,
+// .agents/models.json, the role files, factory/ and the client model settings carry
+// per-project decisions, so they stay with install.sh and the target's own review.
 import { chmod, copyFile, lstat, mkdir, readFile, readdir, readlink, rm, symlink, writeFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { basename, dirname, join, relative, sep } from 'node:path';
@@ -18,6 +18,8 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const PAYLOAD = [
   { dir: '.agents/skills', recursive: true },
   { dir: '.agents/commands', recursive: false },
+  { dir: '.agents/rules', recursive: false },
+  { dir: '.agents/reference', recursive: false },
 ];
 
 const LINK_DIRS = ['.claude/commands', '.kilo/command'];

@@ -112,14 +112,14 @@ node scripts/agents/sync-skills.mjs /path/to/my-project
 node scripts/agents/sync-skills.mjs /path/to/my-project --check   # exit 1 on drift
 ```
 
-The sync copies `.agents/skills/` and `.agents/commands/` and recreates the
-`.claude/commands/` and `.kilo/command/` links. It leaves `AGENTS.md`,
-`.agents/models.json`, the role files, `.agents/rules/`, `.agents/reference/`,
-`factory/`, and any project-only skill in place, and names the project-only ones it
-skipped. It prints the source branch and commit it copied from; run it from a merged
-commit, or point it at a clean checkout with `--source <path>`, so an unmerged feature
-branch does not leak into a project. The target records its source in
-`.agents/skills-source.json`, and a stale or unmerged source shows up on the next run.
+The sync copies `.agents/skills/`, `.agents/commands/`, `.agents/rules/`,
+`.agents/reference/`, and recreates the `.claude/commands/` and `.kilo/command/`
+links. It leaves `AGENTS.md`, `.agents/models.json`, the role files, `factory/`, and
+any project-only skill in place, and names the project-only ones it skipped. It prints
+the source branch and commit it copied from; run it from a merged commit, or point it
+at a clean checkout with `--source <path>`, so an unmerged feature branch does not leak
+into a project. The target records its source in `.agents/skills-source.json`, and a
+stale or unmerged source shows up on the next run.
 
 Installed projects also get a green test run: `.agents/skills/skills.test.mjs` skips
 the factory-only assertions (README links, package `files`, the installer) and keeps

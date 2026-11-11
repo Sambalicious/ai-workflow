@@ -15,8 +15,12 @@ async function fixture() {
   const target = await mkdtemp(join(tmpdir(), 'skills-target-'));
   await mkdir(join(source, '.agents/skills/alpha'), { recursive: true });
   await mkdir(join(source, '.agents/commands'), { recursive: true });
+  await mkdir(join(source, '.agents/rules'), { recursive: true });
+  await mkdir(join(source, '.agents/reference'), { recursive: true });
   await writeFile(join(source, '.agents/skills/alpha/SKILL.md'), '---\nname: alpha\n---\nAlpha.\n');
   await writeFile(join(source, '.agents/commands/go.md'), '---\ndescription: Go\n---\nRun.\n');
+  await writeFile(join(source, '.agents/rules/01-rule.md'), 'Rule.\n');
+  await writeFile(join(source, '.agents/reference/pipeline.md'), 'Pipeline.\n');
   return { source, target };
 }
 
@@ -26,6 +30,8 @@ test('a fresh target receives the skill payload and command links', async () => 
     const report = await syncSkills({ source, target });
     assert.deepEqual(report.added.sort(), [
       '.agents/commands/go.md',
+      '.agents/reference/pipeline.md',
+      '.agents/rules/01-rule.md',
       '.agents/skills/alpha/SKILL.md',
       '.claude/commands/go.md',
       '.kilo/command/go.md',
