@@ -186,7 +186,9 @@ Without Release Manager, report `VERIFIED` on success and the verification evide
 not release GO or approval. With explicit release opt-in, successful required release
 assessment yields `PRODUCTION_READY`.
 
-Record recurring failures as improvement proposals only. Skill changes require
+Record recurring failures as improvement proposals only, and produce them with
+`.agents/skills/retro/SKILL.md` rather than editing steering files mid-run. Skill
+changes require
 separate authorization, baseline-versus-candidate evaluation on held-out cases,
 independent review, and approved promotion for future runs. Keep this run's factory
 version fixed. One repaired bug does not establish factory improvement.

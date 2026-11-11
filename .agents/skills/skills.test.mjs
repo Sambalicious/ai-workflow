@@ -218,7 +218,7 @@ test('merge-only updates get a merge check, not repeated gates', async () => {
 
 test('slash commands have one source and client links', async () => {
   const root = new URL('../../', import.meta.url);
-  for (const name of ['overnight']) {
+  for (const name of ['overnight', 'retro']) {
     const source = await readFile(new URL(`.agents/commands/${name}.md`, root), 'utf8');
     assert.match(source, /^---\r?\ndescription: .+\r?\n/);
     assert.match(source, /\$ARGUMENTS/);
