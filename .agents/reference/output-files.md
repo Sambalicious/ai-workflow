@@ -13,6 +13,9 @@ epics/
 │       ├── gherkin/
 │       │   ├── user-registration.feature
 │       │   └── water-logging.feature
+│       ├── specs/                      # optional in stage 1; replaces gherkin/ at stage 3
+│       │   ├── S07-accurate-answers.md
+│       │   └── S08-ordering.md
 │       ├── architecture.md
 │       ├── design-spec.md
 │       ├── backend-spec.md
