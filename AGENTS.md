@@ -43,7 +43,7 @@ first, every run, before any role is dispatched.
    `.agents/skills/dispatch-worker/SKILL.md` from `FACTORY_ROOT`, never from a target's
    copy when the two differ.
 3. When the target is not the factory, compare its `.agents/` with `FACTORY_ROOT`'s.
-   `.agents/factory-version`, written by `install.sh`, records the commit it was
+   `.agents/factory-version` records the commit it was
    installed from; when that differs from `FACTORY_ROOT`'s commit, the factory wins and
    the run brief says so. When the target's tier table has no `worker` row, the copy is
    stale: stop and report it rather than dispatching.

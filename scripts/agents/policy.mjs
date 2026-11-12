@@ -68,14 +68,10 @@ export async function policyProblems(root = ROOT) {
     if (roles[role] && roles[role] !== 'worker') problems.push(`authoring role "${role}" must be worker, not "${roles[role]}"`);
   }
 
-  // The dispatch hook must actually block, and the client must wire it.
+  // The dispatch hook must actually block. export.mjs wires it into a client's settings.
   const guard = await readText(join(root, 'scripts/agents/worker-guard.mjs'));
   if (guard.includes('warns, never blocks')) problems.push('worker-guard still only warns; blocking mode is required');
   if (!guard.includes('BLOCK_STDERR_PREFIX')) problems.push('worker-guard has no blocking reason');
-
-  const settings = await readJson(join(root, '.claude/settings.json'), {});
-  const hooks = JSON.stringify(settings?.hooks?.PreToolUse ?? []);
-  if (!hooks.includes('worker-guard.mjs')) problems.push('.claude/settings.json does not wire the worker-guard hook');
 
   return problems;
 }

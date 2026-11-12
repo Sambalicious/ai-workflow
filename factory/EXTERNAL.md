@@ -172,11 +172,14 @@ gate, budget, and security requirements. Do not present these commands as a runn
 
 ## Existing installed usage
 
-Existing `install.sh` copies and client symlinks remain supported. For an existing
+Projects that still hold a vendored copy keep working. For an existing
 installed copy, `FACTORY_ROOT` and `PROJECT_ROOT` can be the same target root;
 keep `RUN_ROOT` separate and outside version-controlled source. Relative
 `node factory/cli.mjs` commands still work from that installed project root.
-The installer is optional compatibility, not a prerequisite for shared-checkout use.
+The factory ships no installer and commits no client-specific files. A client that wants
+native subagents or slash commands gets them from
+`node "$FACTORY_ROOT/scripts/agents/export.mjs" --client <claude-code|opencode|kilo> --target "$PROJECT_ROOT"`,
+which writes machine-local symlinks and settings the project should git-ignore.
 
 ## TL;DR
 

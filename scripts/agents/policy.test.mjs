@@ -24,12 +24,10 @@ const MODELS = {
 async function fixture(overrides = {}) {
   const root = await mkdtemp(join(tmpdir(), 'policy-'));
   await mkdir(join(root, '.agents'), { recursive: true });
-  await mkdir(join(root, '.claude'), { recursive: true });
   await mkdir(join(root, 'scripts/agents'), { recursive: true });
   await writeFile(join(root, '.agents/models.json'), JSON.stringify(overrides.models ?? MODELS));
   await writeFile(join(root, 'AGENTS.md'), overrides.agents ?? '### Authoring is worker tier\n');
   await writeFile(join(root, 'scripts/agents/worker-guard.mjs'), overrides.guard ?? 'export const BLOCK_STDERR_PREFIX = "Blocked: ";\n');
-  await writeFile(join(root, '.claude/settings.json'), JSON.stringify(overrides.settings ?? { hooks: { PreToolUse: [{ hooks: [{ command: 'node worker-guard.mjs' }] }] } }));
   return root;
 }
 
@@ -60,17 +58,15 @@ test('an authoring role on the lead tier is a problem', async () => {
   }
 });
 
-test('a missing rule section, a warn-only guard and an unwired hook are problems', async () => {
+test('a missing rule section and a warn-only guard are problems', async () => {
   const root = await fixture({
     agents: 'no rule here\n',
     guard: '// warns, never blocks\n',
-    settings: { hooks: {} },
   });
   try {
     const problems = (await policyProblems(root)).join(' ');
     assert.match(problems, /no "Authoring is worker tier" section/);
     assert.match(problems, /still only warns/);
-    assert.match(problems, /does not wire the worker-guard hook/);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
