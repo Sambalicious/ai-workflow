@@ -17,7 +17,7 @@ Epic: EPIC-0005 · Stories: 4 · Owner role: Spec Writer
 |---|---|---|---|
 | R4_01 | The owner pauses the agent for one named chat with a command from a registered owner number. | AC4_01 | S04_001, S04_002, S04_003 |
 | R4_02 | The owner pauses the agent for one chat with a one-tap action. | AC4_01 | S04_004, S04_005 |
-| R4_03 | While a chat is paused the agent sends nothing in that chat. | AC4_01 | S04_006, S04_007 |
+| R4_03 | While a chat is paused the agent sends nothing in that chat except the payment confirmation for a verified payment webhook. | AC4_01 | S04_006, S04_007, S04_023, S04_024, S04_025 |
 | R4_04 | A pause applies to the named chat only. | AC4_01 | S04_008, S04_009 |
 | R4_05 | A message the owner sends to the buyer while the chat is paused is delivered from the vendor's business number. | AC4_02 | S04_010, S04_011, S04_M1 |
 | R4_06 | The owner resumes the agent with a command and the agent continues from the existing chat history. | AC4_03 | S04_012, S04_013, S04_014, S04_015 |
@@ -53,16 +53,19 @@ Fixture note: #1043 in this file is the order the owner created during a pause, 
 | S04_020 | boundary | Reminder follows the configured interval | Chat with +2348030000002 was paused and the vendor's reminder interval is set to 6 hours | The clock reaches 6 hours with no owner reply | A reminder reaches the owner; no reminder was sent at 5 hours 59 minutes |
 | S04_021 | sad | Chat stays paused without a resume | Chat with +2348030000002 is paused and the buyer has sent 20 messages over 24 hours | The buyer sends a 21st message | The agent sends nothing; the chat is still paused |
 | S04_022 | concurrent | Reminder crosses the owner's own reply | Chat with +2348030000002 is paused at 12 hours with the reminder being composed | The owner sends a reply to the buyer at that moment | The chat stays paused until a resume command; the reminder does not resume the agent |
+| S04_023 | happy | Paused chat still gets the confirmation, window open | Chat with +2348030000003 is paused with owner-created order #1043 at ₦20,000 and the buyer's last message was at 09:30 today | The verified payment webhook for #1043 for ₦20,000 arrives at 10:00:00 | The buyer has the payment confirmation in chat by 10:00:59, stating ₦20,000 and order #1043; the chat stays paused |
+| S04_024 | boundary | Paused chat still gets the confirmation, window closed | Chat with +2348030000003 is paused with owner-created order #1043 at ₦20,000 and the buyer's last message was at 09:00 yesterday | The verified payment webhook for #1043 for ₦20,000 arrives at 09:01 today | The buyer receives an approved utility template naming ₦20,000 and order #1043; no free-form message is sent; the chat stays paused |
+| S04_025 | permission | Paused chat gets no price answer | Chat with +2348030000002 is paused and Silk scarf is listed at ₦4,500 | The buyer sends "how much is the Silk scarf?" | The agent sends nothing in that chat; the chat is still paused |
 
 ## Coverage
 
 | Path | Cases | Not applicable because |
 |---|---|---|
-| happy | S04_001, S04_004, S04_006, S04_010, S04_012, S04_016 | |
+| happy | S04_001, S04_004, S04_006, S04_010, S04_012, S04_016, S04_023 | |
 | sad | S04_014, S04_017, S04_021 | |
 | validation | S04_009 | |
-| boundary | S04_008, S04_018, S04_019, S04_020 | |
-| permission | S04_002, S04_011, S04_013 | |
+| boundary | S04_008, S04_018, S04_019, S04_020, S04_024 | |
+| permission | S04_002, S04_011, S04_013, S04_025 | |
 | duplicate | S04_003, S04_015 | |
 | empty | | a chat holds at least one buyer message before any pause can be requested, so there is no empty-chat pause |
 | concurrent | S04_005, S04_007, S04_022 | |
@@ -77,7 +80,7 @@ Fixture note: #1043 in this file is the order the owner created during a pause, 
 
 - AC4_01: Q1 (blocking) — whether takeover happens in the WhatsApp Business app through coexistence or in the web inbox is undecided, so the case set is written against the observable behaviour and not against a surface.
 - AC4_01: the exact pause and resume command words are unstated, and whether natural phrasing is accepted is unstated.
-- AC4_01: the PRD does not resolve the conflict between "the agent sends nothing in that chat" while paused and AC5_07, which requires a payment confirmation within 60 seconds of the webhook, so a paused chat receiving a payment has no stated behaviour.
+- AC4_01 with AC5_07: resolved by the product owner's decision that a verified payment webhook's confirmation is sent even while paused (R4_03, R5_15, R5_16); S04_023, S04_024 and S04_025 prove the exception is narrow.
 - AC4_02: whether owner replies are possible at all when the 24-hour customer-service window is closed is unstated.
 - AC4_03: whether the owner can resume on a schedule, and whether an owner reply alone ever resumes the agent, is unstated.
 - AC4_04: the allowed range for the configurable reminder interval is unstated, and whether the reminder repeats is unstated.
@@ -85,5 +88,5 @@ Fixture note: #1043 in this file is the order the owner created during a pause, 
 
 ## TL;DR
 
-- Criteria: 4 (4 with rules) · Rules: 9 · Cases: 22, all automated · Manual checks: 1
-- Gaps: Q1 takeover channel (AC4_01), pause and resume command wording (AC4_01), pause versus payment confirmation conflict (AC4_01 with AC5_07), owner replies outside the 24-hour window (AC4_02), resume triggers (AC4_03), reminder interval range and repetition (AC4_04), reply shape for a buyer pause command (AC4_01)
+- Criteria: 4 (4 with rules) · Rules: 9 · Cases: 25, all automated · Manual checks: 1
+- Gaps: Q1 takeover channel (AC4_01), pause and resume command wording (AC4_01), pause versus payment confirmation conflict resolved by decision (AC4_01 with AC5_07), owner replies outside the 24-hour window (AC4_02), resume triggers (AC4_03), reminder interval range and repetition (AC4_04), reply shape for a buyer pause command (AC4_01)

@@ -32,8 +32,8 @@ Epic: EPIC-0005 · Stories: 5, 9 · Owner role: Spec Writer
 | R5_12 | A needs-review order notifies the owner and tells the buyer that the owner will follow up. | AC5_05 | S05_021, S05_022 |
 | R5_13 | The owner marks an order paid manually, with the owner number, timestamp and optional reason recorded and the order labelled manual. | AC5_06 | S05_023, S05_024, S05_025 |
 | R5_14 | The owner marks an order unpaid manually, with the override recorded on the order. | AC5_06 | S05_026, S05_027 |
-| R5_15 | With the buyer's 24-hour customer-service window open the buyer receives the payment confirmation in chat within 60 seconds of the webhook. | AC5_07 | S05_028 |
-| R5_16 | With the buyer's 24-hour window closed the payment confirmation goes out as an approved utility template. | AC5_07 | S05_029, S05_030 |
+| R5_15 | With the buyer's 24-hour customer-service window open the buyer receives the payment confirmation in chat within 60 seconds of the webhook, even while the chat is paused. | AC5_07 | S05_028, S05_031 |
+| R5_16 | With the buyer's 24-hour window closed the payment confirmation goes out as an approved utility template, even while the chat is paused. | AC5_07 | S05_029, S05_030, S05_032 |
 
 ## Cases
 
@@ -71,6 +71,8 @@ Fixture note: order numbers are local to this file. Here #5042 is 1 × Ankara go
 | S05_028 | boundary | Confirmation inside the 60-second deadline | Order #5042 is paid by verified webhook at 10:00:00 and the buyer's window is open | The confirmation is published at 10:00:59 | The buyer has the payment confirmation in chat within the deadline; it states ₦21,500 and order #5042 |
 | S05_029 | boundary | Webhook one minute after the window closed | The buyer's last message was at 09:00 yesterday and the verified webhook arrives at 09:01 today | The payment confirmation is sent | The confirmation is sent as an approved utility template; no free-form message is sent |
 | S05_030 | happy | Closed-window confirmation as a template | The verified webhook confirms order #5042 for ₦21,500 and the buyer's 24-hour window is closed | The payment confirmation is sent | The buyer receives an approved utility template naming ₦21,500 and order #5042 |
+| S05_031 | happy | Confirmation reaches a paused chat, window open | Invoice #5042 for ₦21,500 is unpaid, the owner has paused the chat with +2348030000002, and the buyer's last message was at 09:30 today | The verified webhook for #5042 arrives at 10:00:00 | The buyer has the payment confirmation in chat by 10:00:59, stating ₦21,500 and order #5042; the chat stays paused |
+| S05_032 | boundary | Confirmation reaches a paused chat, window closed | Invoice #5042 for ₦21,500 is unpaid, the owner has paused the chat with +2348030000002, and the buyer's last message was at 09:00 yesterday | The verified webhook for #5042 arrives at 09:01 today | The buyer receives an approved utility template naming ₦21,500 and order #5042; no free-form message is sent; the chat stays paused |
 
 ## Examples
 
@@ -86,10 +88,10 @@ Fixture note: order numbers are local to this file. Here #5042 is 1 × Ankara go
 
 | Path | Cases | Not applicable because |
 |---|---|---|
-| happy | S05_001, S05_006, S05_013, S05_019, S05_021, S05_023, S05_026, S05_030 | |
+| happy | S05_001, S05_006, S05_013, S05_019, S05_021, S05_023, S05_026, S05_030, S05_031 | |
 | sad | S05_005, S05_007, S05_009, S05_010, S05_022 | |
 | validation | S05_008, S05_011 | |
-| boundary | S05_003, S05_004, S05_020, S05_028, S05_029 | |
+| boundary | S05_003, S05_004, S05_020, S05_028, S05_029, S05_032 | |
 | permission | S05_024 | |
 | duplicate | S05_012, S05_015, S05_017, S05_025, S05_027 | |
 | empty | | an invoice always carries a positive total before a payment destination exists, so there is no empty-payment state |
@@ -118,5 +120,5 @@ Fixture note: order numbers are local to this file. Here #5042 is 1 × Ankara go
 
 ## TL;DR
 
-- Criteria: 7 (7 with rules) · Rules: 16 · Cases: 30, all automated · Manual checks: 1
+- Criteria: 7 (7 with rules) · Rules: 16 · Cases: 32, all automated · Manual checks: 1
 - Gaps: Q2 provider features (AC5_01), link fallback trigger (AC5_01), post-expiry account payability (AC5_01), mismatch tolerance (AC5_05), expiry instant (AC5_05), un-paying a webhook-paid order (AC5_06), missing template fallback (AC5_07), repeat claim notifications and S05_012's count (AC5_03), quantity versus available-quantity model (AC5_04 with AC9_02), review-state labels (AC5_05), buyer-facing shape of S05_024 (AC5_06), missing copy deck (AC5_03, AC5_05, AC5_07)
