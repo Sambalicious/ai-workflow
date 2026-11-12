@@ -81,6 +81,25 @@ with unparseable rows as errors is the fix, and it is why the old drafts now fai
 
 Case titles were added (B7) so QA can keep its convention of naming tests after the case.
 
+## Stage 1 result: conditional pass
+
+Two fresh sessions, same model, same PRD scope (groups 3, 5, 7, 9), each seeing only its
+own role file. Results and the full matrix: [`stage1/COMPARISON.md`](stage1/COMPARISON.md).
+
+- **Arm A (Gherkin) produced zero criterion tags.** The role asks for path tags only, so an
+  AC × path matrix cannot be built for it. The `@AC…` spine in shoopa comes from that
+  project's own `gherkin-spec.md` and `validate-specs.mjs`, not from the factory role.
+- **No sad-path collapse:** 63 non-happy scenarios in A against 58 non-happy cases in B,
+  with B stronger on boundary and duplicate in the payment group.
+- **B's one real gap is concurrency:** 8 concurrent scenarios in A; B declared races manual
+  or absent.
+- **B's numbers are machine-checked; A's are self-reported.**
+
+Three role defects found and fixed: zero-padded AC numbering with a rule for unnumbered PRD
+sections, an explicit concurrency question that forbids a blank Coverage row on a shared
+resource, and a per-criterion minimum (not just per-rule) for non-happy coverage — now
+enforced by the checker.
+
 ## What changes
 
 About 70 mentions of `gherkin` across 20 files. Mechanical except the controller.
@@ -141,6 +160,6 @@ marked paid) and compare which derived tests catch them.
 
 ## Next step
 
-Stage 1: `.agents/spec-writer.md`, the `.claude/agents` symlink, `specs/` in
-`output-files.md`, and the checker wired in as `.agents/skills/spec-check.mjs` with a
-negative-fixture test.
+Stage 2 stays blocked until one re-run with the corrected role shows concurrency cases
+where the PRD has a shared resource. After that: switch QA and the other readers, and fix
+the `spec` artifact alias that routes to the PM, in the same PR with a controller test.

@@ -103,12 +103,15 @@ test('coverage gaps and mismatches fail', () => {
   assert.ok(checkSpec(unlisted).problems.some(p => /not listed under its happy Coverage row/.test(p)));
 });
 
-test('a happy-only spec cannot pass closure', () => {
+test('a happy-only rule cannot carry a criterion on its own', () => {
   const noFailureCase = mutate('| AC07_01 | S07_001, S07_002 |', '| AC07_01 | S07_001 |');
   assert.ok(checkSpec(noFailureCase).problems.some(p => /every case is happy/.test(p)));
 
-  const reasoned = mutate('| AC07_01 | S07_001 |', '| AC07_01 | S07_001, happy-only: the record always exists |');
-  assert.deepEqual(checkSpec(reasoned).problems, []);
+  // A happy-only rule is allowed only when its criterion reaches a failure case
+  // through another rule; here it is the criterion's only rule, so it fails too.
+  const reasoned = mutate('| AC07_01 | S07_001, S07_002 |',
+    '| AC07_01 | S07_001, happy-only: the record always exists |');
+  assert.ok(checkSpec(reasoned).problems.some(p => /criteria AC07_01: every case is happy/.test(p)));
 });
 
 test('criteria closure is enforced', () => {

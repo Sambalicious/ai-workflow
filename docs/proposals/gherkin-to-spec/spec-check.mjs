@@ -126,9 +126,15 @@ export function checkSpec(source, file = 'spec') {
   }
   for (const [ac, targets] of criteria) {
     if (targets === 'Gap') continue;
-    for (const rule of targets.split(',').map(s => s.trim()).filter(Boolean)) {
+    const ruleIds = targets.split(',').map(s => s.trim()).filter(Boolean);
+    for (const rule of ruleIds) {
       if (!rules.has(rule)) add(`criteria ${ac}: cites missing rule ${rule}`);
     }
+    const covered = ruleIds.some(ruleId => {
+      const rule = rules.get(ruleId);
+      return rule && rule.cited.some(caseId => cases.has(caseId) && cases.get(caseId) !== 'happy');
+    });
+    if (!covered) add(`criteria ${ac}: every case is happy; add a failure case or map it to a Gap`);
   }
   const cited = new Set();
   for (const [id, rule] of rules) {

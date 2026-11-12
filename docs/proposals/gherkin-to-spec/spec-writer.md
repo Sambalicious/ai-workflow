@@ -21,9 +21,12 @@ cases, and QA reproduces case IDs and titles in its test names.
 ## Instructions
 
 1. **Criteria.** List every PRD acceptance criterion this spec covers in `## Criteria`,
-   quoting its text. Assign `AC<story>_<nn>` in PRD order, one ID per checkbox; a nested
-   bullet is part of its checkbox. If the PRD already numbers criteria, use its numbers.
-   Every criterion maps to one or more rules, or to `Gap` with the reason under Gaps.
+   quoting its text. Assign `AC<nn>_<nn>` in PRD order, zero-padded, one ID per checkbox;
+   a nested bullet is part of its checkbox. If the PRD already numbers criteria, use its
+   numbers zero-padded. If the PRD has an unnumbered criteria section, number it by
+   position after the last numbered group (for example `AC11`) and list that assignment
+   under Gaps so the PM can confirm it. Every criterion maps to one or more rules, or to
+   `Gap` with the reason under Gaps.
 2. **Rules.** A rule states one obligation in one sentence. A rule that lists items
    ("X, Y and Z", "approve, reject or take over") needs a case for every item, or is split
    into one rule per item. A rule may cite several criteria.
@@ -31,10 +34,16 @@ cases, and QA reproduces case IDs and titles in its test names.
    on that path. Also ask, for every rule:
    - What if a dependency the behaviour needs fails or times out?
    - What if the action is repeated, done out of order, or done on stale data?
-   Write a case for every answer that changes the observable result.
-4. **Minimum per rule.** Every rule cites at least one case whose path is not `happy`. If
-   a rule genuinely has no failure mode, end its Cases cell with
-   `happy-only: <reason>`.
+   - What if two actors act on the same resource at the same time — two buyers on one
+     unit, two webhooks for one order, an owner answer racing a buyer message?
+   Write a case for every answer that changes the observable result. When the PRD
+   describes a shared resource, the `concurrent` Coverage row cannot be blank or `n/a`
+   unless it names the case or manual check that owns the race.
+4. **Minimum per rule and per criterion.** Every rule cites at least one case whose path
+   is not `happy`. If a rule genuinely has no failure mode, end its Cases cell with
+   `happy-only: <reason>`. Independently, every criterion must reach at least one
+   non-happy case through its rules; a criterion whose every case is happy is either
+   under-specified or belongs under Gaps.
 5. **One action, bounded outcome.** Setup is state only: no actions, no "and then".
    Action is one actor doing one thing, or one passage of time ("clock advances 30
    minutes"). It contains no `;` and no "then". Expected holds at most three assertions,
