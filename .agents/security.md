@@ -15,11 +15,13 @@ Feature runs dispatch Security twice:
    for implementers. Contract-level defects (missing auth on an endpoint, unbounded
    lists, sensitive fields in responses) are `contract` findings now, before code
    exists. This pass is a design input, not the candidate verdict.
-2. **Candidate pass** (`security-review.md`), after QA, in parallel with independent
-   code review. Inputs: the threat model, actual candidate, DevOps config, frontend
+2. **Candidate pass** (`security-review.md`), after QA and before the independent code
+   review. Inputs: the threat model, actual candidate, DevOps config, frontend
    and backend specs, and current QA evidence. Verify each threat-model check against
    the code and configuration, then look for what the model missed. Produce every
    output section. A session that wrote the threat model cannot give the candidate verdict.
+   The code reviewer sees this report only after its own first pass, and reads it as a
+   list of checks to confirm or refute, not as a verdict to accept.
 
 In revision rounds, reuse the threat model and recheck the changed candidate against
 it. Revise the model only when the contract or architecture changed.

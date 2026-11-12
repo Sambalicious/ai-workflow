@@ -7,9 +7,9 @@ that spend least for the same output.
 ## Commands
 
 ```sh
-pnpm agents:preflight gherkin     # one max_tokens request; non-zero means do not dispatch
-pnpm agents:ledger add --run <dir> --round 1 --role gherkin --tier lead \
-  --model anthropic/claude-sonnet-5-5 --artifact gherkin/ --state running
+pnpm agents:preflight qa-gate    # one max_tokens request; non-zero means do not dispatch
+pnpm agents:ledger add --run <dir> --round 1 --role qa-gate --tier lead \
+  --model anthropic/claude-sonnet-5-5 --artifact qa/ --state running
 pnpm agents:ledger check --run <dir>    # caps: 8 Claude dispatches, 2 running at once
 pnpm agents:ledger show --run <dir>
 ```
@@ -31,7 +31,9 @@ signal for each agent.
 
 Authoring is worker tier: implementation, tests and fixtures, refactors, migration pins, MSW
 handlers, and mechanical edits to a spec or a copy deck. `lead` is for decisions, product language,
-specs and the gates. `advisor` is for the contract and the final independent review, nothing else.
+specs and the QA and Designer gates. `advisor` is for the contract, the Security candidate review,
+and the final independent review, nothing else. Security runs before the code review, not beside
+it, because both are advisor tier and one Opus session runs at a time.
 
 The question to ask before every dispatch is whether the output needs a decision. If the decision is
 already recorded and the work is to apply it, it goes to the worker, and the lead reviews the diff.

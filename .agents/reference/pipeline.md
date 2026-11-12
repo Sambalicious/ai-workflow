@@ -49,11 +49,15 @@ Backend    Frontend     DevOps     Sec.   QA test       takes copy deck
           candidate; separate session)  the preview)
                 │                             │
                 └──────────────┬──────────────┘
-                ┌──────────────┴──────────────┐
-                ▼                             ▼
-         [7] Security candidate review  [8] Fresh Independent Code Reviewer
-                │                             │
-                └──────────────┬──────────────┘
+                               ▼
+                    [7] Security candidate review
+                    (advisor tier, one Opus at a time)
+                               │
+                               ▼
+                    [8] Fresh Independent Code Reviewer
+                    (own first pass, then the security
+                     findings as checks to confirm or refute)
+                               │
                      ┌─────────┴──────────┐
                      ▼                    ▼
                   VERIFIED         Blockers → Revision loop

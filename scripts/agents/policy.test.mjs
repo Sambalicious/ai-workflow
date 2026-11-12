@@ -12,7 +12,7 @@ const MODELS = {
   },
   roles: {
     'qa-gate': 'lead',
-    'security-review': 'lead',
+    'security-review': 'advisor',
     'code-review': 'advisor',
     'api-contract': 'advisor',
     'backend-engineer': 'worker',
