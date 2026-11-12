@@ -3,6 +3,7 @@
 // tool-neutral sources in .agents/ (models.json and agents/*.md).
 // Usage: node scripts/agents/sync.mjs [--check]
 // --check writes nothing and exits 1 when a generated file is out of date.
+import { realpathSync } from 'node:fs';
 import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -179,7 +180,7 @@ export async function sync({ root = ROOT, check = false } = {}) {
   return stale;
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
   const check = process.argv.includes('--check');
   const stale = await sync({ check });
   if (check && stale.length) {

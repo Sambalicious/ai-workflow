@@ -47,6 +47,11 @@ first, every run, before any role is dispatched.
    installed from; when that differs from `FACTORY_ROOT`'s commit, the factory wins and
    the run brief says so. When the target's tier table has no `worker` row, the copy is
    stale: stop and report it rather than dispatching.
+   `node scripts/agents/factory-lock.mjs --against "$FACTORY_ROOT"` lists every
+   `factory/` and `scripts/agents/` file that differs, and plain
+   `node scripts/agents/factory-lock.mjs` fails when the target edited one locally
+   since `.agents/factory-lock.json` was written. Add it to the target's
+   `agents:check`, so CI catches the edit.
 4. Quote the `worker` row from `models.json` in the run brief, so the tier in use is
    visible in the artifact rather than only in a prompt.
 5. After any delegate reports failure, timeout or a rate limit, check the artifact it

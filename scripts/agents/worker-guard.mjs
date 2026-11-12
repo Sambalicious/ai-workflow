@@ -3,6 +3,7 @@
 // Blocks when a subagent starts implementation work on a lead model instead of the
 // worker tier, and warns only when EVE_ALLOW_LEAD=1 is set for a deliberate override.
 // Reads the hook JSON from stdin; exit 2 blocks the tool call and shows stderr.
+import { realpathSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
@@ -146,7 +147,7 @@ function gitPaths(base) {
   return [...new Set([...run(['diff', '--name-only', base]), ...run(['ls-files', '--others', '--exclude-standard'])])];
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
   // Check a real diff against the worker boundary, before a worker result is accepted.
   const baseArgument = process.argv.indexOf('--base');
   if (baseArgument !== -1) {
