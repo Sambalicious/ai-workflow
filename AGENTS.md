@@ -182,8 +182,9 @@ tier and its output is worthless at the gate. Resolve the model, pass it, and re
    is never a retry loop per agent.
 4. Then add the dispatch to the run's ledger (round, role, tier, model, artifact, state) before the
    agent starts.
-5. Respect the caps: at most two Claude agents running at once, eight Claude dispatches per run,
-   four on the cheap tier. A revision is an edit, not a regenerated document.
+5. Respect the caps: at most two Claude agents running at once, one of them advisor tier,
+   eight Claude dispatches per run, four on the cheap tier. A revision is an edit, not a
+   regenerated document.
 
 The setup, the health check for the local provider and the ledger template are in
 [docs/ops/agent-models.md](docs/ops/agent-models.md).
@@ -314,9 +315,11 @@ step re-reads its whole history. Keep it lean:
   repository; the wave-close checkpoint is the record that it happened.
 - At most one Opus session runs at once per epic: the Security candidate review
   (step 7), then the independent code review (step 8), serialized rather than
-  parallel. When the session limit is reached, dispatch no more Opus roles, record the
-  pending gate in `CURRENT.md`, and resume after the reset. Gates are deferred, never
-  waived. Sonnet and worker-tier work may continue.
+  parallel. `pnpm agents:ledger check` enforces it — a second running advisor-tier
+  dispatch is refused, consults included — so a parallel [7] and [8] fails in a script
+  instead of relying on the reader. When the session limit is reached, dispatch no more
+  Opus roles, record the pending gate in `CURRENT.md`, and resume after the reset. Gates
+  are deferred, never waived. Sonnet and worker-tier work may continue.
 
 ## The team
 
