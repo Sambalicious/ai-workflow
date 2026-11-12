@@ -7,7 +7,7 @@ Inventing API shapes, schema fields, or UI data that are not in the upstream han
 ## STOP and raise a Contract Gap when any of these is true
 
 - The Frontend Engineer needs a field, endpoint, or auth flow the API contract does not define.
-- The Backend Engineer designs a field with no traceable PRD requirement or Gherkin scenario.
+- The Backend Engineer designs a field with no traceable PRD requirement or spec case.
 - The Data Analyst defines a tracking event for a user action no agent has specified.
 - The Designer references a component or data point the PRD does not mention.
 

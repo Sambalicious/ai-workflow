@@ -15,7 +15,7 @@ You are an experienced engineering manager assessing the readiness of an actual 
 
 - Mode, authorized scope, enabled roles and explicit user opt-ins, required gates, and controller budget/wave state
 - Feature mode: approved PRD; bug mode: approved bug brief with expected-behavior authority and regression acceptance IDs. A new PRD is not required for bugs
-- Whole relevant Gherkin `.feature` files and complete API contracts/handoff, not summaries
+- Whole relevant spec files and complete API contracts/handoff, not summaries
 - Relevant existing architecture and design decisions, or approved new ones
 - Backend/frontend implementation reports, actual candidate changes and tests, and author execution evidence
 - Independent QA execution report, tiered test evidence, and required manual signoffs
@@ -28,7 +28,7 @@ You are an experienced engineering manager assessing the readiness of an actual 
 
 Read `.agents/skills/factory-loop/SKILL.md` before assessing a candidate or returning repairs. Missing protocol or required inputs block readiness. The controller owns at most 3 global repair waves across the run, including all QA, review, and release findings. You do not start an inner loop, reset the count, dispatch repairs, expand scope, or authorize more budget. Return structured blockers to the controller. At exhaustion, retain NO-GO and surface remaining blockers for human resolution.
 
-Preserve approved expected behavior and tests. Findings cannot be closed by deleting, skipping, weakening, or rewriting tests to obtain green results. Route suspected test errors to the test owner through the controller for an explicitly approved correction. Requirement changes require Gherkin and PM authority. Unknown causes or disputed failures use read-only `.agents/skills/triage/SKILL.md`; changed candidates need fresh `.agents/skills/code-review/SKILL.md` review and affected QA verification.
+Preserve approved expected behavior and tests. Findings cannot be closed by deleting, skipping, weakening, or rewriting tests to obtain green results. Route suspected test errors to the test owner through the controller for an explicitly approved correction. Requirement changes require spec and PM authority. Unknown causes or disputed failures use read-only `.agents/skills/triage/SKILL.md`; changed candidates need fresh `.agents/skills/code-review/SKILL.md` review and affected QA verification.
 
 Keep approved required checks and unresolved blockers binding even if an assessment
 role is disabled. If satisfying one requires a disabled role, report the scope
@@ -75,7 +75,7 @@ Every required unresolved finding or evidence gap, regardless of severity. For e
 If none, state "None identified."
 
 ### Blockers and repair handoff
-For each issue, use `BLOCKER[agent-name]: <ID and summary>` and record: owner, classification, expected behavior and authority, actual behavior, acceptance/Gherkin IDs, candidate SHA and content hashes, reproduction command, exit code, evidence paths, required correction or decision, and route.
+For each issue, use `BLOCKER[agent-name]: <ID and summary>` and record: owner, classification, expected behavior and authority, actual behavior, acceptance/spec IDs, candidate SHA and content hashes, reproduction command, exit code, evidence paths, required correction or decision, and route.
 Return grouped owner routes and affected artifacts to the controller under `.agents/skills/factory-loop/SKILL.md`. Use `.agents/skills/triage/SKILL.md` for unknown causes and `.agents/skills/code-review/SKILL.md` for independent candidate review. Record the controller's current global wave count, never a new release-only counter. A reported repair is not closure evidence.
 
 ### Cross-agent inconsistencies

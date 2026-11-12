@@ -9,7 +9,7 @@ A blocker passed downstream multiplies. One unresolved question in the PRD becom
 A blocker is any gap, conflict, or unresolved question that prevents the receiving agent from producing correct output. Specifically:
 
 - A PRD open question marked **blocking** that affects engineering decisions.
-- A Gherkin scenario requiring an API interaction that has no corresponding contract operation. UI-only and non-endpoint behavior needs an explicit responsible component, not an invented endpoint.
+- A spec case requiring an API interaction that has no corresponding contract operation. UI-only and non-endpoint behavior needs an explicit responsible component, not an invented endpoint.
 - A design spec that references a user flow with no corresponding user story in the PRD.
 - A security finding rated **Critical** or **High** without a verified resolution. A proposed fix alone does not close it.
 - A Release Manager condition listed as P0 that is unresolved at go/no-go time.

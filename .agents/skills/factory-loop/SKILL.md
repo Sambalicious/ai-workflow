@@ -34,7 +34,7 @@ Use `.agents/skills/triage/SKILL.md`. A ready bug carries authoritative expected
 behavior, reproduction, causal evidence, regression criteria, and bounded scope.
 Unknown cause requires investigation, not a guessed repair.
 
-A ready feature enters adversarial discovery, then the Product Manager, Gherkin,
+A ready feature enters adversarial discovery, then the Product Manager, spec,
 Architect, and Designer flow. Ask only decisions whose prerequisites are settled.
 Confirm material product decisions with the human. Discovery readiness is not
 implementation approval. Reuse existing approved architecture for bug corrections.
@@ -44,7 +44,7 @@ unclear, and unsafe requests stop with a reason and owner.
 
 ## 2. Declare dependencies
 
-Implementation does not start until the `[5e]` QA spec files for its Gherkin exist on
+Implementation does not start until the `[5e]` QA spec files for its spec exist on
 disk. A missing `[5e]` is `BLOCKER[qa]` at handoff, not a discovery at the gate.
 
 Record actual artifact consumption, not a second handwritten rerun list. Backend
@@ -58,7 +58,7 @@ Keep each dispatch small and cache-friendly. Pass the role file, its consumed
 inputs, and only the needed `AGENTS.md` sections, in the stable-to-variable order
 the handoff rules define. Apply the recorded fast-lane decision for Copywriter
 and SEO, and the role model policy, without changing required gates. Pass
-full Gherkin files and API handoffs unchanged. Other handoffs carry a TL;DR plus
+full spec files and API handoffs unchanged. Other handoffs carry a TL;DR plus
 relevant sections and retrievable source references.
 
 Concurrent workers need isolated writable files, branches, databases, and ports.
@@ -101,7 +101,7 @@ result rather than assigning a problem to whichever agent discovered it.
 | Cause | Responsible role |
 | --- | --- |
 | Undefined product intent | Product Manager and human product owner |
-| Missing behavioral scenario | Gherkin writer |
+| Missing behavioral scenario | spec writer |
 | Incorrect architecture or UX specification | Architect or Designer |
 | Server, API implementation, or database defect | Backend Engineer |
 | UI or client defect | Frontend Engineer |
@@ -123,7 +123,7 @@ Stale in-flight output cannot satisfy current gates.
 
 When a design or architecture repair changes behaviour that existing scenarios
 assert, such as a control's name or role, a state, or quoted copy, file a
-`gherkin` finding against the scenarios in the same wave. Gherkin does not
+`spec` finding against the cases in the same wave. The spec does not
 depend on design in the graph. Without the finding, those scenarios go stale
 and get edited outside the controller.
 

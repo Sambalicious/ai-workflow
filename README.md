@@ -12,7 +12,7 @@ A portable set of agent skills that simulate a full startup team. Each agent is 
 | Agent | File | Role | Produces |
 |---|---|---|---|
 | product-manager | `.agents/skills/product-manager.md` | Product Manager | PRD, user stories, acceptance criteria, future backlog |
-| gherkin | `.agents/gherkin.md` | Gherkin Spec Writer | .feature files covering all path types |
+| spec-writer | `.agents/spec-writer.md` | Spec Writer | `specs/S<nn>-<slug>.md` with criterion, rule and case tables |
 | architect | `.agents/skills/architect.md` | Tech Lead / Architect | System design, architecture decisions, data flow |
 | designer | `.agents/skills/designer.md` | Product Designer | Blueprints, feedback matrix, copy slots; rendered design review |
 | backend-engineer | `.agents/backend-engineer.md` | Backend Engineer | API contract, data model, implementation and tests |
@@ -308,7 +308,7 @@ All agents live in `.agents/` and are symlinked into `.claude/agents/` so Claude
 
 ```
 @product-manager Here's my idea: [your idea]
-@gherkin [paste the PRD output]
+@spec-writer [paste the PRD output]
 @architect [paste the PRD output]
 ```
 
@@ -370,9 +370,9 @@ Your idea
    ↓
    product-manager  →  PRD
    ↓
-   ┌──────────┬────────────┬──────────┐
-   gherkin    architect    designer   (run in parallel)
-   └──────────┴────────────┴──────────┘
+   ┌────────────┬────────────┬──────────┐
+   spec-writer  architect    designer   (run in parallel)
+   └────────────┴────────────┴──────────┘
    ↓                         seo crawl ∥ copywriter* → seo metadata*
    backend-engineer (contract task)  →  API contract
    ↓

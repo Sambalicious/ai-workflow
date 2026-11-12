@@ -161,8 +161,8 @@ marked paid) and compare which derived tests catch them.
 
 ## Next step
 
-Stage 2 is authorised in the factory checkout: switch QA and the other readers to specs,
-rename the model role, and fix the `spec` artifact alias that routes findings to the PM, in
-one PR with a controller test. Shoops and eve keep Gherkin until that PR merges and a real
-epic has run on specs. `.agents/gherkin.md` stays until stage 3 so the switch can be
-reverted.
+Stage 2 is implemented in the factory checkout: QA and the other readers consume specs,
+the model role is `spec-writer`, and a `spec` finding routes to the Spec Writer instead of
+the Product Manager, with a controller test. Shoops and eve keep Gherkin until a real epic
+has run on specs. `.agents/gherkin.md`, the `gherkin` artifact kind and the `gherkin` role
+entry stay until stage 3 so the switch can be reverted.

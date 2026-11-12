@@ -140,7 +140,7 @@ Four rules bind every run, every client, and the orchestrator itself.
    the earlier evidence. A docs-only change reruns only the checks that read those
    docs, never the full suite.
 3. **Authored specs before implementation.** Implementation starts only when the `[5e]`
-   QA spec files for its Gherkin exist on disk. A missing `[5e]` is `BLOCKER[qa]` at
+   QA test files for its spec cases exist on disk. A missing `[5e]` is `BLOCKER[qa]` at
    handoff, not a discovery at the gate.
 4. **Evidence in files, verdict in chat.** Test output, logs and full reports are written
    under the run root (`RUN_ROOT/reports`, `RUN_ROOT/logs`) and passed by path. The chat
@@ -182,8 +182,8 @@ The setup, the health check for the local provider and the ledger template are i
 | worker | opencode-go/deepseek-v4.1-flash | opencode-go/deepseek-v4.1-flash |
 <!-- tier-table:end -->
 
-- **Lead** (main session, decisions only): orchestration, Product Manager, Gherkin
-  authorship of new scenarios, Architect, Designer spec and review, Copywriter, SEO,
+- **Lead** (main session, decisions only): orchestration, Product Manager, spec
+  authorship, Architect, Designer spec and review, Copywriter, SEO,
   DevOps, the QA gate, the Security candidate review, and repair-wave decisions.
   The lead does not author implementation or tests; it scopes them and reviews them.
 
@@ -209,7 +209,7 @@ Keep advisor consults to a handful per task; each one loads its context fresh. A
 client's built-in advisor feature, where it has one, may replace the `advisor`
 agent for consults, never for gates.
 
-The lead checks each builder handoff against the contract, Gherkin, and fast-check
+The lead checks each builder handoff against the contract, spec, and fast-check
 results before passing it downstream, and sends gaps back to the same builder
 session. A builder that hits a design or contract question escalates to the lead
 rather than guessing.
@@ -218,7 +218,7 @@ rather than guessing.
 
 Code, tests, fixtures, refactors and mechanical edits to a document or a copy deck are authored on
 the worker tier and reviewed by the lead. Decisions, product language, contracts and gates are not:
-Product Manager, Gherkin authorship, Architect, Designer spec and review, Copywriter, SEO, the API
+Product Manager, spec authorship, Architect, Designer spec and review, Copywriter, SEO, the API
 contract, the QA gate, the Security review and the independent code review keep their lead or advisor
 tier.
 
@@ -302,12 +302,12 @@ step re-reads its whole history. Keep it lean:
 | Agent | File | Role |
 |---|---|---|
 | Product Manager | `.agents/skills/product-manager.md` | Turns raw idea into a PRD |
-| Gherkin Spec Writer | `.agents/gherkin.md` | Turns PRD into exhaustive Gherkin scenarios |
+| Spec Writer | `.agents/spec-writer.md` | Turns PRD into exhaustive spec cases |
 | Architect | `.agents/skills/architect.md` | Turns PRD into system design and key decisions |
 | Product Designer | `.agents/skills/designer.md` | Turns PRD into a design spec with blueprints, feedback matrix, and copy slots; reviews rendered screens |
 | Backend Engineer | `.agents/backend-engineer.md` | Publishes the API contract first, then delivers backend implementation and tests |
 | Frontend Engineer | `.agents/frontend-engineer.md` | Builds the UI against the contract in parallel with Backend, then integrates |
-| QA Engineer | `.agents/qa.md` | Writes tests from Gherkin + contract during the build; a separate QA session runs them as the gate |
+| QA Engineer | `.agents/qa.md` | Writes tests from spec + contract during the build; a separate QA session runs them as the gate |
 | DevOps Engineer | `.agents/devops.md` | Turns architecture + API contract into infra and CI/CD config |
 | Security Reviewer | `.agents/security.md` | Writes a threat model from the contract, then reviews the actual candidate against it |
 | Independent Code Reviewer | `.agents/skills/code-review/SKILL.md` | Reviews the actual candidate and current QA evidence, in parallel with Security |
@@ -344,7 +344,7 @@ branches follow the same rules; Instructions steps 4, 7, and 8 place them.
 A change may use the fast lane only when all of these hold:
 
 - It is a one-line change to user-visible text, or a change that only adds or edits one test.
-- It touches no contract, schema, Gherkin scenario, auth, data access, configuration, dependency, or shared module.
+- It touches no contract, schema, spec case, auth, data access, configuration, dependency, or shared module.
 - It changes no layout or rendered structure.
 - The author, the QA check, and the reviewer are different sessions.
 
@@ -362,18 +362,18 @@ Escalate to the full lane when a condition fails, a check fails, or a finding re
 ## Instructions
 
 1. Start with the raw idea. Pass it to the Product Manager first. Do not skip this step — every downstream agent depends on the PRD.
-2. Once the PRD is ready, run steps [2] (Gherkin), [3a] (Architect), and [3b] (Designer) in parallel. Each takes only the PRD. Apply the fast-lane triggers once [3a] and [3b] are complete. Step [3c] (Copywriter) starts once [2] and [3b] are complete. Step [3d] (SEO crawl pass) starts once [3a] and [3b] are complete, in parallel with Copywriter. Step [3e] (SEO metadata pass) starts once [3c] and [3d] are complete. Steps [3c]–[3e] run in parallel with step [4]. Copy-driven Gherkin changes go through the Revision loop, not direct edits.
-3. Step [4] (API contract) cannot start until steps [2], [3a], and [3b] are complete. The Backend Engineer runs in contract mode: it publishes the complete API contract handoff and the Gherkin responsibility map, and stops before implementation. The contract has one writer; later changes to it are `contract` findings routed through the Revision loop.
+2. Once the PRD is ready, run steps [2] (Spec Writer), [3a] (Architect), and [3b] (Designer) in parallel. Each takes only the PRD. Apply the fast-lane triggers once [3a] and [3b] are complete. Step [3c] (Copywriter) starts once [2] and [3b] are complete. Step [3d] (SEO crawl pass) starts once [3a] and [3b] are complete, in parallel with Copywriter. Step [3e] (SEO metadata pass) starts once [3c] and [3d] are complete. Steps [3c]–[3e] run in parallel with step [4]. Copy-driven spec changes go through the Revision loop, not direct edits.
+3. Step [4] (API contract) cannot start until steps [2], [3a], and [3b] are complete. The Backend Engineer runs in contract mode: it publishes the complete API contract handoff and the spec responsibility map, and stops before implementation. The contract has one writer; later changes to it are `contract` findings routed through the Revision loop.
 4. Once the contract is complete, start steps [5a]–[5e] in parallel, each in its own isolated workspace:
    - [5a] Backend Engineer implements the contract with tests.
-   - [5b] Frontend Engineer builds against MSW handlers derived from the contract, then switches to the real backend at integration. It also needs the design spec, Gherkin, the copy deck and SEO metadata pass when those roles run, and waits for them only before using them. Once screens render against the mocks, it shares a preview URL and the orchestrator dispatches the Designer in preview mode (see Designer preview below).
+   - [5b] Frontend Engineer builds against MSW handlers derived from the contract, then switches to the real backend at integration. It also needs the design spec, the behaviour spec, the copy deck and SEO metadata pass when those roles run, and waits for them only before using them. Once screens render against the mocks, it shares a preview URL and the orchestrator dispatches the Designer in preview mode (see Designer preview below).
    - [5c] DevOps produces infrastructure and CI/CD from the architecture, contract, and SEO crawl pass.
    - [5d] Security writes the design-time threat model from the architecture and contract.
-   - [5e] A QA session writes the independent tests from the Gherkin files and contract: Playwright journeys, API integration tests, and fixtures. It writes test files only, never product code. This QA session cannot run the [6a] gate; a different QA session does.
+   - [5e] A QA session writes the independent tests from the spec files and contract: Playwright journeys, API integration tests, and fixtures. It writes test files only, never product code. This QA session cannot run the [6a] gate; a different QA session does.
    Only when explicitly requested, Data Analyst and Growth also start here. Data Analyst needs the PRD and contract. Growth needs the PRD, architecture, design spec, and contract.
 5. Each implementer runs its fast checks (format, lint, type check, affected unit tests) and the authored [5e] specs that cover its changes against the real app before handing off. The QA gate then adds only the gaps. A failing fast check or spec is fixed by its author before handoff, not routed as a repair wave.
 6. After [5a]–[5e] settle, one integration owner publishes the combined candidate. A Frontend/Backend mismatch with the contract is a `contract` or `code` finding against its owner. Then run [6a] (QA gate) and, for UI-changing work, [6b] (Designer review) in parallel. The QA gate runs the [5e] tests and the existing suites on the candidate and adds tests only for gaps. Designer review is mandatory for UI changes and covers screens and states that changed since the preview, plus any the preview did not see: it views the rendered screens with Playwright MCP at 375px and 1280px and saves `design-review.md`. Its `BLOCKER[frontend-engineer]`, `BLOCKER[copywriter]`, and `BLOCKER[designer]` findings route through the Revision loop like any other blocker.
-7. After QA, run [7] (Security candidate review) and [8] in parallel: dispatch a fresh independent reviewer for [8]. Security checks the actual candidate, DevOps config, and QA evidence against its threat model. The reviewer uses `.agents/skills/code-review/SKILL.md` with the actual candidate, approved requirements, complete contracts/Gherkin, repository rules, and current QA evidence. Both are required gates; the implementer cannot act as either. Security and code review use different sessions, and the Security session that wrote the threat model cannot give the candidate verdict. Only when explicitly requested, Pentester runs after Security against an authorized, isolated test deployment of the candidate. Pass it the written authorization, target, security review, API contract handoff, Gherkin, frontend spec, and synthetic accounts. Missing authorization or a production target blocks Pentester, not the rest of the run. When Pentester is enabled, the code reviewer also waits for the pentest report.
+7. After QA, run [7] (Security candidate review) and [8] in parallel: dispatch a fresh independent reviewer for [8]. Security checks the actual candidate, DevOps config, and QA evidence against its threat model. The reviewer uses `.agents/skills/code-review/SKILL.md` with the actual candidate, approved requirements, complete contracts/spec, repository rules, and current QA evidence. Both are required gates; the implementer cannot act as either. Security and code review use different sessions, and the Security session that wrote the threat model cannot give the candidate verdict. Only when explicitly requested, Pentester runs after Security against an authorized, isolated test deployment of the candidate. Pass it the written authorization, target, security review, API contract handoff, spec, frontend spec, and synthetic accounts. Missing authorization or a production target blocks Pentester, not the rest of the run. When Pentester is enabled, the code reviewer also waits for the pentest report.
 8. Finish with verification and review results and any unresolved blockers. Only when explicitly requested, invoke Release Manager after all enabled outputs and required gates, including independent code review, are ready. Pass those outputs and the role selection. Unrequested Growth, Data, and Pentest assessments are not required inputs unless an approved check requires them. Route blockers from any stage through the Revision loop, capped at 3 global revision rounds.
 
 ### Designer preview
@@ -389,7 +389,7 @@ routed as usual. Preview does not replace [6b] on the real candidate.
 
 - Every agent ends with a **TL;DR** section. When passing context to a downstream agent, pass the TL;DR plus any section that agent specifically needs — not the full output of every upstream agent.
 - The **API contract handoff** from step [4] is a self-contained document. Pass it unchanged to the Backend implementation, Frontend, DevOps, and Security tasks — do not summarise it. Frontend derives its MSW handlers from it rather than writing response shapes by hand.
-- The **Gherkin `.feature` files** are passed whole to Backend Engineer, Frontend Engineer, and QA. Do not summarise them.
+- The **spec files** are passed whole to Backend Engineer, Frontend Engineer, and QA. Do not summarise them.
 - **Context budget.** Give each role its role file, the inputs it consumes, and only
   the `AGENTS.md` sections it needs (usually the role activation and cost reporting
   policies). Do not pass the whole orchestrator or other roles' files. Roles load
@@ -402,7 +402,7 @@ routed as usual. Preview does not replace [6b] on the real candidate.
   Refresh it with a lead-tier task after the PRD, architecture, design spec, and API
   contract land and after each revision round. Moving or deleting revision files is
   off limits: run records pin their paths.
-- **Whole versus slice.** The API contract and Gherkin files are passed whole to
+- **Whole versus slice.** The API contract and spec files are passed whole to
   Backend, Frontend, and QA, as stated above. Security, DevOps, Copywriter, SEO,
   Designer, and fresh code review get the TL;DR plus the digest-indexed sections
   their task touches, and name any section they skipped.
@@ -427,7 +427,7 @@ To resolve a round:
 2. Re-run the affected owners. Save revised output as `<file>.rN.md`, where N is the round.
 3. Re-run every enabled downstream consumer in dependency order, with the same suffix.
 4. Re-run the affected gates: QA, Designer review (UI changes only), Security, Pentester (when enabled), fresh review, and Release Manager (when enabled, as `release-report.rN.md`).
-   - Keep each wave small. QA reruns the affected Gherkin scenarios and the regression safety net, and states its selection. A full run is required when the repair touches shared code, contracts, schemas, or configuration. Designer review reruns only when rendered UI changes. Security checks the changed candidate against its existing threat model. No selection waives a required gate on the changed candidate.
+   - Keep each wave small. QA reruns the affected spec cases and the regression safety net, and states its selection. A full run is required when the repair touches shared code, contracts, schemas, or configuration. Designer review reruns only when rendered UI changes. Security checks the changed candidate against its existing threat model. No selection waives a required gate on the changed candidate.
 5. Repeat until required gates pass and blockers are resolved, up to 3 rounds. Report `VERIFIED` without a release assessment. Report a release verdict only when one ran.
 
 If 3 rounds end with blockers left, stop and surface them to the user.

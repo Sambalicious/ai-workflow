@@ -52,7 +52,7 @@ Finish when all changed paths are accounted for as reviewed, excluded with reaso
 ### 3. Establish review authority
 
 Read current repository rules and applicable nested `AGENTS.md` instructions for every affected path.
-Locate the approved originating issue, PRD, architecture decisions, design spec, API contract, and full relevant Gherkin files.
+Locate the approved originating issue, PRD, architecture decisions, design spec, API contract, and full relevant spec files.
 Record source IDs, revisions or content hashes, approval evidence, and any conflicts.
 Use `.agents/skills/architect.md` when present for system boundaries, operational simplicity, and hard-to-reverse decisions.
 Assess both repository standards and spec conformance. Current implementation and implementer summaries are not substitute specifications.
@@ -74,7 +74,7 @@ Finish when each affected behavior and contract is covered by evidence or a name
 
 ### 5. Verify test evidence
 
-Map affected acceptance and Gherkin IDs to tests, including relevant negative and regression cases.
+Map affected acceptance and spec IDs to tests, including relevant negative and regression cases.
 For frontend changes, check relevant Vitest, React Testing Library (RTL), and MSW coverage when used or required by this repo.
 For backend changes, seek real integration evidence through service and persistence boundaries; mocks alone cannot prove those contracts.
 For changed user journeys, inspect relevant Playwright E2E evidence. Respect manual scenarios and required human checks.
@@ -129,7 +129,7 @@ Verdict, gate rationale, repository, base-selection semantics, destination SHA i
 Include dirty snapshot hashes, source hashes, reviewed paths, exclusions, binary or generated limits, and final drift check.
 
 ### Standards and spec coverage
-List applicable rule paths, approved source revisions, affected requirement and Gherkin IDs, checked behavior, and partial conformance gaps.
+List applicable rule paths, approved source revisions, affected requirement and spec IDs, checked behavior, and partial conformance gaps.
 
 ### Verification
 List exact-SHA CI evidence and local commands with candidate snapshot, result, exit status, and limitations.

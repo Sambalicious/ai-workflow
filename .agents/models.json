@@ -1,6 +1,6 @@
 {
   "tiers": {
-    "lead": "Main session and orchestration; Product Manager, Gherkin, Architect, Designer spec and review, Backend and Frontend implementation, QA test authoring, QA gate, Security candidate review, DevOps, Copywriter, SEO, Designer preview, repair fixes.",
+    "lead": "Main session and orchestration; Product Manager, Spec Writer, Architect, Designer spec and review, Backend and Frontend implementation, QA test authoring, QA gate, Security candidate review, DevOps, Copywriter, SEO, Designer preview, repair fixes.",
     "advisor": "API contract; fresh independent code review; advisor consults.",
     "swarm": "Read-only search and repo maps, file inventories, log and test-output triage, check runs.",
     "worker": "Authoring: implementation, tests and fixtures, refactors, mechanical document and copy edits, searches. Never plans, decides design, writes a contract, runs a gate, or reviews security."
@@ -21,6 +21,7 @@
   },
   "roles": {
     "product-manager": "lead",
+    "spec-writer": "lead",
     "gherkin": "lead",
     "architect": "lead",
     "designer-spec": "lead",

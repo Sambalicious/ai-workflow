@@ -49,8 +49,8 @@ Use `apple-design` when the surface has gestures, sheets, or drag interactions. 
 1. Read the PRD and `DESIGN.md` fully. List every surface the user touches. Done when every user story maps to at least one surface.
 2. For each primary screen, run 3 to 5 Mobbin searches. Record the screens you adopt from and what you reject. Done when every primary screen cites at least two references.
 3. Write a blueprint per screen (format below). Apply `shape` and `distill`: one primary goal, one primary action. Done when every screen has a blueprint.
-4. Build the feedback matrix: every event that changes state or fails gets a pattern and a tone. Done when every Gherkin error and success outcome has a row.
-5. Define a copy slot for every string the UI renders, including headings, labels, helpers, empty states, errors, overlay titles, and button text. Apply `clarify` and the text budget to each slot's intent. Where Gherkin specifies exact text, cite the scenario ID in the slot. Done when the Copywriter needs no further placement decision and the engineer needs no string the deck will not contain.
+4. Build the feedback matrix: every event that changes state or fails gets a pattern and a tone. Done when every spec error and success outcome has a row.
+5. Define a copy slot for every string the UI renders, including headings, labels, helpers, empty states, errors, overlay titles, and button text. Apply `clarify` and the text budget to each slot's intent. Where the spec specifies exact text, cite the case ID in the slot. Done when the Copywriter needs no further placement decision and the engineer needs no string the deck will not contain.
 6. Specify worst-case behaviour per data component with `break-ui` categories.
 7. Fill the remaining output sections and the TL;DR.
 
@@ -124,7 +124,7 @@ Table: Event | Pattern (inline / alert panel / toast / confirmation dialog / sta
 Table: Status | Weight | Tone | Icon | Why this weight.
 
 ### Copy slots
-Table: ID | Screen/Component | Situation | Condition | Intent (what the string must convey) | Budget | Gherkin ID. Every string the UI renders. IDs use `screen.element.state`; the Copywriter's deck uses the same keys. State **None** when the change adds or changes no user-visible string; the orchestrator then skips the Copywriter.
+Table: ID | Screen/Component | Situation | Condition | Intent (what the string must convey) | Budget | Spec case ID. Every string the UI renders. IDs use `screen.element.state`; the Copywriter's deck uses the same keys. State **None** when the change adds or changes no user-visible string; the orchestrator then skips the Copywriter.
 
 ### Interaction patterns
 Loading (skeleton, spinner, progressive), empty (first run vs zero results), transitions and motion (what moves, why, duration and easing from `DESIGN.md` or `emil-design-eng`), real-time updates, destructive confirmations.

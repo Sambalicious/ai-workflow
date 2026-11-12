@@ -12,13 +12,13 @@ Your idea
    │
    ├──────────────────────┬──────────────────────┐
    ▼                      ▼                      ▼
-[2] Gherkin            [3a] Architect         [3b] Product Designer
+[2] spec            [3a] Architect         [3b] Product Designer
     (PRD)                   (PRD)                  (PRD)
    │                      │                      │
    │                      ├──────────┬───────────┤
    │                      │          ▼           ▼
    │                      │   [3d] SEO crawl   [3c] Copywriter*
-   │                      │        pass*            (PRD + Gherkin + design spec)
+   │                      │        pass*            (PRD + spec + design spec)
    │                      │   (architecture +       │
    │                      │    design spec)         ▼
    │                      │          │       [3e] SEO metadata pass*
@@ -26,14 +26,14 @@ Your idea
    └──────────┬───────────┘          │            │
               ▼                      │            │
 [4] API Contract (Backend Engineer, contract task)│
-    (PRD + Gherkin + architecture + design spec)  │
+    (PRD + spec + architecture + design spec)  │
               │                      │            │
    ┌──────────┼───────────┬──────────┼──────┬─────┴──────┐
    ▼          ▼           ▼          ▼      ▼            ▼
 [5a]       [5b]         [5c]       [5d]   [5e]         (Frontend also
 Backend    Frontend     DevOps     Sec.   QA test       takes copy deck
 (contract) (contract,   (contract, threat authoring     + SEO metadata)
-           MSW mocks;   SEO crawl  model  (Gherkin +
+           MSW mocks;   SEO crawl  model  (spec +
            Designer     pass)             contract)
            preview
            mid-task)
