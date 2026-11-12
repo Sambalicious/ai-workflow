@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { access, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
@@ -7,6 +7,7 @@ import { checkSpec, PATHS } from './spec-check.mjs';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
 const examples = join(here, '..', '..', 'docs', 'proposals', 'gherkin-to-spec', 'example', 'EPIC-0005');
+const examplesPresent = await access(examples).then(() => true, () => false);
 
 const HEADER = '# S07 — Test feature\n\nEpic: EPIC-0005 · Stories: 7 · Owner role: Spec Writer\n';
 
@@ -60,12 +61,14 @@ None.
 
 const mutate = (from, to) => valid.replace(from, to);
 
-test('the two worked examples pass the checker', async () => {
-  for (const file of ['S07-accurate-answers-escalation.md', 'S05-payment-confirmation.md']) {
-    const result = checkSpec(await readFile(join(examples, file), 'utf8'), file);
-    assert.deepEqual(result.problems, [], file);
-  }
-});
+test('the two worked examples pass the checker',
+  { skip: !examplesPresent && 'worked examples live in the factory checkout' },
+  async () => {
+    for (const file of ['S07-accurate-answers-escalation.md', 'S05-payment-confirmation.md']) {
+      const result = checkSpec(await readFile(join(examples, file), 'utf8'), file);
+      assert.deepEqual(result.problems, [], file);
+    }
+  });
 
 test('a well-formed spec passes', () => {
   assert.deepEqual(checkSpec(valid).problems, []);
