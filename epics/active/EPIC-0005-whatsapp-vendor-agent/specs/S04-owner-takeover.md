@@ -27,10 +27,12 @@ Epic: EPIC-0005 · Stories: 4 · Owner role: Spec Writer
 
 ## Cases
 
+Fixture note: #1043 in this file is the order the owner created during a pause, 1 × Ankara gown – XL at ₦20,000. Order numbers are local to each spec.
+
 | ID | Path | Title | Setup | Action | Expected |
 |---|---|---|---|---|---|
 | S04_001 | happy | Pause by command | Chat with +2348030000002 is active and the agent is answering, and +2348030000001 is a registered owner number | The owner sends "pause" | The chat is paused; the owner sees the chat marked as paused |
-| S04_002 | permission | Buyer tries to pause the agent | Chat with +2348030000002 is active and the agent is answering | +2348030000002 sends "pause" | The chat stays active; the sender receives a customer-style reply |
+| S04_002 | permission | Buyer tries to pause the agent | Chat with +2348030000002 is active and the agent is answering | +2348030000002 sends "pause" | The chat stays active; the reply contains no confirmation that the agent was paused |
 | S04_003 | duplicate | Pause command sent twice | Chat with +2348030000002 is active and the owner is about to pause it | The owner sends "pause" twice | The chat is paused once; one pause record exists for it |
 | S04_004 | happy | Pause by one-tap action | Chat with +2348030000003 is active in the owner's chat list | The owner presses Pause on that chat | The chat is paused; the owner sees the chat marked as paused |
 | S04_005 | concurrent | Pause pressed while a reply is being sent | Chat with +2348030000003 is active and the agent is composing a reply at 10:00:00 | The owner presses Pause at 10:00:00 | The chat is paused; no agent reply is sent after the pause is recorded |
@@ -79,8 +81,9 @@ Epic: EPIC-0005 · Stories: 4 · Owner role: Spec Writer
 - AC4_02: whether owner replies are possible at all when the 24-hour customer-service window is closed is unstated.
 - AC4_03: whether the owner can resume on a schedule, and whether an owner reply alone ever resumes the agent, is unstated.
 - AC4_04: the allowed range for the configurable reminder interval is unstated, and whether the reminder repeats is unstated.
+- AC4_01: what a buyer who sends a pause command is told is unstated, so S04_002 asserts the unchanged chat state and the absence of a pause confirmation, not the reply's shape. Owner: PM, with wording from the Copywriter.
 
 ## TL;DR
 
 - Criteria: 4 (4 with rules) · Rules: 9 · Cases: 22, all automated · Manual checks: 1
-- Gaps: Q1 takeover channel (AC4_01), pause and resume command wording (AC4_01), pause versus payment confirmation conflict (AC4_01 with AC5_07), owner replies outside the 24-hour window (AC4_02), resume triggers (AC4_03), reminder interval range and repetition (AC4_04)
+- Gaps: Q1 takeover channel (AC4_01), pause and resume command wording (AC4_01), pause versus payment confirmation conflict (AC4_01 with AC5_07), owner replies outside the 24-hour window (AC4_02), resume triggers (AC4_03), reminder interval range and repetition (AC4_04), reply shape for a buyer pause command (AC4_01)

@@ -30,6 +30,8 @@ Epic: EPIC-0005 · Stories: 8 · Owner role: Spec Writer
 
 ## Cases
 
+Fixture note: order numbers are local to this file. Here #1042 is 2 × Ankara gown – L at ₦18,500 plus the Lagos Mainland ₦3,000 fee, total ₦40,000, and it is the same order as #1042 in S09 and S10; #1051 is the 25-line order and #1052 the pickup order. A seed shared across specs must keep #2042 in S03 and #5042 in S05 apart from these.
+
 | ID | Path | Title | Setup | Action | Expected |
 |---|---|---|---|---|---|
 | S08_001 | happy | Cart built from the conversation | Ankara gown – L is listed at ₦18,500 with quantity 5 and the chat has no cart yet | The buyer sends "I want 2 Ankara gown L" | The cart holds 2 × Ankara gown – L at ₦37,000; the agent offers the delivery step |
