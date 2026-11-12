@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { policyProblems } from './policy.mjs';
+import { policyProblems, projectProblems } from './policy.mjs';
 
 const MODELS = {
   tiers: { lead: 'decisions', advisor: 'contract and review', swarm: 'search', worker: 'authoring' },
@@ -69,5 +69,19 @@ test('a missing rule section and a warn-only guard are problems', async () => {
     assert.match(problems, /still only warns/);
   } finally {
     await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('a project must wire the worker-guard hook', async () => {
+  const project = await mkdtemp(join(tmpdir(), 'policy-project-'));
+  try {
+    assert.match((await projectProblems(project)).join(' '), /missing/);
+    await mkdir(join(project, '.claude'));
+    await writeFile(join(project, '.claude/settings.json'), JSON.stringify({ hooks: {} }));
+    assert.match((await projectProblems(project)).join(' '), /does not wire the worker-guard hook/);
+    await writeFile(join(project, '.claude/settings.json'), JSON.stringify({ hooks: { PreToolUse: [{ hooks: [{ command: 'node x/worker-guard.mjs' }] }] } }));
+    assert.deepEqual(await projectProblems(project), []);
+  } finally {
+    await rm(project, { recursive: true, force: true });
   }
 });

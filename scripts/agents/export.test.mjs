@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, readFile, readlink, rm, writeFile, lstat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { exportClient } from './export.mjs';
+import { exportClient, mergeSettings } from './export.mjs';
 
 async function factory() {
   const source = await mkdtemp(join(tmpdir(), 'export-src-'));
@@ -73,4 +73,13 @@ test('--check reports stale files and writes nothing; unknown client and relativ
     await rm(source, { recursive: true, force: true });
     await rm(target, { recursive: true, force: true });
   }
+});
+
+test('exporting keeps a target hook, and re-exporting does not duplicate the guard', () => {
+  const guard = { matcher: 'Agent', hooks: [{ type: 'command', command: 'node "${FACTORY_ROOT}/scripts/agents/worker-guard.mjs"' }] };
+  const own = { matcher: 'Bash', hooks: [{ type: 'command', command: 'echo mine' }] };
+  const once = mergeSettings({ hooks: { PreToolUse: [own], PostToolUse: [own] } }, { model: 'sonnet', hooks: { PreToolUse: [guard] } });
+  assert.deepEqual(once.hooks.PreToolUse, [own, guard]);
+  assert.deepEqual(once.hooks.PostToolUse, [own]);
+  assert.deepEqual(mergeSettings(once, { hooks: { PreToolUse: [guard] } }).hooks.PreToolUse, [own, guard]);
 });

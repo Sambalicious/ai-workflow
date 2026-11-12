@@ -76,8 +76,19 @@ export async function policyProblems(root = ROOT) {
   return problems;
 }
 
+// A project that uses Claude Code must wire the dispatch guard, or the worker-tier rule is
+// only convention. Run with --project <dir> in the project's own check.
+export async function projectProblems(project) {
+  const settings = await readJson(join(project, '.claude/settings.json'), null);
+  if (settings === null) return [`${project}/.claude/settings.json is missing; run scripts/agents/export.mjs --client claude-code`];
+  return JSON.stringify(settings?.hooks?.PreToolUse ?? []).includes('worker-guard.mjs')
+    ? []
+    : ['.claude/settings.json does not wire the worker-guard hook'];
+}
+
 if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
-  const problems = await policyProblems();
+  const at = process.argv.indexOf('--project');
+  const problems = at === -1 ? await policyProblems() : await projectProblems(process.argv[at + 1]);
   if (problems.length === 0) {
     process.stdout.write('Tier policy: clear.\n');
     process.exit(0);

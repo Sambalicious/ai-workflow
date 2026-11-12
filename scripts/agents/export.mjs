@@ -82,6 +82,21 @@ export const CLIENTS = {
   },
 };
 
+// Other settings keys survive. Hooks merge per event, replacing only an earlier export of the
+// same hook command, so a target's own hooks are never dropped.
+export function mergeSettings(current, keys) {
+  const merged = { ...current, ...keys };
+  if (keys.hooks) {
+    merged.hooks = { ...(current.hooks ?? {}) };
+    for (const [event, entries] of Object.entries(keys.hooks)) {
+      const ours = JSON.stringify(entries);
+      const kept = (merged.hooks[event] ?? []).filter((entry) => !JSON.stringify(entry).includes('worker-guard.mjs'));
+      merged.hooks[event] = [...kept, ...JSON.parse(ours)];
+    }
+  }
+  return merged;
+}
+
 async function readOr(path, fallback) {
   try { return await readFile(path, 'utf8'); } catch { return fallback; }
 }
@@ -117,7 +132,7 @@ export async function plan({ client, target, source = ROOT }) {
   if (spec.settings) {
     const { path, keys } = spec.settings(tiers, source);
     const current = JSON.parse(await readOr(join(target, path), '{}'));
-    actions.push({ type: 'file', path, text: JSON.stringify({ ...current, ...keys }, null, 2) + '\n' });
+    actions.push({ type: 'file', path, text: JSON.stringify(mergeSettings(current, keys), null, 2) + '\n' });
   }
   return actions;
 }
