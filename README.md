@@ -2,7 +2,7 @@
 
 A portable set of agent skills that simulate a full startup team. Each agent is a self-contained markdown file in `.agents/` — the single source of truth, no tool lock-in. Use them with any AI client:
 
-- **Claude Code** — pre-wired via symlinks in `.claude/agents/`, `@agent-name` works out of the box
+- **Claude Code** — run `scripts/agents/export.mjs --client claude-code --target <project>` for `@agent-name` subagents and slash commands; no client files are committed here
 - **Cursor** — copy any file into `.cursor/rules/<name>.mdc`
 - **Claude.ai / ChatGPT** — paste the file content as a Project or system prompt
 - **Continue, Cline, Aider, etc.** — point at `.agents/<name>.md` as context
@@ -53,7 +53,7 @@ model policy". Long reference text (pipeline diagram, resume and revision prompt
 is in `.agents/reference/`. To check a worker model before trusting it, run
 `node .agents/benchmarks/worker/run.mjs <repoRoot>`.
 
-After `install.sh`, add these to the project's `package.json` and to CI so stale
+For a project that vendors a copy, add these to the project's `package.json` and to CI so stale
 generated files fail the build:
 
 ```json
@@ -96,13 +96,19 @@ For repeated use, see the [optional project instruction snippet](factory/EXTERNA
 
 ## Existing installed usage
 
-The optional shell installer remains available for projects that use copied skills,
-roles, controller, and orchestrator. Shared-checkout use does not run it:
+Shared-checkout use (see `factory/EXTERNAL.md`) needs no installation. There is no
+installer; projects that want native client files export them:
 
 ```bash
-./install.sh /path/to/my-project
-./install.sh /path/to/my-project --force
+node scripts/agents/export.mjs --client claude-code --target /absolute/path/to/my-project
+node scripts/agents/export.mjs --client opencode --target /absolute/path/to/my-project
+node scripts/agents/export.mjs --client kilo --target /absolute/path/to/my-project --check
 ```
+
+The export symlinks role files, skills and commands to this checkout and writes the
+generated agent files and model settings. Git-ignore what it writes in the target.
+
+For a project that already vendors a copy:
 
 Refresh an installed project's skills and slash commands from this checkout after a
 skill changes, without recopying roles, `AGENTS.md`, or model settings:
@@ -221,9 +227,10 @@ node --test .agents/skills/skills.test.mjs
 
 ### Slash commands
 
-Commands live in `.agents/commands/`, the single source of truth. Client folders
-hold symlinks: `.kilo/command/` for Kilo and OpenCode, `.claude/commands/` for
-Claude Code. Other clients can read the file directly.
+Commands live in `.agents/commands/`, the single source of truth. This repo commits no
+client folders; `export.mjs` links them into a project (`.claude/commands/` for Claude
+Code, `.kilo/command/` for Kilo, `.opencode/command/` for OpenCode). Other clients can
+read the file directly.
 
 | Command | Definition | Purpose |
 |---|---|---|
@@ -304,7 +311,7 @@ independent evaluation. Active runs retain their original factory version.
 
 ### Pattern 1 — Claude Code subagents (recommended)
 
-All agents live in `.agents/` and are symlinked into `.claude/agents/` so Claude Code picks them up automatically. Open this repo (or any project you installed into) in Claude Code and they're available immediately.
+All agents live in `.agents/`. Export them into a project with `scripts/agents/export.mjs --client claude-code --target <project>` and Claude Code picks them up as subagents.
 
 ```
 @product-manager Here's my idea: [your idea]

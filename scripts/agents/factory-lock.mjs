@@ -6,7 +6,7 @@
 //   node scripts/agents/factory-lock.mjs [--check]                 files match .agents/factory-lock.json
 //   node scripts/agents/factory-lock.mjs --write --commit <sha>     record the files as installed from <sha>
 //   node scripts/agents/factory-lock.mjs --against <factory root>   compare them with a factory checkout
-//   Add --root <dir> to act on another project (install.sh does).
+//   Add --root <dir> to act on another project (the vendored-copy flow does).
 // A change to a locked file belongs in ai-workflow: make it there, install or copy it
 // back, then rerun --write with the new factory commit.
 import { execFileSync } from 'node:child_process';
@@ -150,7 +150,7 @@ export async function main(args) {
   return 1;
 }
 
-// Real paths on both sides: install.sh may call this through a symlinked path (macOS
+// Real paths on both sides: a caller may call this through a symlinked path (macOS
 // /tmp is /private/tmp), and a plain comparison would then skip main and exit 0.
 if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
   process.exitCode = await main(process.argv.slice(2));

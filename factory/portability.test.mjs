@@ -130,7 +130,7 @@ test('GitHub reference prompts explicitly load the external entry with task cont
   }
 });
 
-test('complete-feature uses the target root and retains its client symlink', async () => {
+test('complete-feature uses the target root', async () => {
   const source = await readFile(join(root, '.agents/skills/complete-feature.md'), 'utf8');
   assert.doesNotMatch(source, /\/Users\/|\/home\/|[A-Z]:\\Users\\/);
   assert.match(source, /PROJECT_ROOT/);
@@ -139,5 +139,4 @@ test('complete-feature uses the target root and retains its client symlink', asy
   assert.match(source, /does not invoke Release Manager or grant release approval/);
   assert.match(source, /\[actual closing actor\]/);
   assert.match(source, /mv "\$PROJECT_ROOT\/features\/active\/FEAT-XXXX-slug" "\$PROJECT_ROOT\/features\/completed\/FEAT-XXXX-slug"/);
-  assert.equal(await readlink(join(root, '.claude/skills/complete-feature.md')), '../../.agents/skills/complete-feature.md');
 });

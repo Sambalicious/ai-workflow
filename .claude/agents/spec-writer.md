@@ -1,1 +1,0 @@
-../../.agents/spec-writer.md

@@ -6,12 +6,11 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 
-// install.sh never installs into the factory itself, so its presence marks the
-// factory checkout. Installs carry their own README.md, package.json and no
-// installer, so the factory-only assertions are skipped there instead of failing
-// and training everyone to ignore a red suite.
+// The factory's own package.json is named ai-workflow. Vendored copies carry their
+// project's README.md and package.json, so the factory-only assertions are skipped
+// there instead of failing and training everyone to ignore a red suite.
 const factoryRoot = new URL('../../', import.meta.url);
-const isFactory = await access(new URL('install.sh', factoryRoot)).then(() => true, () => false);
+const isFactory = await readFile(new URL('package.json', factoryRoot), 'utf8').then((text) => JSON.parse(text).name === 'ai-workflow', () => false);
 const factoryOnly = isFactory
   ? {}
   : { skip: 'factory checkout only: installs ship their own README.md and package.json' };
@@ -135,19 +134,17 @@ test('agent-agnostic cost policy has one authority and short role references', f
 
 test('opt-in agent definitions and client links remain usable', async () => {
   const root = new URL('../../', import.meta.url);
-  for (const [definition, link] of [
-    ['.agents/skills/growth.md', '.claude/skills/growth.md'],
-    ['.agents/data-analyst.md', '.claude/agents/data-analyst.md'],
-    ['.agents/pentester.md', '.claude/agents/pentester.md'],
-    ['.agents/release-manager.md', '.claude/agents/release-manager.md'],
+  for (const definition of [
+    '.agents/skills/growth.md',
+    '.agents/data-analyst.md',
+    '.agents/pentester.md',
+    '.agents/release-manager.md',
   ]) {
     const source = await readFile(new URL(definition, root), 'utf8');
     assert.match(source, /Disabled by default under `AGENTS.md` role activation policy/);
     assert.match(source, /Invoke only when the\s+user explicitly requests/);
     assert.match(source, /## Inputs/);
     assert.match(source, /## Output format/);
-    assert.equal(await readlink(new URL(link, root)), `../../${definition}`);
-    assert.equal(await readFile(new URL(link, root), 'utf8'), source);
   }
 });
 
@@ -164,32 +161,6 @@ test('release assessment distinguishes unrequested plans from required evidence'
   assert.match(source, /scope\s+conflict for a user decision/);
 });
 
-test('installer includes controller, preserves files, and force avoids nested copies', factoryOnly, async () => {
-  const root = new URL('../../', import.meta.url);
-  const destination = await mkdtemp(join(tmpdir(), 'factory-install-'));
-  const install = (...args) => {
-    const result = spawnSync('bash', [fileURLToPath(new URL('install.sh', root)), destination, ...args], { encoding: 'utf8' });
-    assert.equal(result.status, 0, result.stderr || result.stdout);
-  };
-  try {
-    install();
-    const source = await readFile(new URL('factory/cli.mjs', root), 'utf8');
-    assert.equal(await readFile(join(destination, 'factory/cli.mjs'), 'utf8'), source);
-    await access(join(destination, 'AGENTS.md'));
-    await access(join(destination, 'factory/PROTOCOL.md'));
-    await access(join(destination, '.agents/skills/factory-loop/SKILL.md'));
-    await writeFile(join(destination, 'factory/cli.mjs'), 'local customization\n');
-    install();
-    assert.equal(await readFile(join(destination, 'factory/cli.mjs'), 'utf8'), 'local customization\n');
-    install('--force');
-    assert.equal(await readFile(join(destination, 'factory/cli.mjs'), 'utf8'), source);
-    await assert.rejects(access(join(destination, 'factory/factory')), { code: 'ENOENT' });
-    await assert.rejects(access(join(destination, '.agents/.agents')), { code: 'ENOENT' });
-  } finally {
-    await rm(destination, { recursive: true, force: true });
-  }
-});
-
 test('controller help is callable without a run or side effects', () => {
   const cli = fileURLToPath(new URL('../../factory/cli.mjs', import.meta.url));
   const result = spawnSync(process.execPath, [cli, '--help'], { encoding: 'utf8' });
@@ -200,16 +171,15 @@ test('controller help is callable without a run or side effects', () => {
 
 test('default copy and SEO roles are wired into the pipeline and client links', async () => {
   const root = new URL('../../', import.meta.url);
-  for (const [definition, link] of [
-    ['.agents/copywriter.md', '.claude/agents/copywriter.md'],
-    ['.agents/seo.md', '.claude/agents/seo.md'],
+  for (const definition of [
+    '.agents/copywriter.md',
+    '.agents/seo.md',
   ]) {
     const source = await readFile(new URL(definition, root), 'utf8');
     assert.match(source, /Default pipeline role under `AGENTS.md` role activation policy/);
     assert.doesNotMatch(source, /Disabled by default/);
     assert.match(source, /## Inputs/);
     assert.match(source, /## Output format/);
-    assert.equal(await readlink(new URL(link, root)), `../../${definition}`);
   }
   const rule = await readFile(new URL('.agents/rules/02-no-pipeline-jump.md', root), 'utf8');
   assert.match(rule, /\| Frontend Engineer \|.*copy deck \+ SEO plan/);
@@ -228,7 +198,7 @@ test('merge-only updates get a merge check, not repeated gates', async () => {
   assert.match(overnight, /merge\s+check for a merge-only update/);
 });
 
-test('every shared command has one source and client links', async () => {
+test('every shared command has one neutral source', async () => {
   const root = new URL('../../', import.meta.url);
   const commands = (await readdir(new URL('.agents/commands/', root))).filter(file => file.endsWith('.md'));
   assert.ok(commands.length > 0, 'expected at least one shared command');
@@ -238,10 +208,6 @@ test('every shared command has one source and client links', async () => {
     assert.match(source, /^---\r?\ndescription: .+\r?\n/);
     assert.match(source, /\$ARGUMENTS/);
     assert.doesNotMatch(source, /[^\x00-\x7F]/, 'Keep the shared definitions ASCII');
-    for (const dir of ['.kilo/command', '.claude/commands']) {
-      const link = await readlink(fileURLToPath(new URL(`${dir}/${file}`, root)));
-      assert.equal(link, `../../.agents/commands/${file}`, `${dir}/${file} must link to its source`);
-    }
   }
 });
 
