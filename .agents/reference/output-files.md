@@ -13,9 +13,6 @@ epics/
 │       ├── specs/                      # behavioural spec, read by QA and the builders
 │       │   ├── S07-accurate-answers.md
 │       │   └── S08-ordering.md
-│       ├── gherkin/                    # legacy, retired at stage 3
-│       │   ├── user-registration.feature
-│       │   └── water-logging.feature
 │       ├── architecture.md
 │       ├── design-spec.md
 │       ├── backend-spec.md

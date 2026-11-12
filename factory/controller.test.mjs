@@ -239,9 +239,11 @@ test('security routes to explicit code component and requires security verifier'
 
 test('router uses category, artifact kind and source owner, not reporter role', () => {
   for (const [category, role] of Object.entries({ contract: 'backend-engineer', product: 'product-manager',
-    spec: 'spec-writer', gherkin: 'gherkin', architecture: 'architect', design: 'designer', test: 'qa', infra: 'devops' })) {
+    spec: 'spec-writer', architecture: 'architect', design: 'designer', test: 'qa', infra: 'devops' })) {
     assert.equal(routeFinding({ artifact_kind: category, role, kind: 'work' }, category).owner, role);
   }
+  // `gherkin` is retired: the category no longer resolves to an owner.
+  assert.equal(routeFinding({ artifact_kind: 'gherkin', role: 'gherkin', kind: 'work' }, 'gherkin').owner, null);
   // A finding about the behaviour spec belongs to the Spec Writer, not the Product Manager.
   assert.equal(routeFinding({ artifact_kind: 'spec', role: 'spec-writer', kind: 'work' }, 'spec').owner, 'spec-writer');
   assert.notEqual(routeFinding({ artifact_kind: 'spec', role: 'product-manager', kind: 'work' }, 'spec').owner, 'product-manager');
