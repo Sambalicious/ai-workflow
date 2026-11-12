@@ -18,3 +18,13 @@ test('cost discipline rules are binding', async () => {
   assert.match(orchestrator, /Implementation starts only when the `\[5e\]`\s+QA test files for its spec cases exist on disk/);
   assert.match(orchestrator, /Evidence in files, verdict in chat/);
 });
+
+// Haiku is retired from every tier: swarm, explore and audit run DeepSeek V4.1 Flash.
+test('no client tier runs on Haiku', async () => {
+  const models = JSON.parse(await readFile(new URL('.agents/models.json', root), 'utf8'));
+  for (const [client, tiers] of Object.entries(models.clients)) {
+    for (const [tier, model] of Object.entries(tiers)) {
+      assert.doesNotMatch(model, /haiku/i, `${client}.${tier} must not run on Haiku`);
+    }
+  }
+});
