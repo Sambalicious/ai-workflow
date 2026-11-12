@@ -103,7 +103,9 @@ test('factory policy keeps assessments opt-in without weakening verification or 
   assert.match(policy, /When in doubt, run the role/);
   assert.match(orchestrator, /## Role model policy/);
   const roleModel = orchestrator.split('## Role model policy\n')[1].split('\n## ')[0];
-  assert.match(roleModel, /Designer review, the QA gate and the Security candidate review run on\s+the lead tier/);
+  assert.match(roleModel, /The Designer review and the QA gate\s+run on the lead tier/);
+  assert.match(roleModel, /Security candidate review/);
+  assert.match(roleModel, /serialized\s+before the code review/);
   assert.match(roleModel, /independent code review/);
   assert.match(prompt, /Invoke the Copywriter/);
   assert.match(prompt, /SEO Specialist/);

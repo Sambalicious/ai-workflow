@@ -385,9 +385,13 @@ Your idea
    qa gate   designer review   (run in parallel)
    └─────────┴─────────────────┘
    ↓
-   ┌──────────────────────────┬──────────────────────────┐
-   security candidate review  independent code-review   (run in parallel)
-   └──────────────────────────┴──────────────────────────┘
+   ┌──────────────────────────┐
+   security candidate review  (advisor tier, first)
+   └──────────────────────────┘
+   ↓
+   ┌──────────────────────────┐
+   independent code-review    (fresh session, security as checks)
+   └──────────────────────────┘
    ↓
    Verification summary  →  VERIFIED or unresolved blockers
 ```

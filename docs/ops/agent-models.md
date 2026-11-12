@@ -5,10 +5,10 @@ Role tiering is generated from `.agents/models.json`. That file assigns every ro
 model name from memory: resolve it.
 
 ```sh
-pnpm agents:model gherkin          # anthropic/claude-sonnet-5-5
+pnpm agents:model qa-gate          # anthropic/claude-sonnet-5-5
 pnpm agents:model api-contract     # anthropic/claude-opus-5-5
 pnpm agents:model worker           # opencode-go/deepseek-v4.1-flash
-pnpm agents:model gherkin --client claude-code
+pnpm agents:model qa-gate --client claude-code
 pnpm agents:model --json security-review
 ```
 
@@ -37,6 +37,7 @@ rather than in a post-mortem.
 |---|---|---|---|---|---|
 | 1 | product-manager | lead | anthropic/claude-sonnet-5-5 | `prd.md` | done |
 | 1 | api-contract | advisor | anthropic/claude-opus-5-5 | `api-contract.md` | done |
+| 2 | security-review | advisor | anthropic/claude-opus-5-5 | `security-review.md` | running |
 | 2 | backend-engineer (bulk) | worker | opencode-go/deepseek-v4.1-flash | `outreach.repository.ts` | running |
 
 ## Local provider setup

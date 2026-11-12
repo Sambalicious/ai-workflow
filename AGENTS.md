@@ -199,13 +199,15 @@ The setup, the health check for the local provider and the ledger template are i
 
 - **Lead** (main session, decisions only): orchestration, Product Manager, spec
   authorship, Architect, Designer spec and review, Copywriter, SEO,
-  DevOps, the QA gate, the Security candidate review, and repair-wave decisions.
+  DevOps, the QA gate, and repair-wave decisions.
   The lead does not author implementation or tests; it scopes them and reviews them.
 
-- **Advisor**: the API contract and the fresh independent code review, plus advisor
-  consults. The Designer review, the QA gate and the Security candidate review run on
-  the lead tier; they are never optional consults, and independence holds because the
-  worker tier writes the code.
+- **Advisor**: the API contract, the Security candidate review, and the fresh
+  independent code review, plus advisor consults. The Designer review and the QA gate
+  run on the lead tier; they are never optional consults, and independence holds
+  because the worker tier writes the code. Security runs on the advisor tier because
+  a missed finding is silent — no cheaper gate contradicts it — and it is serialized
+  before the code review so that one Opus session runs at a time.
 - **Swarm**: repo maps and searches (`explore`), file inventories, log and
   test-output triage, and check runs (`audit`). Swarm output is a lead; the lead or
   advisor tier confirms it before it becomes a finding or evidence. Run a single
@@ -310,8 +312,9 @@ step re-reads its whole history. Keep it lean:
   blockers, and the next step, then start a fresh session. Resume with
   `.agents/reference/resume-prompt.md`. A session reset cannot be enforced by the
   repository; the wave-close checkpoint is the record that it happened.
-- At most one Opus session runs at once per epic (the independent code review, step
-  8). When the session limit is reached, dispatch no more Opus roles, record the
+- At most one Opus session runs at once per epic: the Security candidate review
+  (step 7), then the independent code review (step 8), serialized rather than
+  parallel. When the session limit is reached, dispatch no more Opus roles, record the
   pending gate in `CURRENT.md`, and resume after the reset. Gates are deferred, never
   waived. Sonnet and worker-tier work may continue.
 
@@ -328,7 +331,7 @@ step re-reads its whole history. Keep it lean:
 | QA Engineer | `.agents/qa.md` | Writes tests from spec + contract during the build; a separate QA session runs them as the gate |
 | DevOps Engineer | `.agents/devops.md` | Turns architecture + API contract into infra and CI/CD config |
 | Security Reviewer | `.agents/security.md` | Writes a threat model from the contract, then reviews the actual candidate against it |
-| Independent Code Reviewer | `.agents/skills/code-review/SKILL.md` | Reviews the actual candidate and current QA evidence, in parallel with Security |
+| Independent Code Reviewer | `.agents/skills/code-review/SKILL.md` | Reviews the actual candidate, current QA evidence, and the security findings, after Security |
 | Copywriter | `.agents/copywriter.md` | Fills the Designer's copy slots with a keyed copy deck and voice guide |
 | SEO Specialist | `.agents/seo.md` | Crawl pass from architecture + design spec; metadata pass from the copy deck |
 | Pentester (opt-in) | `.agents/pentester.md` | Attacks an authorized running candidate and reports reproduced findings |
@@ -391,7 +394,7 @@ Escalate to the full lane when a condition fails, a check fails, or a finding re
    Only when explicitly requested, Data Analyst and Growth also start here. Data Analyst needs the PRD and contract. Growth needs the PRD, architecture, design spec, and contract.
 5. Each implementer runs its fast checks (format, lint, type check, affected unit tests) and the authored [5e] specs that cover its changes against the real app before handing off. The QA gate then adds only the gaps. A failing fast check or spec is fixed by its author before handoff, not routed as a repair wave.
 6. After [5a]–[5e] settle, one integration owner publishes the combined candidate. A Frontend/Backend mismatch with the contract is a `contract` or `code` finding against its owner. Then run [6a] (QA gate) and, for UI-changing work, [6b] (Designer review) in parallel. The QA gate runs the [5e] tests and the existing suites on the candidate and adds tests only for gaps. Designer review is mandatory for UI changes and covers screens and states that changed since the preview, plus any the preview did not see: it views the rendered screens with Playwright MCP at 375px and 1280px and saves `design-review.md`. Its `BLOCKER[frontend-engineer]`, `BLOCKER[copywriter]`, and `BLOCKER[designer]` findings route through the Revision loop like any other blocker.
-7. After QA, run [7] (Security candidate review) and [8] in parallel: dispatch a fresh independent reviewer for [8]. Security checks the actual candidate, DevOps config, and QA evidence against its threat model. The reviewer uses `.agents/skills/code-review/SKILL.md` with the actual candidate, approved requirements, complete contracts/spec, repository rules, and current QA evidence. Both are required gates; the implementer cannot act as either. Security and code review use different sessions, and the Security session that wrote the threat model cannot give the candidate verdict. Only when explicitly requested, Pentester runs after Security against an authorized, isolated test deployment of the candidate. Pass it the written authorization, target, security review, API contract handoff, spec, frontend spec, and synthetic accounts. Missing authorization or a production target blocks Pentester, not the rest of the run. When Pentester is enabled, the code reviewer also waits for the pentest report.
+7. After QA, run [7] (Security candidate review) first, then [8]: dispatch a fresh independent reviewer for [8] as a separate session. They are serialized, not parallel, because both run on the advisor tier and one Opus session runs at a time. Security checks the actual candidate, DevOps config, and QA evidence against its threat model. The [8] reviewer takes a first pass of its own before it is shown the security table, then uses `.agents/skills/code-review/SKILL.md` with the actual candidate, approved requirements, complete contracts/spec, repository rules, and current QA evidence, treating each security finding as a check to confirm or refute rather than a conclusion to accept. Both are required gates; the implementer cannot act as either. Security and code review use different sessions, and the Security session that wrote the threat model cannot give the candidate verdict. Only when explicitly requested, Pentester runs after Security against an authorized, isolated test deployment of the candidate. Pass it the written authorization, target, security review, API contract handoff, spec, frontend spec, and synthetic accounts. Missing authorization or a production target blocks Pentester, not the rest of the run. When Pentester is enabled, the code reviewer also waits for the pentest report.
 8. Finish with verification and review results and any unresolved blockers. Only when explicitly requested, invoke Release Manager after all enabled outputs and required gates, including independent code review, are ready. Pass those outputs and the role selection. Unrequested Growth, Data, and Pentest assessments are not required inputs unless an approved check requires them. Route blockers from any stage through the Revision loop, capped at 3 global revision rounds.
 
 ### Designer preview
@@ -444,7 +447,7 @@ To resolve a round:
 1. Group blockers by owner. Send each owner its blockers, its original output (TL;DR and relevant sections), and the stage's evidence. If the owner is disabled, ask the user for a decision. Never activate the owner or waive the blocker.
 2. Re-run the affected owners. Save revised output as `<file>.rN.md`, where N is the round.
 3. Re-run every enabled downstream consumer in dependency order, with the same suffix.
-4. Re-run the affected gates: QA, Designer review (UI changes only), Security, Pentester (when enabled), fresh review, and Release Manager (when enabled, as `release-report.rN.md`).
+4. Re-run the affected gates: QA, Designer review (UI changes only), Security, Pentester (when enabled), fresh review, and Release Manager (when enabled, as `release-report.rN.md`). Security precedes the fresh review, which receives its findings as checks.
    - Keep each wave small. QA reruns the affected spec cases and the regression safety net, and states its selection. A full run is required when the repair touches shared code, contracts, schemas, or configuration. Designer review reruns only when rendered UI changes. Security checks the changed candidate against its existing threat model. No selection waives a required gate on the changed candidate.
 5. Repeat until required gates pass and blockers are resolved, up to 3 rounds. Report `VERIFIED` without a release assessment. Report a release verdict only when one ran.
 
