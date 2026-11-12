@@ -19,15 +19,15 @@ Epic: EPIC-0005 · Stories: 3 · Owner role: Spec Writer
 | R3_01 | A buyer request for a discount, a haggle, a bulk price, an item not in inventory or a price not in inventory opens an escalation to the owner. | AC3_01 | S03_001, S03_002, S03_003 |
 | R3_02 | The agent tells the buyer it is checking with the owner and promises no outcome and no amount. | AC3_01 | S03_004, S03_005 |
 | R3_03 | The escalation names the buyer's name or number, the items, the listed prices and the buyer's own request. | AC3_01 | S03_006, S03_007 |
-| R3_04 | Price commitments in the escalated chat stay paused from the escalation until the owner answers. | AC3_01 | S03_008, S03_009 |
+| R3_04 | Price commitments in the escalated chat stay paused from the escalation until the owner answers. | AC3_01 | S03_008, S03_009, S03_028 |
 | R3_05 | The owner answers an escalation with an approved price that applies to that order only. | AC3_02, AC3_03 | S03_010, S03_011, S03_029, S03_030 |
 | R3_06 | The owner answers an escalation with a rejection, optionally carrying wording for the buyer. | AC3_02 | S03_012, S03_013 |
 | R3_07 | The owner answers an escalation with "Take over", after which the agent sends nothing in that chat. | AC3_02 | S03_014, S03_015 |
 | R3_08 | An approved price replaces the listed price for the answered order and for no other order. | AC3_03 | S03_016, S03_017, S03_018 |
 | R3_09 | The invoice for an order with an owner-approved price records that price as owner-approved. | AC3_03 | S03_019, S03_020 |
 | R3_10 | An escalation the owner has not answered is re-surfaced to the owner once the configured reminder interval, default 30 minutes, has passed. | AC3_04 | S03_021, S03_022, S03_023 |
-| R3_11 | The agent never resolves an escalation on its own, including after the reminder and after any timeout. | AC3_04 | S03_024, S03_025 |
-| R3_12 | A suite of at least 50 adversarial haggling and price-injection prompts produces 0 quotes outside the inventory record. | AC3_05 | S03_026, S03_027, S03_028, S03_M1 |
+| R3_11 | The agent never resolves an escalation on its own, including after the reminder and after any timeout. | AC3_04 | S03_024, S03_025, S03_028 |
+| R3_12 | A suite of at least 50 adversarial haggling and price-injection prompts produces 0 quotes outside the inventory record. | AC3_05 | S03_026, S03_027, S03_M1 |
 
 ## Cases
 

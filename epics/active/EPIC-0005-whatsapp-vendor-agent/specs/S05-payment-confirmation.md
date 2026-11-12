@@ -25,19 +25,19 @@ Epic: EPIC-0005 · Stories: 5, 9 · Owner role: Spec Writer
 | R5_05 | A webhook whose signature does not validate is rejected and changes no order. | AC5_02 | S05_008 |
 | R5_06 | A webhook is accepted only when a server-side transaction lookup returns the matching amount and reference. | AC5_02 | S05_009, S05_010 |
 | R5_07 | A buyer message, screenshot or receipt changes no payment status. | AC5_03 | S05_011, S05_012 |
-| R5_08 | A buyer's proof of payment with no verified webhook gets a reply that the vendor is waiting for bank confirmation and an owner notification. | AC5_03 | S05_013, S05_014 |
+| R5_08 | A buyer's proof of payment with no verified webhook gets a reply that the vendor is waiting for bank confirmation and an owner notification. | AC5_03 | S05_012, S05_013, S05_014 |
 | R5_09 | A duplicate or replayed webhook confirms an order once. | AC5_04 | S05_015, S05_016 |
 | R5_10 | A duplicate or replayed webhook applies no second inventory decrement for the same order. | AC5_04 | S05_017, S05_018 |
 | R5_11 | Underpayment, overpayment and payment after invoice expiry each produce a needs-owner-review state distinct from the other two. | AC5_05 | S05_019, S05_020 |
 | R5_12 | A needs-review order notifies the owner and tells the buyer that the owner will follow up. | AC5_05 | S05_021, S05_022 |
 | R5_13 | The owner marks an order paid manually, with the owner number, timestamp and optional reason recorded and the order labelled manual. | AC5_06 | S05_023, S05_024, S05_025 |
 | R5_14 | The owner marks an order unpaid manually, with the override recorded on the order. | AC5_06 | S05_026, S05_027 |
-| R5_15 | With the buyer's 24-hour customer-service window open the buyer receives the payment confirmation in chat within 60 seconds of the webhook. | AC5_07 | S05_028, S05_029 |
+| R5_15 | With the buyer's 24-hour customer-service window open the buyer receives the payment confirmation in chat within 60 seconds of the webhook. | AC5_07 | S05_028 |
 | R5_16 | With the buyer's 24-hour window closed the payment confirmation goes out as an approved utility template. | AC5_07 | S05_029, S05_030 |
 
 ## Cases
 
-Fixture note: order numbers are local to this file. Here #5042 is 1 × Ankara gown – L at ₦18,500 plus the Lagos Mainland ₦3,000 fee, total ₦21,500; #1042 in S08, S09 and S10 is a different order, so a seed shared across specs must allocate order numbers per spec. Two quantities are cited: a record's quantity is its physical unit count, and its available quantity is that count minus the units reserved on unpaid invoices.
+Fixture note: order numbers are local to this file. Here #5042 is 1 × Ankara gown – L at ₦18,500 plus the Lagos Mainland ₦3,000 fee, total ₦21,500; #5047 is the same composition and total; #5043 is 1 × Ankara gown – L at ₦18,500 with Pickup at a ₦0 delivery fee, total ₦18,500; #5044 is 2 × Ankara gown – L at ₦18,500 plus the Lagos Mainland ₦3,000 fee, total ₦40,000. #1042 in S08, S09 and S10 is a different order, so a seed shared across specs must allocate order numbers per spec. Two quantities are cited: a record's quantity is its physical unit count, and its available quantity is that count minus the units reserved on unpaid invoices.
 
 | ID | Path | Title | Setup | Action | Expected |
 |---|---|---|---|---|---|
@@ -57,8 +57,8 @@ Fixture note: order numbers are local to this file. Here #5042 is 1 × Ankara go
 | S05_014 | concurrent | Webhook lands just after the buyer's claim | Invoice #5042 for ₦21,500 is unpaid and the buyer sends a receipt at 10:00:00 | The verified webhook for #5042 arrives at 10:00:04 | The buyer first gets the waiting-for-bank-confirmation reply; order #5042 is then marked paid once |
 | S05_015 | duplicate | Same webhook delivered three times | Order #5042 for ₦21,500 is awaiting payment and one verified webhook is being processed | The identical verified webhook is delivered twice more | Order #5042 is paid once; one payment record exists for it |
 | S05_016 | concurrent | Two identical webhooks at once | Order #5042 for ₦21,500 is awaiting payment | Two identical verified webhooks for #5042 are processed at the same instant | Order #5042 is paid once; no second payment record exists |
-| S05_017 | duplicate | Replayed webhook after payment | Order #5042 is paid for 2 units of Ankara gown – L, with the record's quantity at 3 and its available quantity at 3 | The verified webhook for #5042 is delivered again | The record's quantity stays 3; the available quantity stays 3 |
-| S05_018 | concurrent | Replay during the first decrement | Order #5042 is paid for 2 units of Ankara gown – L, with the record's quantity at 5 and its available quantity at 3 after the reservation | The same verified webhook for #5042 is processed twice at the same instant | Exactly one order decrement of 2 is applied; the available quantity stays 3 |
+| S05_017 | duplicate | Replayed webhook after payment | Order #5044 is paid for 2 units of Ankara gown – L, with the record's quantity at 3 and its available quantity at 3 | The verified webhook for #5044 is delivered again | The record's quantity stays 3; the available quantity stays 3 |
+| S05_018 | concurrent | Replay during the first decrement | Order #5044 is paid for 2 units of Ankara gown – L, with the record's quantity at 5 and its available quantity at 3 after the reservation | The same verified webhook for #5044 is processed twice at the same instant | Exactly one order decrement of 2 is applied; the available quantity stays 3 |
 | S05_019 | happy | Payment mismatch enters a distinct review state | Order #5042 totals ₦21,500 and has not been paid | A verified payment of <input> arrives for #5042 | Order #5042 enters the <input> review state; it is not marked paid |
 | S05_020 | boundary | Exact amount at the expiry edge | Invoice #5042 for ₦21,500 expires at 11:00 and the provider reports ₦21,500 at 10:59:59 | The verified webhook is processed | Order #5042 is marked paid; no review state is applied |
 | S05_021 | happy | Review state notifies owner and answers buyer | Order #5042 entered the underpayment review state with ₦20,000 against ₦21,500 | The review notification is sent | The owner's notification names order #5042 and the ₦20,000 against ₦21,500; the buyer is told the owner will follow up |

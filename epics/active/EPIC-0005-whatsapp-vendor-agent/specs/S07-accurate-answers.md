@@ -25,7 +25,7 @@ Epic: EPIC-0005 · Stories: 7 · Owner role: Spec Writer
 | R7_05 | An ambiguous item name produces either a clarifying question or a list of matching items with their prices. | AC7_03 | S07_008, S07_009, S07_010 |
 | R7_06 | An item that is not listed is reported as not listed with an offer to check with the owner. | AC7_03 | S07_011, S07_012, S07_024 |
 | R7_07 | An out-of-stock item is reported as unavailable. | AC7_04 | S07_013, S07_014 |
-| R7_08 | The agent may offer listed in-stock alternatives from the same parent product or category for an unavailable item. | AC7_04 | S07_015, happy-only: the offer is optional in the PRD and has no stated failure mode, while the unavailable-item obligation is owned by R7_07 |
+| R7_08 | The agent may offer listed in-stock alternatives from the same parent product or category for an unavailable item. | AC7_04 | S07_015, happy-only: the PRD makes the offer optional (see Gaps, AC7_04) |
 | R7_09 | Common English and Nigerian Pidgin phrasings are understood well enough to be answered or escalated. | AC7_05 | S07_016, S07_017 |
 | R7_10 | Replies are written in clear English. | AC7_05 | S07_017, S07_018 |
 | R7_11 | An off-topic request receives a polite one-line refusal that restates what the agent can help with. | AC7_06 | S07_019, S07_020, S07_021 |
@@ -107,6 +107,7 @@ Epic: EPIC-0005 · Stories: 7 · Owner role: Spec Writer
 - AC7_07: the PRD does not state the measurement method, sample size or which timestamps are subtracted, so S07_M1 fixes a 200-message sample and the received-to-sent interval.
 - AC7_03: the PRD allows either a clarifying question or a list of matching items and states no preference, so S07_004, S07_010 and S07_016 carry both branches and each branch is asserted separately. If the PM prefers one branch, the other branch's assertion is dropped. Owner: PM, with the clarification wording from the Copywriter.
 - AC7_03: item-name matching is unstated — exact, normalised for case, spacing and dashes, or fuzzy. S07_009 (Ankara gown XL against the listed Ankara gown – XL), S07_010 (ankra gwn) and S02_032 all rest on it, so S07_009 and S07_010 stay blocked until the matching rule is stated. Owner: PM with the Architect.
+- AC7_04: R7_08 is happy-only because the PRD says the agent "may" offer an in-stock alternative, so the offer has no stated failure mode; the unavailable-item obligation and its failure cases are owned by R7_07.
 - AC7_04, AC7_05, AC7_06: no copy deck exists for this epic, so the replies in S07_004, S07_010, S07_011, S07_016, S07_017, S07_019 and S07_020 are described rather than quoted. Owner: Copywriter, through the Designer's copy slots.
 
 ## TL;DR

@@ -67,7 +67,7 @@ None.
 ## Gaps
 
 - AC9_01: the PRD does not say what the buyer sees when no fulfilment note is configured, so S09_004 asserts only that no next step is claimed, checked against the words dispatch, delivery, collection and pickup.
-- AC9_01: the exact confirmation wording is given only as a shape, so the cases assert amount and order number rather than final copy; the string belongs to the Copywriter through the Designer's copy slots, and no copy deck exists for this epic.
+- AC9_01: the PRD quotes the confirmation as "Payment of ₦X received for order #N", and that quoted string is the single authority for the confirmation sentence; S09_001 asserts it exactly with ₦X as ₦40,000 and #N as #1042. The PRD leaves open how the next-step sentence is joined to it and any other surrounding wording, so S09_003 and S09_004 assert only the note's words and the absence of next-step words. Owner for the surrounding wording: Copywriter, through the Designer's copy slots; no copy deck exists for this epic.
 - AC9_03: whether the buyer may ask about an order older than the current chat is unstated, so S09_010 and S09_011 assume only orders in that buyer's own chat.
 - AC9_02 with AC5_04 and AC2_07: S09_005 and S09_006 read a record's quantity and its available quantity as two numbers, following AC8_03, AC9_02 and AC2_07; S05 Gaps records the same model and the PM should confirm it. Both cases are also blocked on the inventory read surface (C11) and the sale-record surface (C7).
 - AC9_03: S09_009 cannot fail as written. Whether the status answer reads the order record when the buyer's message is received or when the reply is sent is unstated, so both awaiting-payment and paid satisfy it. The read point is needed from the PM with the Architect, and S09_009 stays blocked until then.
@@ -75,4 +75,4 @@ None.
 ## TL;DR
 
 - Criteria: 3 (3 with rules) · Rules: 4 · Cases: 11, all automated · Manual checks: 0
-- Gaps: missing fulfilment note (AC9_01), confirmation copy and missing copy deck (AC9_01), order history scope (AC9_03), quantity versus available-quantity model (AC9_02 with AC5_04), read point for the status answer and blocked S09_009 (AC9_03)
+- Gaps: missing fulfilment note (AC9_01), wording around the quoted confirmation string and missing copy deck (AC9_01), order history scope (AC9_03), quantity versus available-quantity model (AC9_02 with AC5_04), read point for the status answer and blocked S09_009 (AC9_03)
