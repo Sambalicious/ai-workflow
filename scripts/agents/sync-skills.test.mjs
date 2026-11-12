@@ -5,7 +5,7 @@ import { chmod, lstat, mkdtemp, mkdir, readFile, readlink, rm, stat, symlink, wr
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { isDirty, syncSkills } from './sync-skills.mjs';
+import { isDirty, sourceWarnings, syncSkills } from './sync-skills.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..', '..');
@@ -148,6 +148,41 @@ test('the target records which factory commit its skills came from', async () =>
     await rm(join(target, '.agents/skills-source.json'));
     await syncSkills({ source, target, check: true });
     await assert.rejects(readFile(join(target, '.agents/skills-source.json'), 'utf8'), /ENOENT/);
+  } finally {
+    await rm(source, { recursive: true, force: true });
+    await rm(target, { recursive: true, force: true });
+  }
+});
+
+test('each source problem gets its own warning', () => {
+  assert.deepEqual(sourceWarnings(null), []);
+  assert.deepEqual(sourceWarnings({ branch: 'main', dirty: false }), []);
+  assert.deepEqual(sourceWarnings({ branch: 'chore/x', dirty: false }), [
+    'Warning: source branch is chore/x, not main. Pass --source to sync from a merged checkout.',
+  ]);
+  assert.deepEqual(sourceWarnings({ branch: 'main', dirty: true }), [
+    'Warning: source has uncommitted changes. Skills are copied from the working tree, not from main.',
+  ]);
+});
+
+test('syncing a checkout into itself does not compare it with its own provenance', async () => {
+  const { source, target } = await fixture();
+  try {
+    const git = (...args) => spawnSync('git', ['-C', source, ...args], { encoding: 'utf8' });
+    git('init', '-q', '-b', 'main');
+    git('add', '-A');
+    git('-c', 'user.email=a@b', '-c', 'user.name=t', 'commit', '-qm', 'fixture');
+    // A stale record would trigger the "Target was synced from ..." line in a
+    // normal run; with source === target it must not appear.
+    await mkdir(join(source, '.agents'), { recursive: true });
+    await writeFile(join(source, '.agents/skills-source.json'), JSON.stringify({ commit: 'deadbeef', branch: 'other' }));
+
+    const result = spawnSync(process.execPath,
+      [join(root, 'scripts/agents/sync-skills.mjs'), source, '--source', source],
+      { encoding: 'utf8' });
+    assert.equal(result.status, 0, result.stderr);
+    assert.doesNotMatch(result.stdout, /Target was synced from/);
+    assert.doesNotMatch(result.stdout, /is not a clean main/);
   } finally {
     await rm(source, { recursive: true, force: true });
     await rm(target, { recursive: true, force: true });
