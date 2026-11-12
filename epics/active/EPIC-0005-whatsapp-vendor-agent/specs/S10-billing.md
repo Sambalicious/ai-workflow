@@ -26,6 +26,8 @@ Epic: EPIC-0005 · Stories: 10 · Owner role: Spec Writer
 
 ## Cases
 
+Fixture note: #1042 in this file is the ₦40,000 order of 2 × Ankara gown – L plus the Lagos Mainland ₦3,000 fee, the same order as #1042 in S08 and S09, and different from #2042 in S03 and #5042 in S05.
+
 | ID | Path | Title | Setup | Action | Expected |
 |---|---|---|---|---|---|
 | S10_001 | happy | Fee scoped to paid orders | The vendor is billed under the ₦100 per-order fee and has one order in the state <input> | The monthly bill for the vendor is calculated | The bill carries the per-order fee for the state <input> as shown in the examples; no other state adds a fee |
@@ -87,8 +89,9 @@ Epic: EPIC-0005 · Stories: 10 · Owner role: Spec Writer
 - AC10_02: Q2 (blocking) — whether the chosen provider supports split settlement, and how the split is configured, is undecided.
 - AC10_03: the record period is monthly but the billing time zone and month boundary are unstated.
 - AC10_04: Q5 (non-blocking) — launch positioning is not a behavioural requirement and no criterion in this epic depends on it.
+- AC10_04 with AC5_04: S10_016 asserts one stock decrement when the payment and the suspension land together, which depends on the quantity model recorded in S05 Gaps; until the PM confirms it, the case proves only that #1042 completes as paid.
 
 ## TL;DR
 
 - Criteria: 4 (4 with rules) · Rules: 8 · Cases: 17, all automated · Manual checks: 1
-- Gaps: Q3 pricing and trial length (AC10_01), charge timing (AC10_01), abandoned vendors (AC10_01), suspended-agent scope (AC10_04), Q2 split support (AC10_02), billing month boundary (AC10_03), Q5 positioning (AC10_04)
+- Gaps: Q3 pricing and trial length (AC10_01), charge timing (AC10_01), abandoned vendors (AC10_01), suspended-agent scope (AC10_04), Q2 split support (AC10_02), billing month boundary (AC10_03), Q5 positioning (AC10_04), stock decrement in S10_016 depends on the quantity model (AC10_04 with AC5_04)

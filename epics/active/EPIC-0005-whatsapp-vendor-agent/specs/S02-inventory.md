@@ -42,8 +42,8 @@ Epic: EPIC-0005 · Stories: 2 · Owner role: Spec Writer
 |---|---|---|---|---|---|
 | S02_001 | happy | Owner number executes an admin command | +2348030000001 is a registered owner admin number and Ankara gown – L is listed at ₦18,500 | The owner sends "change Ankara gown – L to 20000" | The message is interpreted as an admin price change; no buyer-style answer is produced |
 | S02_002 | duplicate | Same admin message delivered twice | WhatsApp delivers the owner message "change Ankara gown – L to 20000" twice with one message identifier and the owner confirms once | The duplicate delivery is processed after the confirmation | The price is ₦20,000; one inventory-change record exists for it |
-| S02_003 | permission | Buyer sends an admin command | +2348030000002 is not registered and Ankara gown – L is listed at ₦18,500 with quantity 5 | +2348030000002 sends "remove Ankara gown – L" | Ankara gown – L stays listed at ₦18,500 with quantity 5; the sender receives a customer-style reply |
-| S02_004 | permission | Buyer asks for the stock list | +2348030000002 is not registered and 12 items are listed | +2348030000002 sends "stock list" | No price-and-quantity table for the whole inventory is sent; the sender receives a customer-style reply |
+| S02_003 | permission | Buyer sends an admin command | +2348030000002 is not registered and Ankara gown – L is listed at ₦18,500 with quantity 5 | +2348030000002 sends "remove Ankara gown – L" | Ankara gown – L stays listed at ₦18,500 with quantity 5; the reply confirms no inventory change |
+| S02_004 | permission | Buyer asks for the stock list | +2348030000002 is not registered and 12 items are listed | +2348030000002 sends "stock list" | No price-and-quantity table for the whole inventory is sent; the reply lists no price or quantity for another item |
 | S02_005 | happy | Item added with price and quantity | No item named Silk scarf exists | The owner sends "add Silk scarf, 4500, 10" | Silk scarf is listed at ₦4,500 with quantity 10 |
 | S02_006 | validation | Add request without a price | No item named Silk scarf exists | The owner sends "add Silk scarf, 10" | The agent asks for a naira price; no item is created |
 | S02_007 | happy | Price set on one item | Ankara gown – L is listed at ₦18,500 with quantity 5 | The owner confirms the repeated change from ₦18,500 to ₦20,000 for Ankara gown – L | Ankara gown – L is listed at ₦20,000; its quantity stays 5 |
@@ -120,8 +120,10 @@ Epic: EPIC-0005 · Stories: 2 · Owner role: Spec Writer
 - AC2_03: whether a quantity change on exactly one item ever needs confirmation when the owner phrased it as a multi-item command is unstated.
 - AC2_06: whether renaming a parent product name is possible, and whether parents can hold their own price and quantity, is unstated.
 - AC2_07: the PRD does not say how long inventory-change records are kept or who may read them.
+- AC2_07 with AC8_03 and AC9_02: S02_034 includes an "order decrement of 1 after payment", while AC8_03 removes the ordered units from available stock when the invoice is issued and AC9_02 says the remaining quantity is already decremented. Whether payment writes one order-decrement record against the reservation is the same question recorded in S05 Gaps. Owner: PM with the Architect.
+- AC2_01: what a non-owner who sends an admin command is told is unstated, so S02_003 and S02_004 assert that no inventory effect and no inventory data follow, not the reply's shape. Owner: PM, with wording from the Copywriter.
 
 ## TL;DR
 
 - Criteria: 7 (7 with rules) · Rules: 17 · Cases: 35, all automated · Manual checks: 1
-- Gaps: below-zero quantity (AC2_02), Pidgin admin phrasing (AC2_02), out-of-stock quantity semantics (AC2_02), single-item multi-phrased confirmation (AC2_03), parent product behaviour (AC2_06), change-record retention (AC2_07)
+- Gaps: below-zero quantity (AC2_02), Pidgin admin phrasing (AC2_02), out-of-stock quantity semantics (AC2_02), single-item multi-phrased confirmation (AC2_03), parent product behaviour (AC2_06), change-record retention (AC2_07), order-decrement record versus the reservation model (AC2_07 with AC8_03 and AC9_02), reply shape for a non-owner admin command (AC2_01)

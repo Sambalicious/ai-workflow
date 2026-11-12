@@ -30,6 +30,8 @@ Epic: EPIC-0005 · Stories: all · Owner role: Spec Writer
 
 ## Cases
 
+Fixture note: #1042 in this file is the paid ₦40,000 order of 2 × Ankara gown – L plus the Lagos Mainland ₦3,000 fee, the same order as #1042 in S08 and S09.
+
 | ID | Path | Title | Setup | Action | Expected |
 |---|---|---|---|---|---|
 | S11_001 | happy | Commerce question answered inside scope | Ankara gown – L is listed at ₦18,500 with quantity 5 | The buyer asks "how much is Ankara gown L and do you deliver to Lekki?" | The reply states ₦18,500 and the Lekki/Ajah fee of ₦4,500; no off-topic offer is added |
