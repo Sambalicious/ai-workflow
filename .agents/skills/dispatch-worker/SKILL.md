@@ -100,9 +100,9 @@ justify skipping a gate. Pull a task type back to the lead tier when its rewrite
 rate passes about 1 in 7 over ten tasks.
 
 `scripts/agents/worker-guard.mjs` is a Claude Code `PreToolUse` hook on `Agent`
-that warns, without blocking, when implementation starts on sonnet, opus, or an
-inherited model. A warning means re-route the work to Flash; the tool call itself
-already ran.
+that blocks implementation started on sonnet, opus, or an inherited model. Re-route
+the work to Flash. `EVE_ALLOW_LEAD=1` turns the block into a warning for a deliberate
+override, and the run brief says why.
 
 ## Output format
 

@@ -56,6 +56,16 @@ first, every run, before any role is dispatched.
    `node scripts/agents/worker-guard.mjs --base <ref>`) and send anything it lists back
    to the lead or the advisor. It checks the real diff, including untracked files,
    against the worker boundary, so a brief that quietly widens scope still fails.
+7. Run `pnpm agents:stale` before the first dispatch. A branch more than 30 commits
+   behind `origin/main`, or whose `.agents/models.json` differs from it, runs without
+   the current policy.
+8. A Claude dispatch runs `pnpm agents:preflight <role> --record <run>` first, then
+   `pnpm agents:ledger add ...`. The ledger refuses a lead or advisor dispatch without a
+   receipt younger than ten minutes, so the sequence cannot be skipped by habit.
+9. A gate runs only when its inputs exist: `pnpm agents:artifacts --run <epic> --gate
+   <qa|design|security|code-review>`. List inherited test failures in
+   `docs/ops/known-failures.md` and compare a run's report with
+   `pnpm agents:known-failures --report <vitest json>` instead of re-deriving them.
 
 ## Role
 
@@ -163,10 +173,10 @@ tier and its output is worthless at the gate. Resolve the model, pass it, and re
 2. Pass that model in the dispatch. Confirm it resolves in the client's provider list. If it
    does not, stop the run and report it; never substitute a tier without the owner's agreement,
    and never let a session default stand in for a role's tier.
-3. Add the dispatch to the run's ledger (round, role, tier, model, artifact, state) before the
+3. Run `pnpm agents:preflight <role> --record <run>` first. A closed rate window stops the run; it
+   is never a retry loop per agent.
+4. Then add the dispatch to the run's ledger (round, role, tier, model, artifact, state) before the
    agent starts.
-4. Run `pnpm agents:preflight <role>` first. A closed rate window stops the run; it is never a
-   retry loop per agent.
 5. Respect the caps: at most two Claude agents running at once, eight Claude dispatches per run,
    four on the cheap tier. A revision is an edit, not a regenerated document.
 
@@ -235,8 +245,11 @@ searches. Workers never plan, decide design, or touch contracts and security rul
 and never run or replace the QA, Security, or code review gates.
 
 Dispatch with `.agents/skills/dispatch-worker/SKILL.md`. The `worker-guard`
-`PreToolUse` hook (`scripts/agents/worker-guard.mjs`) warns, without blocking, when
-an `Agent` call starts implementation on the lead tier.
+`PreToolUse` hook (`scripts/agents/worker-guard.mjs`) blocks an `Agent` call that
+starts implementation on the lead tier. Set `EVE_ALLOW_LEAD=1` for a deliberate
+override, which downgrades the block to a warning. `pnpm agents:check` runs
+`scripts/agents/policy.mjs`, which fails when the tier policy, this rule or the hook
+wiring drifts.
 
 - Each sub-task states goal, files in scope, acceptance check, and what not to
   touch. Pass only that and the relevant paths, not the session history.

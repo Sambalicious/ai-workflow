@@ -3,7 +3,7 @@
 // tool-neutral sources in .agents/ (models.json and agents/*.md).
 // Usage: node scripts/agents/sync.mjs [--check]
 // --check writes nothing and exits 1 when a generated file is out of date.
-import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -29,13 +29,25 @@ export function parseSource(text, file) {
 const notice = (name) =>
   `<!-- Generated from .agents/agents/${name}.md by scripts/agents/sync.mjs. Edit the source, then run npm run agents:sync. -->\n\n`;
 
+// Marks a file as generated, so a file whose source stopped producing it can be retired.
+// The marker only counts inside the generated-notice line written above: a hand-written
+// file may quote the string in prose and must survive.
+const NOTICE =
+  /^<!-- Generated from \.agents\/agents\/[\w.-]+\.md by scripts\/agents\/sync\.mjs\. Edit the source, then run npm run agents:sync\. -->$/m;
+
 // Claude Code's built-in search agent is named Explore.
 const claudeName = (meta) =>
   meta['overrides-builtin'] === 'true' && meta.name === 'explore' ? 'Explore' : meta.name;
 
-// Each adapter turns one source agent into one client file.
+// Each adapter turns one source agent into one client file. `supports` says whether the
+// client can run the model a tier maps to.
 export const ADAPTERS = {
   'claude-code': {
+    dir: '.claude/agents',
+    // Claude Code resolves a subagent's model name on its own endpoint, so a provider
+    // model such as opencode-go/deepseek-v4.1-flash cannot run there. That tier gets no
+    // agent file; its work goes through delegate_task (AGENTS.md, Role model policy).
+    supports: (model) => !model.includes('/'),
     path: (meta) => `.claude/agents/${claudeName(meta)}.md`,
     render({ meta, body }, model) {
       const name = claudeName(meta);
@@ -53,6 +65,8 @@ export const ADAPTERS = {
     },
   },
   opencode: {
+    dir: '.opencode/agents',
+    supports: () => true,
     path: (meta) => `.opencode/agents/${meta.name}.md`,
     render({ meta, body }, model) {
       return [
@@ -107,6 +121,7 @@ export async function plan(root = ROOT) {
     for (const source of sources) {
       const model = tiers[source.meta.tier];
       if (!model) throw new Error(`${source.meta.name}: tier ${source.meta.tier} has no ${client} model`);
+      if (!adapter.supports(model)) continue;
       outputs.set(adapter.path(source.meta), adapter.render(source, model));
     }
     const settings = SETTINGS[client];
@@ -124,9 +139,31 @@ export async function plan(root = ROOT) {
   return outputs;
 }
 
+// Files a client no longer generates, found by their generated marker. A client that
+// cannot run a tier keeps no agent file for it, and a hand-written file is never removed.
+export async function retired(root, outputs) {
+  const gone = [];
+  for (const adapter of Object.values(ADAPTERS)) {
+    let files;
+    try {
+      files = await readdir(join(root, adapter.dir));
+    } catch {
+      continue;
+    }
+    for (const file of files.filter((f) => f.endsWith('.md')).sort()) {
+      const path = join(adapter.dir, file);
+      if (outputs.has(path)) continue;
+      const text = await readOr(join(root, path), null);
+      if (text !== null && NOTICE.test(text)) gone.push(path);
+    }
+  }
+  return gone;
+}
+
 export async function sync({ root = ROOT, check = false } = {}) {
   const stale = [];
-  for (const [path, text] of await plan(root)) {
+  const outputs = await plan(root);
+  for (const [path, text] of outputs) {
     const full = join(root, path);
     if ((await readOr(full, null)) === text) continue;
     stale.push(path);
@@ -134,6 +171,10 @@ export async function sync({ root = ROOT, check = false } = {}) {
       await mkdir(dirname(full), { recursive: true });
       await writeFile(full, text);
     }
+  }
+  for (const path of await retired(root, outputs)) {
+    stale.push(path);
+    if (!check) await rm(join(root, path));
   }
   return stale;
 }

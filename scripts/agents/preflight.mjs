@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Proves a role's tier model can actually answer before an agent is dispatched.
-// Usage: node scripts/agents/preflight.mjs <role|tier> [--client opencode|claude-code] [--json]
+// Usage: node scripts/agents/preflight.mjs <role|tier> [--client opencode|claude-code] [--json] [--record <run dir>]
 // Exit codes: 0 ready, 1 bad usage, 2 rate window closed (Retry-After), 3 credential
 // rejected, 4 provider error, 5 no provider configuration.
 import { readFile } from 'node:fs/promises';
@@ -76,10 +76,11 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     return value ?? '';
   };
   const asJson = args.includes('--json');
+  const record = flag('--record');
   const client = flag('--client') ?? process.env.EVE_AGENT_CLIENT ?? 'opencode';
   const question = args[0];
   if (!question) {
-    process.stderr.write('usage: node scripts/agents/preflight.mjs <role|tier> [--client opencode|claude-code] [--json]\n');
+    process.stderr.write('usage: node scripts/agents/preflight.mjs <role|tier> [--client opencode|claude-code] [--json] [--record <run dir>]\n');
     process.exit(1);
   }
   try {
@@ -88,6 +89,15 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     const options = await providerOptions(models, resolved.model, client);
     const result = options.baseURL === null ? { kind: 'ready', note: 'no remote provider to probe' } : await probe(options);
     const report = { ...resolved, ...result };
+    // A ready probe leaves a receipt in the run, which ledger.mjs checks before a Claude dispatch.
+    if (result.kind === 'ready' && record) {
+      const { mkdir, writeFile } = await import('node:fs/promises');
+      await mkdir(record, { recursive: true });
+      await writeFile(
+        join(record, `.preflight-${resolved.question}.json`),
+        `${JSON.stringify({ role: resolved.question, tier: resolved.tier, model: resolved.model, at: new Date().toISOString() }, null, 2)}\n`,
+      );
+    }
     if (asJson) process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
     else if (result.kind === 'closed') process.stdout.write(`closed: ${resolved.model} rate window closed, Retry-After ${result.retryAfter ?? 'unknown'}s\n`);
     else if (result.kind === 'ready') process.stdout.write(`ready: ${resolved.model}\n`);
