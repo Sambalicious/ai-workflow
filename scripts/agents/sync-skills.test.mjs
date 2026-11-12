@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { chmod, lstat, mkdtemp, mkdir, readFile, readlink, rm, stat, symlink, writeFile } from 'node:fs/promises';
+import { statSync } from 'node:fs';
+import { chmod, lstat, mkdtemp, mkdir, readFile, readdir, readlink, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -204,13 +205,20 @@ test('--source points the CLI at another factory checkout', async () => {
   }
 });
 
-test('the CLI exits 0 when in sync and 1 when the target drifts', async () => {
+test('the CLI exits 0 when in sync and 1 when the target drifts', async (t) => {
   const target = await mkdtemp(join(tmpdir(), 'skills-cli-'));
   try {
     const cli = ['scripts/agents/sync-skills.mjs', target];
     assert.equal(spawnSync(process.execPath, cli, { cwd: root }).status, 0);
     assert.equal(spawnSync(process.execPath, [...cli, '--check'], { cwd: root }).status, 0);
-    await writeFile(join(target, '.agents/skills/retro/SKILL.md'), 'stale\n');
+    // This file is installed into projects that carry their own skill set, so it cannot
+    // name a factory-only skill: 'retro' does not exist in every installed project and
+    // the test failed there. Discover any real skill instead.
+    const skill = (await readdir(join(root, '.agents/skills'), { withFileTypes: true }))
+      .find((entry) => entry.isDirectory() &&
+        statSync(join(root, '.agents/skills', entry.name, 'SKILL.md'), { throwIfNoEntry: false })?.isFile());
+    if (!skill) return t.skip('no skill with a SKILL.md to drift');
+    await writeFile(join(target, `.agents/skills/${skill.name}/SKILL.md`), 'stale\n');
     assert.equal(spawnSync(process.execPath, [...cli, '--check'], { cwd: root }).status, 1);
     assert.equal(spawnSync(process.execPath, ['scripts/agents/sync-skills.mjs'], { cwd: root }).status, 2);
   } finally {
