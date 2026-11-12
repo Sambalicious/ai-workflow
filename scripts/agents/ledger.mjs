@@ -4,7 +4,7 @@
 //   node scripts/agents/ledger.mjs add --run <dir> --round <n> --role <r> --tier <t> --model <m> --artifact <a> [--state running|done|failed] [--force]
 //     A lead or advisor dispatch needs a preflight receipt under 10 minutes old in <dir>
 //     (preflight.mjs <role> --record <dir>); --force skips that check.
-//   node scripts/agents/ledger.mjs check --run <dir> [--max-claude 8] [--max-concurrent 2]
+//   node scripts/agents/ledger.mjs check --run <dir> [--max-claude 8] [--max-concurrent 2] [--max-concurrent-advisor 1]
 //   node scripts/agents/ledger.mjs show --run <dir>
 // Exit 1 when an entry is malformed or a cap would be exceeded.
 import { realpathSync } from 'node:fs';
@@ -30,17 +30,27 @@ export function entryProblems(entry) {
 export function caps(entries, limits = {}) {
   const maxClaude = limits.maxClaude ?? 8;
   const maxConcurrent = limits.maxConcurrent ?? 2;
+  const maxAdvisorConcurrent = limits.maxAdvisorConcurrent ?? 1;
   const claude = entries.filter((entry) => CLAUDE_TIERS.has(entry.tier)).length;
-  const concurrent = entries.filter((entry) => CLAUDE_TIERS.has(entry.tier) && entry.state === 'running').length;
+  const running = entries.filter((entry) => CLAUDE_TIERS.has(entry.tier) && entry.state === 'running');
+  const concurrent = running.length;
+  // One advisor session at a time: the gates on that tier serialize rather than
+  // parallelize (AGENTS.md, Role model policy), and this is what makes the rule a
+  // check instead of a convention. It counts every advisor role, consults included.
+  const advisorConcurrent = running.filter((entry) => entry.tier === 'advisor').length;
   const byTier = entries.reduce((counts, entry) => ({ ...counts, [entry.tier]: (counts[entry.tier] ?? 0) + 1 }), {});
   return {
     total: entries.length,
     claude,
     concurrent,
+    advisorConcurrent,
     byTier,
     problems: [
       ...(claude > maxClaude ? [`${claude} Claude dispatches exceeds the cap of ${maxClaude}`] : []),
       ...(concurrent > maxConcurrent ? [`${concurrent} Claude agents running exceeds the cap of ${maxConcurrent}`] : []),
+      ...(advisorConcurrent > maxAdvisorConcurrent
+        ? [`${advisorConcurrent} advisor agents running exceeds the cap of ${maxAdvisorConcurrent}; the advisor-tier gates serialize`]
+        : []),
     ],
   };
 }
@@ -87,6 +97,7 @@ if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToP
   const run = flag('--run');
   const maxClaude = Number(flag('--max-claude') ?? 8);
   const maxConcurrent = Number(flag('--max-concurrent') ?? 2);
+  const maxAdvisorConcurrent = Number(flag('--max-concurrent-advisor') ?? 1);
   if (!run || !['add', 'check', 'show'].includes(command)) {
     process.stderr.write('usage: node scripts/agents/ledger.mjs <add|check|show> --run <dir> [flags]\n');
     process.exit(1);
@@ -97,9 +108,9 @@ if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToP
     process.exit(problems.length === 0 ? 0 : 1);
   }
   if (command === 'check') {
-    const summary = caps(entries, { maxClaude, maxConcurrent });
+    const summary = caps(entries, { maxClaude, maxConcurrent, maxAdvisorConcurrent });
     const all = [...problems, ...summary.problems];
-    process.stdout.write(`total ${summary.total}, Claude ${summary.claude}, running ${summary.concurrent}, tiers ${JSON.stringify(summary.byTier)}\n`);
+    process.stdout.write(`total ${summary.total}, Claude ${summary.claude}, running ${summary.concurrent}, advisor running ${summary.advisorConcurrent}, tiers ${JSON.stringify(summary.byTier)}\n`);
     for (const problem of all) process.stderr.write(`ledger: ${problem}\n`);
     process.exit(all.length === 0 ? 0 : 1);
   }
@@ -128,7 +139,7 @@ if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToP
     at: new Date().toISOString(),
   };
   const found = entryProblems(entry);
-  const summary = caps([...entries, entry], { maxClaude, maxConcurrent });
+  const summary = caps([...entries, entry], { maxClaude, maxConcurrent, maxAdvisorConcurrent });
   const all = [...found, ...summary.problems];
   if (all.length > 0) {
     for (const problem of all) process.stderr.write(`ledger: ${problem}\n`);

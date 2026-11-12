@@ -41,6 +41,37 @@ test('the concurrency cap counts running Claude agents only', () => {
   assert.equal(caps(entries, { maxClaude: 8, maxConcurrent: 1 }).problems.length, 1);
 });
 
+test('one advisor session runs at a time, so a parallel [7] and [8] fails', () => {
+  const parallelGates = [
+    entry({ role: 'security-review', tier: 'advisor', state: 'running' }),
+    entry({ role: 'code-review', tier: 'advisor', state: 'running' }),
+  ];
+  const summary = caps(parallelGates, { maxClaude: 8, maxConcurrent: 2 });
+  assert.equal(summary.advisorConcurrent, 2);
+  assert.match(summary.problems.join(' '), /2 advisor agents running exceeds the cap of 1/);
+
+  const serialized = [parallelGates[0], { ...parallelGates[1], state: 'done' }];
+  assert.equal(caps(serialized, { maxClaude: 8, maxConcurrent: 2 }).advisorConcurrent, 1);
+  assert.deepEqual(caps(serialized, { maxClaude: 8, maxConcurrent: 2 }).problems, []);
+});
+
+test('a lead session and an advisor session may run together', () => {
+  const entries = [
+    entry({ role: 'qa-gate', tier: 'lead', state: 'running' }),
+    entry({ role: 'designer-review', tier: 'lead', state: 'running' }),
+    entry({ role: 'security-review', tier: 'advisor', state: 'running' }),
+  ];
+  assert.deepEqual(caps(entries, { maxClaude: 8, maxConcurrent: 3 }).problems, []);
+});
+
+test('the cap counts advisor consults, not only the gates', () => {
+  const entries = [
+    entry({ role: 'security-review', tier: 'advisor', state: 'running' }),
+    entry({ role: 'advisor-consult', tier: 'advisor', state: 'running' }),
+  ];
+  assert.match(caps(entries, { maxClaude: 8, maxConcurrent: 2 }).problems.join(' '), /advisor agents running exceeds/);
+});
+
 test('the ledger parser reports a broken line without dropping the rest', () => {
   const { entries, problems } = parseLedger(`${JSON.stringify(entry())}\nnot json\n${JSON.stringify(entry({ role: 'architect' }))}\n`);
   assert.equal(entries.length, 2);

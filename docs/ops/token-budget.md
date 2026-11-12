@@ -10,7 +10,7 @@ that spend least for the same output.
 pnpm agents:preflight qa-gate    # one max_tokens request; non-zero means do not dispatch
 pnpm agents:ledger add --run <dir> --round 1 --role qa-gate --tier lead \
   --model anthropic/claude-sonnet-5-5 --artifact qa/ --state running
-pnpm agents:ledger check --run <dir>    # caps: 8 Claude dispatches, 2 running at once
+pnpm agents:ledger check --run <dir>    # caps: 8 Claude dispatches, 2 running, 1 advisor running
 pnpm agents:ledger show --run <dir>
 ```
 
@@ -23,6 +23,7 @@ signal for each agent.
 | Cap | Value | Why |
 |---|---|---|
 | Claude agents running at once | 2 | each one pays its own cold prefix |
+| Advisor agents running at once | 1 | the advisor-tier gates serialize; `--max-concurrent-advisor` |
 | Claude dispatches per run | 8 | a ninth means the plan is wrong, not the budget |
 | Flash agents running at once | 4 | cheap tier, no shared window |
 | Revisions per artifact per round | 1 | batch the review, then dispatch once |
