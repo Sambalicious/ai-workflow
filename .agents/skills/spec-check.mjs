@@ -7,6 +7,7 @@
 // "closure holds" for a spec with no sad paths.
 //
 // Usage: node spec-check.mjs <spec.md> [more.md ...]
+import { realpathSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 
@@ -159,7 +160,12 @@ export function checkSpec(source, file = 'spec') {
   return { file, criteria: criteria.size, rules: rules.size, cases: cases.size, problems };
 }
 
-const calledDirectly = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
+// Node resolves module symlinks, so import.meta.url is the real path while
+// process.argv[1] keeps the symlinked one. Comparing them directly made the CLI
+// exit 0 without checking anything when invoked through a link, such as /tmp on
+// macOS. Compare resolved paths instead.
+const resolve = path => { try { return realpathSync(path); } catch { return path; } };
+const calledDirectly = Boolean(process.argv[1]) && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url));
 const files = calledDirectly ? process.argv.slice(2) : [];
 if (calledDirectly && files.length === 0) {
   console.error('Usage: node spec-check.mjs <spec.md> [more.md ...]');

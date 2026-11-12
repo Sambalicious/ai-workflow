@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
-import { access, readFile } from 'node:fs/promises';
+import { spawnSync } from 'node:child_process';
+import { access, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
@@ -146,4 +148,28 @@ test('empty cells and orphan cases fail', () => {
 test('the file heading and ID prefix must agree', () => {
   const wrongPrefix = mutate('# S07 — Test feature', '# S09 — Test feature');
   assert.ok(checkSpec(wrongPrefix).problems.some(p => /prefix does not match/.test(p)));
+});
+
+test('the CLI checks when invoked through a symlinked path', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'spec-link-'));
+  try {
+    // A symlinked repo root, like /tmp on macOS. Comparing argv[1] with
+    // import.meta.url directly made this exit 0 without checking anything.
+    const repoLink = join(dir, 'repo');
+    await symlink(join(here, '..', '..'), repoLink);
+    const specPath = join(dir, 'S07-linked.md');
+    const cli = join(repoLink, '.agents', 'skills', 'spec-check.mjs');
+
+    await writeFile(specPath, valid);
+    const ok = spawnSync(process.execPath, [cli, specPath], { encoding: 'utf8' });
+    assert.equal(ok.status, 0, ok.stderr);
+    assert.match(ok.stdout, /closure holds/);
+
+    await writeFile(specPath, mutate('| S07_001 | happy |', '| S07_001 | Sad |'));
+    const bad = spawnSync(process.execPath, [cli, specPath], { encoding: 'utf8' });
+    assert.equal(bad.status, 1, 'a broken spec must fail through a link too');
+    assert.match(bad.stderr, /unknown path/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
 });
