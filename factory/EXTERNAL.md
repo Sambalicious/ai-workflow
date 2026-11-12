@@ -60,6 +60,10 @@ export RUN_ROOT="/absolute/path/to/private-runs/target-project/run-001"
   `features/` tree. Read existing specifications from their declared target paths.
   Put application deliverables in the target's approved locations, not `RUN_ROOT`.
 
+Run `node "$FACTORY_ROOT/factory/roots.mjs" --project "$PROJECT_ROOT" --run "$RUN_ROOT"`
+to check these rules, confirm the factory checkout is clean, and print `factory_version`.
+It creates nothing and does not enforce writes; the caller still does.
+
 Resolve symlinks before checking boundaries. In shared-checkout use, keep these
 three roots separate: no root may equal or contain another. Keep `RUN_ROOT`
 outside version-controlled source, restrict access, and allocate a unique directory

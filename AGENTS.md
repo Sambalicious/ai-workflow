@@ -194,7 +194,7 @@ The setup, the health check for the local provider and the ledger template are i
 |---|---|---|
 | lead | sonnet | anthropic/claude-sonnet-5-5 |
 | advisor | opus | anthropic/claude-opus-5-5 |
-| swarm | haiku | opencode-go/deepseek-v4.1-flash |
+| swarm | opencode-go/deepseek-v4.1-flash | opencode-go/deepseek-v4.1-flash |
 | worker | opencode-go/deepseek-v4.1-flash | opencode-go/deepseek-v4.1-flash |
 <!-- tier-table:end -->
 
@@ -209,10 +209,12 @@ The setup, the health check for the local provider and the ledger template are i
   because the worker tier writes the code. Security runs on the advisor tier because
   a missed finding is silent — no cheaper gate contradicts it — and it is serialized
   before the code review so that one Opus session runs at a time.
-- **Swarm**: repo maps and searches (`explore`), file inventories, log and
-  test-output triage, and check runs (`audit`). Swarm output is a lead; the lead or
-  advisor tier confirms it before it becomes a finding or evidence. Run a single
-  grep or call-site lookup in the main session directly.
+- **Swarm** (explore, audit, check runs): in Claude Code, dispatch it through
+  `delegate_task` to DeepSeek V4.1 Flash, never the built-in `Explore` agent type,
+  which runs on Haiku. The tier covers repo maps and searches, file inventories, and
+  log and test-output triage. Swarm output is a lead; the lead or advisor tier
+  confirms it before it becomes a finding or evidence. Run a single grep or
+  call-site lookup in the main session directly.
 
 Consult the `advisor` agent at three moments, passing the plan or the failing
 evidence and the relevant file paths rather than the whole session:
@@ -306,8 +308,10 @@ step re-reads its whole history. Keep it lean:
 
 - One feature per orchestrator session. Start a fresh session for the next feature and
   resume from `features/active/FEAT-XXXX-slug/` and the controller run state.
-- Delegate file-heavy reading, log triage, and check runs to the swarm-tier
-  `explore` and `audit` agents and keep only their TL;DR in the main chat.
+- Delegate file-heavy reading, log triage, and check runs to the swarm tier and
+  keep only their TL;DR in the main chat. In Claude Code that means `delegate_task`
+  to DeepSeek V4.1 Flash, never the built-in `Explore` agent type; other clients use
+  their own swarm-tier `explore` and `audit` agents.
 - Pass roles file paths and TL;DRs, not pasted file contents or full reports.
 - At each repair wave close, update the feature's `CURRENT.md` with gate status, open
   blockers, and the next step, then start a fresh session. Resume with

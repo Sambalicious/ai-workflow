@@ -9,7 +9,7 @@
     "claude-code": {
       "lead": "sonnet",
       "advisor": "opus",
-      "swarm": "haiku",
+      "swarm": "opencode-go/deepseek-v4.1-flash",
       "worker": "opencode-go/deepseek-v4.1-flash"
     },
     "opencode": {
