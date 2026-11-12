@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Compares a test report's failures with docs/ops/known-failures.md.
 // Usage: node scripts/agents/known-failures.mjs --report <vitest json> [--doc docs/ops/known-failures.md]
+import { realpathSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 
@@ -52,7 +53,7 @@ export function compare(actual, known) {
   };
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
   const args = process.argv.slice(2);
   const flag = (name, fallback) => {
     const at = args.indexOf(name);

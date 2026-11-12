@@ -7,6 +7,7 @@
 //   node scripts/agents/ledger.mjs check --run <dir> [--max-claude 8] [--max-concurrent 2]
 //   node scripts/agents/ledger.mjs show --run <dir>
 // Exit 1 when an entry is malformed or a cap would be exceeded.
+import { realpathSync } from 'node:fs';
 import { appendFile, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -73,7 +74,7 @@ async function readLedger(run) {
   }
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
   const [command, ...rest] = process.argv.slice(2);
   const args = [...rest];
   const flag = (name) => {

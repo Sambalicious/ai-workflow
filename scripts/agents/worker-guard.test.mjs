@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+import { mkdtempSync, rmSync, symlinkSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { boundaryReport, classify, classifyPath, forbiddenPaths, isLeadTierModel, shouldWarn, warning } from './worker-guard.mjs';
 
@@ -158,4 +161,19 @@ test('the --paths CLI fails on a forbidden path and passes on a clean one', () =
   });
   assert.equal(clean.status, 0);
   assert.match(clean.stdout, /clear/);
+});
+
+test('the hook still blocks when the project path goes through a symlink', () => {
+  // $CLAUDE_PROJECT_DIR can be a symlinked path. The script must still run its check
+  // rather than skipping main and exiting 0.
+  const dir = mkdtempSync(join(tmpdir(), 'worker-guard-link-'));
+  const link = join(dir, 'project');
+  try {
+    symlinkSync(dirname(SCRIPT), link);
+    const input = JSON.stringify({ tool_name: 'Agent', tool_input: { subagent_type: 'backend-engineer', model: 'sonnet', prompt: 'implement the endpoint' } });
+    const result = spawnSync(process.execPath, [join(link, 'worker-guard.mjs')], { input, encoding: 'utf8', env: { ...process.env, EVE_ALLOW_LEAD: '' } });
+    assert.equal(result.status, 2);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

@@ -8,6 +8,7 @@
 // .agents/reference/, and the per-client command symlinks. AGENTS.md,
 // .agents/models.json, the role files, factory/ and the client model settings carry
 // per-project decisions, so they stay with install.sh and the target's own review.
+import { realpathSync } from 'node:fs';
 import { chmod, copyFile, lstat, mkdir, readFile, readdir, readlink, realpath, rm, symlink, writeFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { basename, dirname, join, relative, sep } from 'node:path';
@@ -213,6 +214,6 @@ async function main(argv) {
   return 0;
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
   process.exitCode = await main(process.argv.slice(2));
 }

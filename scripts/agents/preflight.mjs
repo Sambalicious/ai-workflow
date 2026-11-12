@@ -3,6 +3,7 @@
 // Usage: node scripts/agents/preflight.mjs <role|tier> [--client opencode|claude-code] [--json] [--record <run dir>]
 // Exit codes: 0 ready, 1 bad usage, 2 rate window closed (Retry-After), 3 credential
 // rejected, 4 provider error, 5 no provider configuration.
+import { realpathSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
@@ -66,7 +67,7 @@ export function exitCodeFor(result) {
   }
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
   const args = process.argv.slice(2);
   const flag = (name) => {
     const at = args.indexOf(name);

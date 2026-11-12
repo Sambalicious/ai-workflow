@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Fails when a run starts from a base that predates the factory policy.
 // Usage: node scripts/agents/stale.mjs [--max-behind 30] [--no-fetch]
+import { realpathSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
@@ -25,7 +26,7 @@ export function staleReport({ behind, modelsDiffer, maxBehind = 30 }) {
 
 const run = (args) => execFileSync('git', args, { encoding: 'utf8' }).trim();
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
   const args = process.argv.slice(2);
   const flag = (name, fallback) => {
     const at = args.indexOf(name);

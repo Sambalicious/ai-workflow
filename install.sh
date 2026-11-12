@@ -139,6 +139,10 @@ if git -C "$SOURCE_DIR" rev-parse HEAD >/dev/null 2>&1; then
   mkdir -p "$TARGET_DIR/.agents"
   git -C "$SOURCE_DIR" rev-parse HEAD > "$TARGET_DIR/.agents/factory-version"
   ok "Recorded the factory commit in .agents/factory-version"
+  # Pin every installed factory file, so a local edit fails factory-lock --check.
+  node "$TARGET_DIR/scripts/agents/factory-lock.mjs" --root "$TARGET_DIR" --write \
+    --commit "$(git -C "$SOURCE_DIR" rev-parse HEAD)" >/dev/null &&
+    ok "Pinned the factory files in .agents/factory-lock.json (check: node scripts/agents/factory-lock.mjs)"
 fi
 
 # ── 4. Copy third-party skill lock (lets `npx skills update` refresh them) ────

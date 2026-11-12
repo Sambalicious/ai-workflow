@@ -2,7 +2,7 @@
 // A gate must not run without its inputs. The behavioural spec is a specs/ folder;
 // a gherkin/ folder still counts for projects that have not moved to specs.
 // Usage: node scripts/agents/artifacts.mjs --run <epic dir> --gate <qa|design|security|code-review>
-import { existsSync, readdirSync } from 'node:fs';
+import { existsSync, readdirSync, realpathSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -28,7 +28,7 @@ export function missingArtifacts(dir, gate, exists = existsSync, readdir = readd
   return inputs.filter((name) => (name === 'specs' ? !hasSpecs : !has(name)));
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
   const args = process.argv.slice(2);
   const flag = (name) => {
     const at = args.indexOf(name);

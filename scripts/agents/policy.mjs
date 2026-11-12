@@ -3,6 +3,7 @@
 // in CI, so a pull request that drifts from the policy fails instead of being caught
 // in review by memory.
 // Usage: node scripts/agents/policy.mjs [--check]
+import { realpathSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -79,7 +80,7 @@ export async function policyProblems(root = ROOT) {
   return problems;
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
   const problems = await policyProblems();
   if (problems.length === 0) {
     process.stdout.write('Tier policy: clear.\n');
