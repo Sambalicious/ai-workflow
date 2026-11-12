@@ -22,7 +22,6 @@
   "roles": {
     "product-manager": "lead",
     "spec-writer": "lead",
-    "gherkin": "lead",
     "architect": "lead",
     "designer-spec": "lead",
     "designer-preview": "lead",

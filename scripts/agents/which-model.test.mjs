@@ -14,11 +14,11 @@ const MODELS = {
     opencode: { lead: 'anthropic/claude-sonnet-5-5', advisor: 'anthropic/claude-opus-5-5', swarm: 'opencode-go/deepseek-v4.1-flash', worker: 'opencode-go/deepseek-v4.1-flash' },
     'claude-code': { lead: 'sonnet', advisor: 'opus', swarm: 'haiku', worker: 'opencode-go/deepseek-v4.1-flash' },
   },
-  roles: { 'product-manager': 'lead', gherkin: 'lead', 'api-contract': 'advisor', 'code-review': 'advisor', explore: 'swarm', audit: 'swarm' },
+  roles: { 'product-manager': 'lead', 'spec-writer': 'lead', 'api-contract': 'advisor', 'code-review': 'advisor', explore: 'swarm', audit: 'swarm' },
 };
 
 test('a role resolves through its tier to the client model', () => {
-  assert.deepEqual(resolveModel(MODELS, 'gherkin', 'opencode'), { question: 'gherkin', tier: 'lead', client: 'opencode', model: 'anthropic/claude-sonnet-5-5' });
+  assert.deepEqual(resolveModel(MODELS, 'spec-writer', 'opencode'), { question: 'spec-writer', tier: 'lead', client: 'opencode', model: 'anthropic/claude-sonnet-5-5' });
   assert.equal(resolveModel(MODELS, 'api-contract', 'opencode').model, 'anthropic/claude-opus-5-5');
   assert.equal(resolveModel(MODELS, 'explore', 'opencode').model, 'opencode-go/deepseek-v4.1-flash');
 });
@@ -28,15 +28,15 @@ test('a tier name resolves too, so a section with no role can still be pinned', 
 });
 
 test('the claude-code client maps the same role to its own model', () => {
-  assert.equal(resolveModel(MODELS, 'gherkin', 'claude-code').model, 'sonnet');
+  assert.equal(resolveModel(MODELS, 'spec-writer', 'claude-code').model, 'sonnet');
 });
 
 test('an unknown role fails loudly and lists what is known', () => {
-  assert.throws(() => resolveModel(MODELS, 'gherkinwritter', 'opencode'), /unknown role or tier "gherkinwritter"\. Known: .*gherkin/);
+  assert.throws(() => resolveModel(MODELS, 'spec-writter', 'opencode'), /unknown role or tier "spec-writter"\. Known: .*spec-writer/);
 });
 
 test('an unknown client fails loudly', () => {
-  assert.throws(() => resolveModel(MODELS, 'gherkin', 'cursor'), /unknown client "cursor"/);
+  assert.throws(() => resolveModel(MODELS, 'spec-writer', 'cursor'), /unknown client "cursor"/);
 });
 
 test('a client without a model for the tier fails instead of returning nothing', () => {
@@ -45,7 +45,7 @@ test('a client without a model for the tier fails instead of returning nothing',
 });
 
 test('the script prints the model and exits 0', () => {
-  const result = run('gherkin');
+  const result = run('spec-writer');
   assert.equal(result.status, 0);
   assert.match(result.stdout.trim(), /^anthropic\/claude-sonnet-5-5$/);
 });

@@ -10,14 +10,14 @@ import { caps, entryProblems, parseLedger } from './ledger.mjs';
 const SCRIPT = fileURLToPath(new URL('./ledger.mjs', import.meta.url));
 const run = (args) => spawnSync(process.execPath, [SCRIPT, ...args], { encoding: 'utf8' });
 
-const entry = (overrides = {}) => ({ round: '1', role: 'gherkin', tier: 'lead', model: 'anthropic/claude-sonnet-5-5', artifact: 'gherkin/', state: 'done', ...overrides });
+const entry = (overrides = {}) => ({ round: '1', role: 'spec-writer', tier: 'lead', model: 'anthropic/claude-sonnet-5-5', artifact: 'specs/', state: 'done', ...overrides });
 
 test('a well formed entry has no problems', () => {
   assert.deepEqual(entryProblems(entry()), []);
 });
 
 test('a missing field and a bad state are reported', () => {
-  const problems = entryProblems({ round: '1', role: 'gherkin', tier: 'lead', model: 'x', artifact: '', state: 'pending' });
+  const problems = entryProblems({ round: '1', role: 'spec-writer', tier: 'lead', model: 'x', artifact: '', state: 'pending' });
   assert.match(problems.join(' '), /missing artifact/);
   assert.match(problems.join(' '), /state must be one of/);
 });
@@ -53,9 +53,9 @@ test('add appends, check enforces the caps, show lists the rows', async () => {
   try {
     const receipt = (role) => writeFile(join(dir, `.preflight-${role}.json`), JSON.stringify({ role, at: new Date().toISOString() }));
     const add = (extra) => run(['add', '--run', dir, ...extra]);
-    await receipt('gherkin');
+    await receipt('spec-writer');
     await receipt('architect');
-    assert.equal(add(['--round', '1', '--role', 'gherkin', '--tier', 'lead', '--model', 'anthropic/claude-sonnet-5-5', '--artifact', 'gherkin/', '--state', 'done']).status, 0);
+    assert.equal(add(['--round', '1', '--role', 'spec-writer', '--tier', 'lead', '--model', 'anthropic/claude-sonnet-5-5', '--artifact', 'specs/', '--state', 'done']).status, 0);
     assert.equal(add(['--round', '1', '--role', 'architect', '--tier', 'lead', '--model', 'anthropic/claude-sonnet-5-5', '--artifact', 'architecture.md', '--state', 'done']).status, 0);
     assert.equal(run(['check', '--run', dir, '--max-claude', '2']).status, 0);
     await receipt('designer');
@@ -66,7 +66,7 @@ test('add appends, check enforces the caps, show lists the rows', async () => {
     assert.equal(lines.length, 2, 'a refused dispatch is not written');
     const show = run(['show', '--run', dir]);
     assert.equal(show.status, 0);
-    assert.match(show.stdout, /gherkin \| lead/);
+    assert.match(show.stdout, /spec-writer \| lead/);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
@@ -75,10 +75,10 @@ test('add appends, check enforces the caps, show lists the rows', async () => {
 test('a Claude dispatch without a preflight receipt is refused, and --force overrides it', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'ledger-'));
   try {
-    const args = ['add', '--run', dir, '--round', '1', '--role', 'gherkin', '--tier', 'lead', '--model', 'anthropic/claude-sonnet-5-5', '--artifact', 'gherkin/', '--state', 'done'];
+    const args = ['add', '--run', dir, '--round', '1', '--role', 'spec-writer', '--tier', 'lead', '--model', 'anthropic/claude-sonnet-5-5', '--artifact', 'specs/', '--state', 'done'];
     const refused = run(args);
     assert.equal(refused.status, 1);
-    assert.match(refused.stderr, /no fresh preflight receipt for gherkin/);
+    assert.match(refused.stderr, /no fresh preflight receipt for spec-writer/);
     assert.equal(run([...args, '--force']).status, 0);
   } finally {
     await rm(dir, { recursive: true, force: true });

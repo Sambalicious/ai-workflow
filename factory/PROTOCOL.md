@@ -176,7 +176,7 @@ entry per declared check. A candidate copied from a report includes its logical
 `revision`; initial input and `publish` use only `ref` and `hash`.
 
 Known routing categories include `code`, `security`, `contract`, `product`, `spec`,
-`gherkin`, `architecture`, `design`, `copy`, `seo`, `pentest`, `test`, `infra`, `growth`, `data`, `review`,
+`architecture`, `design`, `copy`, `seo`, `pentest`, `test`, `infra`, `growth`, `data`, `review`,
 and `release`. Categories `schema` and `format` delegate to the declared artifact
 kind's producer. A code source must name its backend/frontend component. Identify
 the broken artifact, not merely the check that exposed it.
