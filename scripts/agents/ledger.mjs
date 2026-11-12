@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 // Counts and caps the role dispatches in a run, before the next one starts.
 // Usage:
-//   node scripts/agents/ledger.mjs add --run <dir> --round <n> --role <r> --tier <t> --model <m> --artifact <a> [--state running|done|failed]
+//   node scripts/agents/ledger.mjs add --run <dir> --round <n> --role <r> --tier <t> --model <m> --artifact <a> [--state running|done|failed] [--force]
+//     A lead or advisor dispatch needs a preflight receipt under 10 minutes old in <dir>
+//     (preflight.mjs <role> --record <dir>); --force skips that check.
 //   node scripts/agents/ledger.mjs check --run <dir> [--max-claude 8] [--max-concurrent 2]
 //   node scripts/agents/ledger.mjs show --run <dir>
 // Exit 1 when an entry is malformed or a cap would be exceeded.
@@ -100,10 +102,25 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     for (const problem of all) process.stderr.write(`ledger: ${problem}\n`);
     process.exit(all.length === 0 ? 0 : 1);
   }
+  const role = flag('--role');
+  const tier = flag('--tier');
+  const force = args.includes('--force');
+  if (!force && CLAUDE_TIERS.has(tier)) {
+    try {
+      const receipt = JSON.parse(await readFile(join(run, `.preflight-${role}.json`), 'utf8'));
+      const age = Date.now() - Date.parse(receipt.at);
+      if (!(age >= 0 && age < 10 * 60 * 1000)) throw new Error('stale');
+    } catch {
+      process.stderr.write(
+        `ledger: no fresh preflight receipt for ${role}. Run "node scripts/agents/preflight.mjs ${role} --record ${run}" first, or pass --force.\n`,
+      );
+      process.exit(1);
+    }
+  }
   const entry = {
     round: flag('--round'),
-    role: flag('--role'),
-    tier: flag('--tier'),
+    role,
+    tier,
     model: flag('--model'),
     artifact: flag('--artifact'),
     state: flag('--state') ?? 'running',

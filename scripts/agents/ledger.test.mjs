@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -51,10 +51,14 @@ test('the ledger parser reports a broken line without dropping the rest', () => 
 test('add appends, check enforces the caps, show lists the rows', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'ledger-'));
   try {
+    const receipt = (role) => writeFile(join(dir, `.preflight-${role}.json`), JSON.stringify({ role, at: new Date().toISOString() }));
     const add = (extra) => run(['add', '--run', dir, ...extra]);
+    await receipt('gherkin');
+    await receipt('architect');
     assert.equal(add(['--round', '1', '--role', 'gherkin', '--tier', 'lead', '--model', 'anthropic/claude-sonnet-5-5', '--artifact', 'gherkin/', '--state', 'done']).status, 0);
     assert.equal(add(['--round', '1', '--role', 'architect', '--tier', 'lead', '--model', 'anthropic/claude-sonnet-5-5', '--artifact', 'architecture.md', '--state', 'done']).status, 0);
     assert.equal(run(['check', '--run', dir, '--max-claude', '2']).status, 0);
+    await receipt('designer');
     const over = run(['add', '--run', dir, '--round', '2', '--role', 'designer', '--tier', 'advisor', '--model', 'anthropic/claude-opus-5-5', '--artifact', 'design.md', '--state', 'running', '--max-claude', '2']);
     assert.equal(over.status, 1);
     assert.match(over.stderr, /exceeds the cap of 2/);
@@ -63,6 +67,19 @@ test('add appends, check enforces the caps, show lists the rows', async () => {
     const show = run(['show', '--run', dir]);
     assert.equal(show.status, 0);
     assert.match(show.stdout, /gherkin \| lead/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('a Claude dispatch without a preflight receipt is refused, and --force overrides it', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'ledger-'));
+  try {
+    const args = ['add', '--run', dir, '--round', '1', '--role', 'gherkin', '--tier', 'lead', '--model', 'anthropic/claude-sonnet-5-5', '--artifact', 'gherkin/', '--state', 'done'];
+    const refused = run(args);
+    assert.equal(refused.status, 1);
+    assert.match(refused.stderr, /no fresh preflight receipt for gherkin/);
+    assert.equal(run([...args, '--force']).status, 0);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

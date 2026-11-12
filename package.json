@@ -31,12 +31,15 @@
     "test": "node --test factory/*.test.mjs factory/adapters/*/*.test.mjs scripts/agents/*.test.mjs .agents/skills/skills.test.mjs .agents/skills/cost-discipline.test.mjs .agents/skills/spec-check.test.mjs",
     "factory": "node factory/cli.mjs",
     "agents:sync": "node scripts/agents/sync.mjs",
-    "agents:check": "node scripts/agents/sync.mjs --check",
+    "agents:check": "node scripts/agents/sync.mjs --check && node scripts/agents/policy.mjs --check",
     "skills:sync": "node scripts/agents/sync-skills.mjs",
-    "agents:test": "node --test scripts/agents/sync.test.mjs scripts/agents/sync-skills.test.mjs scripts/agents/which-model.test.mjs scripts/agents/ledger.test.mjs scripts/agents/preflight.test.mjs scripts/agents/worker-guard.test.mjs .agents/skills/skills.test.mjs .agents/skills/cost-discipline.test.mjs .agents/skills/spec-check.test.mjs",
+    "agents:test": "node --test scripts/agents/sync.test.mjs scripts/agents/sync-skills.test.mjs scripts/agents/which-model.test.mjs scripts/agents/ledger.test.mjs scripts/agents/preflight.test.mjs scripts/agents/worker-guard.test.mjs scripts/agents/policy.test.mjs scripts/agents/stale.test.mjs scripts/agents/artifacts.test.mjs scripts/agents/known-failures.test.mjs .agents/skills/skills.test.mjs .agents/skills/cost-discipline.test.mjs .agents/skills/spec-check.test.mjs",
     "agents:boundary": "node scripts/agents/worker-guard.mjs --base origin/main",
     "agents:model": "node scripts/agents/which-model.mjs",
     "agents:preflight": "node scripts/agents/preflight.mjs",
-    "agents:ledger": "node scripts/agents/ledger.mjs"
+    "agents:ledger": "node scripts/agents/ledger.mjs",
+    "agents:stale": "node scripts/agents/stale.mjs",
+    "agents:artifacts": "node scripts/agents/artifacts.mjs",
+    "agents:known-failures": "node scripts/agents/known-failures.mjs"
   }
 }

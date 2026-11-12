@@ -6,11 +6,11 @@ import { boundaryReport, classify, classifyPath, forbiddenPaths, isLeadTierModel
 
 const SCRIPT = fileURLToPath(new URL('./worker-guard.mjs', import.meta.url));
 
-const run = (input) => spawnSync(process.execPath, [SCRIPT], { input, encoding: 'utf8' });
+const run = (input, env = {}) => spawnSync(process.execPath, [SCRIPT], { input, encoding: 'utf8', env: { ...process.env, ...env } });
 
 const hook = (tool, input) => ({ tool_name: tool, tool_input: input });
 
-test('implementation prompt on sonnet warns with the worker reminder', () => {
+test('implementation prompt on sonnet is blocked with the worker reminder on stderr', () => {
   assert.equal(classify('Implement the retry queue for failed uploads'), 'implementation');
   const payload = hook('Agent', {
     model: 'sonnet',
@@ -21,15 +21,19 @@ test('implementation prompt on sonnet warns with the worker reminder', () => {
   assert.equal(shouldWarn(payload), true);
 
   const result = run(JSON.stringify(payload));
-  assert.equal(result.status, 0);
-  const output = JSON.parse(result.stdout);
-  assert.equal(output.hookSpecificOutput.hookEventName, 'PreToolUse');
-  const context = output.hookSpecificOutput.additionalContext;
-  assert.match(context, /delegate_task/);
-  assert.match(context, /deepseek-v4\.1-flash/);
-  assert.match(context, /one failed Flash rewrite/);
-  assert.match(context, /metrics\.md/);
+  assert.equal(result.status, 2, 'a lead-tier implementation dispatch is blocked');
+  assert.match(result.stderr, /authoring is worker tier/i);
+  assert.match(result.stderr, /deepseek-v4\.1-flash/);
+  assert.match(result.stderr, /one failed Flash rewrite/);
+  assert.match(result.stderr, /EVE_ALLOW_LEAD=1/);
   assert.equal(warning().hookSpecificOutput.hookEventName, 'PreToolUse');
+});
+
+test('EVE_ALLOW_LEAD=1 turns the block back into the recorded warning', () => {
+  const payload = hook('Agent', { model: 'sonnet', prompt: 'Implement the retry queue.' });
+  const allowed = run(JSON.stringify(payload), { EVE_ALLOW_LEAD: '1' });
+  assert.equal(allowed.status, 0);
+  assert.match(allowed.stdout, /additionalContext/);
 });
 
 test('omitted model warns because it inherits the lead model', () => {
@@ -39,7 +43,7 @@ test('omitted model warns because it inherits the lead model', () => {
     prompt: 'Refactor the upload pipeline and add feature flags.',
   });
   assert.equal(shouldWarn(payload), true);
-  assert.match(run(JSON.stringify(payload)).stdout, /additionalContext/);
+  assert.equal(run(JSON.stringify(payload)).status, 2);
   assert.equal(shouldWarn(hook('Agent', { prompt: 'Implement the change' })), true);
 });
 

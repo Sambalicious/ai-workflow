@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // Claude Code PreToolUse hook for the Agent tool.
-// Warns, never blocks, when a subagent starts implementation work on the lead
-// model instead of the worker tier (DeepSeek Flash via T3 delegate_task).
-// Reads the hook JSON from stdin and always exits 0.
+// Blocks when a subagent starts implementation work on a lead model instead of the
+// worker tier, and warns only when EVE_ALLOW_LEAD=1 is set for a deliberate override.
+// Reads the hook JSON from stdin; exit 2 blocks the tool call and shows stderr.
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
@@ -62,6 +62,9 @@ export function shouldWarn(hook) {
   const text = [input.description, input.prompt].filter((part) => typeof part === 'string').join('\n');
   return classify(text) === 'implementation';
 }
+
+export const BLOCK_STDERR_PREFIX =
+  'Blocked: authoring is worker tier. ';
 
 export const REMINDER =
   'Implementation work belongs to the worker tier (DeepSeek V4.1 Flash), not the lead. '
@@ -170,9 +173,16 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     } catch {
       hook = null;
     }
-    if (shouldWarn(hook)) process.stdout.write(`${JSON.stringify(warning())}\n`);
+    if (shouldWarn(hook)) {
+      if (process.env.EVE_ALLOW_LEAD === '1') {
+        process.stdout.write(`${JSON.stringify(warning())}\n`);
+      } else {
+        process.stderr.write(`${BLOCK_STDERR_PREFIX}${REMINDER}\nSet EVE_ALLOW_LEAD=1 for a deliberate override.\n`);
+        process.exit(2);
+      }
+    }
   } catch {
-    // A hook must never break the tool call it observes.
+    // A hook must never break the tool call it observes, beyond the block above.
   }
   process.exit(0);
 }

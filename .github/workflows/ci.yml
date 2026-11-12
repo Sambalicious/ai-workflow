@@ -15,5 +15,7 @@ jobs:
           node-version: 22
       - name: Generated agent files are in sync
         run: node scripts/agents/sync.mjs --check
+      - name: Tier policy holds
+        run: node scripts/agents/policy.mjs --check
       - name: Policy, factory and guard tests
         run: node --test factory/*.test.mjs factory/adapters/*/*.test.mjs scripts/agents/*.test.mjs .agents/skills/skills.test.mjs .agents/skills/cost-discipline.test.mjs
