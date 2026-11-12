@@ -8,7 +8,7 @@
 // .agents/reference/, and the per-client command symlinks. AGENTS.md,
 // .agents/models.json, the role files, factory/ and the client model settings carry
 // per-project decisions, so they stay with install.sh and the target's own review.
-import { chmod, copyFile, lstat, mkdir, readFile, readdir, readlink, rm, symlink, writeFile } from 'node:fs/promises';
+import { chmod, copyFile, lstat, mkdir, readFile, readdir, readlink, realpath, rm, symlink, writeFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { basename, dirname, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -158,6 +158,27 @@ function provenance(source) {
   return `${info.branch} @ ${short}${info.dirty ? ', dirty' : ''}`;
 }
 
+// One warning per problem: a feature branch and an uncommitted working tree are
+// different findings, and "main is not a clean main" is wrong for the second.
+export function sourceWarnings(info) {
+  if (!info) return [];
+  if (info.branch !== 'main') {
+    return [`Warning: source branch is ${info.branch}, not main. Pass --source to sync from a merged checkout.`];
+  }
+  if (info.dirty) {
+    return ['Warning: source has uncommitted changes. Skills are copied from the working tree, not from main.'];
+  }
+  return [];
+}
+
+async function isSameDirectory(a, b) {
+  try {
+    return (await realpath(a)) === (await realpath(b));
+  } catch {
+    return false;
+  }
+}
+
 async function main(argv) {
   const check = argv.includes('--check');
   const sourceAt = argv.indexOf('--source');
@@ -169,18 +190,20 @@ async function main(argv) {
     return 2;
   }
   const info = gitInfo(source);
+  const selfSync = await isSameDirectory(source, target);
   console.log(`Source: ${provenance(source)}`);
-  if (info && (info.branch !== 'main' || info.dirty)) {
-    console.log(`Warning: ${info.branch} is not a clean main. Pass --source to sync from a merged checkout.`);
-  }
+  for (const warning of sourceWarnings(info)) console.log(warning);
   const report = await syncSkills({ source, target, check });
   const line = (label, paths) => paths.length && console.log(`${label}: ${paths.join(', ')}`);
   line(check ? 'would add' : 'added', report.added);
   line(check ? 'would update' : 'updated', report.updated);
   if (report.extra.length) console.log(`left alone (target only): ${report.extra.join(', ')}`);
-  const recorded = JSON.parse(await readFile(join(target, PROVENANCE), 'utf8').catch(() => 'null'));
-  if (recorded?.commit && info?.commit && recorded.commit !== info.commit) {
-    console.log(`Target was synced from ${recorded.commit.slice(0, 7)} (${recorded.branch}); source is ${info.commit.slice(0, 7)}.`);
+  // Comparing a target with itself says nothing useful, so skip it.
+  if (!selfSync) {
+    const recorded = JSON.parse(await readFile(join(target, PROVENANCE), 'utf8').catch(() => 'null'));
+    if (recorded?.commit && info?.commit && recorded.commit !== info.commit) {
+      console.log(`Target was synced from ${recorded.commit.slice(0, 7)} (${recorded.branch}); source is ${info.commit.slice(0, 7)}.`);
+    }
   }
   if (check && isDirty(report)) {
     console.error('Skills are out of date. Run without --check to refresh them.');
