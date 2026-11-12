@@ -89,7 +89,7 @@ const FORBIDDEN_PATHS = [
   { reason: 'rls', pattern: /^apps\/api\/src\/db\// },
   { reason: 'auth', pattern: /(^|\/)auth\// },
   { reason: 'secrets', pattern: /(^|\/)\.env(\.|$)/ },
-  { reason: 'architecture', pattern: /^epics\/.*\/architecture[^/]*\.md$/ },
+  { reason: 'architecture', pattern: /^features\/.*\/architecture[^/]*\.md$/ },
   { reason: 'truth-guard', pattern: /(^|\/)claim-check\.ts$/ },
   { reason: 'truth-guard', pattern: /(^|\/)document-claims\.ts$/ },
   { reason: 'truth-guard', pattern: /(^|\/)blocked-claim\.ts$/ },

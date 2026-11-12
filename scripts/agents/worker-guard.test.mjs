@@ -98,7 +98,7 @@ test('bad or empty input never throws', () => {
 
 // Worker boundary (AGENTS.md "Worker routing and metrics"): contract, RLS, auth, secrets,
 // architecture and truth-guard design are not the worker's to change, whatever the brief says.
-test('the four files EPIC-0009 got wrong are worker-forbidden', () => {
+test('the four files FEAT-0009 got wrong are worker-forbidden', () => {
   assert.equal(classifyPath('packages/contracts/src/documents.ts'), 'contract');
   assert.equal(classifyPath('apps/api/src/db/migrations/0039-blocked-claim-cause.ts'), 'rls');
   assert.equal(classifyPath('apps/api/src/career-profile/claim-check.ts'), 'truth-guard');
@@ -113,14 +113,14 @@ test('copy, tests, fixtures and plumbing stay the worker\'s to change', () => {
     'apps/api/src/documents/documents.repository.ts',
     'apps/api/src/documents/documents.service.ts',
     'apps/api/src/records/details-deletion.ts',
-    'epics/active/EPIC-0009-blocked-claim-detail/prd.r2.md',
+    'features/active/FEAT-0009-blocked-claim-detail/prd.r2.md',
   ]) {
     assert.equal(classifyPath(path), null, path);
   }
 });
 
 test('architecture, auth and secrets are forbidden too', () => {
-  assert.equal(classifyPath('epics/active/EPIC-0009-blocked-claim-detail/architecture.r2.md'), 'architecture');
+  assert.equal(classifyPath('features/active/FEAT-0009-blocked-claim-detail/architecture.r2.md'), 'architecture');
   assert.equal(classifyPath('apps/api/src/auth/session.ts'), 'auth');
   assert.equal(classifyPath('.env.local'), 'secrets');
   assert.equal(classifyPath('./packages/contracts/src/documents.ts'), 'contract');

@@ -26,7 +26,7 @@ procedure.
 - The approved task, PRD or bug brief, and the sections of the design, spec, or
   API contract the change must satisfy. Pass paths, not the session history.
 - Files in scope, acceptance checks, and what not to touch.
-- The current `metrics.md` tally for the epic or task.
+- The current `metrics.md` tally for the feature or task.
 
 ## Steps
 
@@ -81,7 +81,7 @@ procedure.
 
 ## Metrics
 
-Keep `metrics.md` in the epic folder or beside the task notes, and update it after
+Keep `metrics.md` in the feature folder or beside the task notes, and update it after
 each reviewed result.
 
 ```md

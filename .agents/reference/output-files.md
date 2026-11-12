@@ -1,14 +1,14 @@
 # Output files
 
-Each idea gets its own numbered folder under `epics/active/`. When deployed to production, the folder moves to `epics/completed/` via the `/complete-epic` skill.
+Each idea gets its own numbered folder under `features/active/`. When deployed to production, the folder moves to `features/completed/` via the `/complete-feature` skill.
 
 ```
-epics/
+features/
 ├── active/
-│   ├── EPIC-0002-ai-git-diff-cli/
+│   ├── FEAT-0002-ai-git-diff-cli/
 │   │   ├── prd.md
 │   │   └── ...
-│   └── EPIC-0003-habit-streak-app/
+│   └── FEAT-0003-habit-streak-app/
 │       ├── prd.md
 │       ├── specs/                      # behavioural spec, read by QA and the builders
 │       │   ├── S07-accurate-answers.md
@@ -25,7 +25,7 @@ epics/
 │       ├── design-preview.md          # step [5b] mid-task
 │       ├── design-review.md
 │       ├── code-review.md
-│       ├── retro.md                    # /retro proposals, written at epic close
+│       ├── retro.md                    # /retro proposals, written at feature close
 │       ├── copy-deck.md
 │       ├── seo-plan.md                # crawl pass, then metadata pass
 │       ├── growth-plan.md             # only with Growth opt-in
@@ -41,6 +41,6 @@ epics/
 │       └── release-report.r1.md       # only with Release Manager opt-in
 │
 └── completed/
-    └── EPIC-0001-water-intake-tracker/
+    └── FEAT-0001-water-intake-tracker/
         └── ...                        ← deployed to production
 ```

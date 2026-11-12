@@ -48,7 +48,7 @@ exampleInputWithRelease.tasks.push({ id: 'release', role: 'release-manager', dep
 export const exampleFeatureInput = {
   ...structuredClone(exampleInput),
   run_id: 'example-feature-run',
-  work_item_id: 'EPIC-0000',
+  work_item_id: 'FEAT-0000',
   actors: [
     { id: 'orchestrator', roles: ['controller'] },
     { id: 'contract-session', roles: ['backend-engineer'] },

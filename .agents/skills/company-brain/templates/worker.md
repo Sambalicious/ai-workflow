@@ -8,7 +8,7 @@ All are required. If any is missing, stop and ask.
 
 - [Primary input, verbatim]
 - [Owner, date]
-- [Scope: which project, epic, or area]
+- [Scope: which project, feature, or area]
 - `BASE` commit and an isolated `WORKDIR` worktree on a [docs/] branch
 - Optional: [context, such as the recommendation offered]
 

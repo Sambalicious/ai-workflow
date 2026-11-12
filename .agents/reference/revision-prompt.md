@@ -3,7 +3,7 @@
 Use this prompt when a stage flags blockers. Revision rules are in AGENTS.md Revision loop.
 
 ```
-Continue EPIC-XXXX. A pipeline stage flagged blockers. Resolve each and re-run from the earliest affected step, preserving this run's enabled roles and required gates.
+Continue FEAT-XXXX. A pipeline stage flagged blockers. Resolve each and re-run from the earliest affected step, preserving this run's enabled roles and required gates.
 
 Blockers:
 - BLOCKER[agent-name]: [description]

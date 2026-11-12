@@ -57,7 +57,7 @@ export RUN_ROOT="/absolute/path/to/private-runs/target-project/run-001"
   rules remain authoritative, including nested instructions, stack, and contracts.
 - Store controller state, input and event files, logs, and generated reports in
   `RUN_ROOT`. Use `RUN_ROOT/reports/` for new handoff reports, not the factory's
-  `epics/` tree. Read existing specifications from their declared target paths.
+  `features/` tree. Read existing specifications from their declared target paths.
   Put application deliverables in the target's approved locations, not `RUN_ROOT`.
 
 Resolve symlinks before checking boundaries. In shared-checkout use, keep these
@@ -128,10 +128,10 @@ state file; a new directory is not a way to reset budgets or repair waves.
    target. Pass full API contracts and spec files unchanged. Preserve existing
    target artifact paths; assign new report paths explicitly under `RUN_ROOT/reports/`.
 
-The `epics/` ID and lifecycle examples in `AGENTS.md` refer to target project
-artifacts. Do not create an epic for an existing bug or tooling request merely
-to use this entry. For an authorized new epic, use the target's convention and
-keep run evidence isolated. Completing a target epic does not move the run ledger.
+The `features/` ID and lifecycle examples in `AGENTS.md` refer to target project
+artifacts. Do not create a feature for an existing bug or tooling request merely
+to use this entry. For an authorized new feature, use the target's convention and
+keep run evidence isolated. Completing a target feature does not move the run ledger.
 
 ## Call the controller
 

@@ -91,7 +91,7 @@ Output only spec content. No preamble.
 ````markdown
 # S<nn> — <feature title>
 
-Epic: EPIC-XXXX · Stories: <numbers> · Owner role: Spec Writer
+Feature: FEAT-XXXX · Stories: <numbers> · Owner role: Spec Writer
 
 ## Criteria
 

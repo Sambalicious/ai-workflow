@@ -14,7 +14,7 @@
 [Instructions](#instructions) ·
 [Handoff rules](#handoff-rules) ·
 [Revision loop](#revision-loop) ·
-[Epic ID format](#epic-id-format) ·
+[Feature ID format](#feature-id-format) ·
 [Invoking the full pipeline](#invoking-the-full-pipeline) ·
 [Output files](#output-files)
 
@@ -23,7 +23,7 @@
 For an external project, read `factory/EXTERNAL.md` from this factory checkout
 before dispatch. Pass absolute `FACTORY_ROOT`, `PROJECT_ROOT`, and `RUN_ROOT` to
 every role. Shared `.agents/` and `factory/` references below resolve from
-`FACTORY_ROOT`; application operations and existing `epics/` paths resolve from
+`FACTORY_ROOT`; application operations and existing `features/` paths resolve from
 `PROJECT_ROOT`. Target rules remain authoritative. In external runs, save new
 handoff reports under `RUN_ROOT/reports/`, overriding the relative report locations
 in pipeline examples below. Keep state outside source and the factory read-only.
@@ -67,7 +67,7 @@ first, every run, before any role is dispatched.
 8. A Claude dispatch runs `pnpm agents:preflight <role> --record <run>` first, then
    `pnpm agents:ledger add ...`. The ledger refuses a lead or advisor dispatch without a
    receipt younger than ten minutes, so the sequence cannot be skipped by habit.
-9. A gate runs only when its inputs exist: `pnpm agents:artifacts --run <epic> --gate
+9. A gate runs only when its inputs exist: `pnpm agents:artifacts --run <feature> --gate
    <qa|design|security|code-review>`. List inherited test failures in
    `docs/ops/known-failures.md` and compare a run's report with
    `pnpm agents:known-failures --report <vitest json>` instead of re-deriving them.
@@ -283,7 +283,7 @@ wiring drifts.
   the design. Race and integration tests must pass twice in a row. Pull a task type
   back to the lead tier when its rewrite rate passes about 1 in 7 over ten tasks.
 
-Keep `metrics.md` in the epic folder (or beside the task notes) and update it after
+Keep `metrics.md` in the feature folder (or beside the task notes) and update it after
 each reviewed result: `worker_tasks`; `rewrites` (with a one-line reason each);
 `self_fixes`; `advisor_calls` (with a reason each); `advisor_share` =
 advisor_calls / (worker_tasks + self_fixes + advisor_calls); `rewrite_rate` =
@@ -304,16 +304,16 @@ tier, and tiering never skips or weakens a check.
 The orchestrator session is the largest cost line (about 41% of past spend): every
 step re-reads its whole history. Keep it lean:
 
-- One epic per orchestrator session. Start a fresh session for the next epic and
-  resume from `epics/active/EPIC-XXXX-slug/` and the controller run state.
+- One feature per orchestrator session. Start a fresh session for the next feature and
+  resume from `features/active/FEAT-XXXX-slug/` and the controller run state.
 - Delegate file-heavy reading, log triage, and check runs to the swarm-tier
   `explore` and `audit` agents and keep only their TL;DR in the main chat.
 - Pass roles file paths and TL;DRs, not pasted file contents or full reports.
-- At each repair wave close, update the epic's `CURRENT.md` with gate status, open
+- At each repair wave close, update the feature's `CURRENT.md` with gate status, open
   blockers, and the next step, then start a fresh session. Resume with
   `.agents/reference/resume-prompt.md`. A session reset cannot be enforced by the
   repository; the wave-close checkpoint is the record that it happened.
-- At most one Opus session runs at once per epic: the Security candidate review
+- At most one Opus session runs at once per feature: the Security candidate review
   (step 7), then the independent code review (step 8), serialized rather than
   parallel. `pnpm agents:ledger check` enforces it — a second running advisor-tier
   dispatch is refused, consults included — so a parallel [7] and [8] fails in a script
@@ -418,7 +418,7 @@ routed as usual. Preview does not replace [6b] on the real candidate.
   the `AGENTS.md` sections it needs (usually the role activation and cost reporting
   policies). Do not pass the whole orchestrator or other roles' files. Roles load
   skills when their trigger applies, not up front.
-- **Epic digest.** Each epic folder carries a `CURRENT.md` (about 2.5K tokens): the
+- **Feature digest.** Each feature folder carries a `CURRENT.md` (about 2.5K tokens): the
   latest revision of every artifact, key decisions, and a heading index with line
   numbers. Roles read it first and open only the section a task needs, using
   offset and limit. Older `.rN` files are superseded; open one only when a task
@@ -460,25 +460,25 @@ If 3 rounds end with blockers left, stop and surface them to the user.
 
 **Re-run prompt:** `.agents/reference/revision-prompt.md`.
 
-## Epic ID format
+## Feature ID format
 
-Every idea is assigned a Jira-style ID: `EPIC-XXXX` where `XXXX` is a zero-padded 4-digit number auto-incremented from the highest existing epic.
+Every idea is assigned a stable key: `FEAT-XXXX` where `XXXX` is a zero-padded 4-digit number auto-incremented from the highest existing feature.
 
 **How to derive the next ID:**
-1. List all folders under `epics/active/` AND `epics/completed/` that match the pattern `EPIC-XXXX-*`.
-2. Extract the highest number found across both directories. If no epics exist yet, start at `0001`.
+1. List all folders under `features/active/` AND `features/completed/` that match the pattern `FEAT-XXXX-*`.
+2. Extract the highest number found across both directories. If no features exist yet, start at `0001`.
 3. Increment by 1 and zero-pad to 4 digits.
 
-**Folder name format:** `EPIC-XXXX-short-slug`
-- `EPIC-XXXX` — the auto-incremented ID
+**Folder name format:** `FEAT-XXXX-short-slug`
+- `FEAT-XXXX` — the auto-incremented ID
 - `short-slug` — 2–4 lowercase hyphen-separated words derived from the idea
 
-Examples: `EPIC-0001-water-intake-tracker`, `EPIC-0002-ai-git-diff-cli`, `EPIC-0003-habit-streak-app`
+Examples: `FEAT-0001-water-intake-tracker`, `FEAT-0002-ai-git-diff-cli`, `FEAT-0003-habit-streak-app`
 
-**Epic lifecycle:**
-- Active epics live under `epics/active/EPIC-XXXX-slug/`
-- Completed epics (deployed to production) live under `epics/completed/EPIC-XXXX-slug/`
-- Use the `/complete-epic` skill to move an epic from active → completed
+**Feature lifecycle:**
+- Active features live under `features/active/FEAT-XXXX-slug/`
+- Completed features (deployed to production) live under `features/completed/FEAT-XXXX-slug/`
+- Use the `/complete-feature` skill to move a feature from active → completed
 
 ## Invoking the full pipeline
 
@@ -490,12 +490,12 @@ I have a product idea. Run the full startup team pipeline on it.
 Idea: [your idea here]
 
 Steps:
-1. Derive the next EPIC-XXXX ID from epics/active/ and epics/completed/, plus a 2–4 word slug. Create epics/active/EPIC-XXXX-slug/.
+1. Derive the next FEAT-XXXX ID from features/active/ and features/completed/, plus a 2–4 word slug. Create features/active/FEAT-XXXX-slug/.
 2. Follow AGENTS.md Instructions steps 1–8 in order, using the enabled defaults. The pipeline diagram is in .agents/reference/pipeline.md.
 3. Invoke the Copywriter and the SEO Specialist only when their fast-lane triggers apply.
 4. Route blockers through bounded repairs and report verification results and remaining blockers, not release approval.
 
-Use AGENTS.md role defaults. Save enabled agents' outputs under epics/active/EPIC-XXXX-slug/ and give me the verification summary.
+Use AGENTS.md role defaults. Save enabled agents' outputs under features/active/FEAT-XXXX-slug/ and give me the verification summary.
 ```
 
 To enable one role, add an explicit request such as: "Also run Growth to produce
@@ -511,4 +511,4 @@ The output folder layout is in `.agents/reference/output-files.md`.
 Create only enabled outputs and needed revisions. QA, Security, and independent
 code-review reports supply the default verification evidence. `release-report.md`
 is a go/no-go summary only when Release Manager ran; its absence is not approval.
-Reference ideas by their ID (e.g. "continue EPIC-0002") to resume or hand off work.
+Reference ideas by their ID (e.g. "continue FEAT-0002") to resume or hand off work.

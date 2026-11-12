@@ -14,7 +14,7 @@ ends. Never replace a wakeup with a sleep or polling loop.
 
 For a shared factory checkout, read `factory/EXTERNAL.md` under `FACTORY_ROOT` first
 and use its `PROJECT_ROOT` and `RUN_ROOT`. For an installed copy, the run root is
-the active epic or run directory. Target project rules remain authoritative.
+the active feature or run directory. Target project rules remain authoritative.
 
 1. Ask me now, in one structured question round, every product or scope decision
    you will need before morning: open PROPOSAL/PENDING items, follow-up work you

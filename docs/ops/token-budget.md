@@ -1,4 +1,4 @@
-# Running an epic inside a token budget
+# Running a feature inside a token budget
 
 A consumer Claude window is sized for one person talking. An agent swarm spends it in an hour.
 This page is the operating limit that keeps a run inside the window, and the shape of the prompts
