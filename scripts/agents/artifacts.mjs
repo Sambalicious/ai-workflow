@@ -2,7 +2,7 @@
 // A gate must not run without its inputs. The behavioural spec is a specs/ folder;
 // A legacy gherkin/ folder still counts for installed projects that have not moved to
 // specs yet. The factory itself no longer writes one.
-// Usage: node scripts/agents/artifacts.mjs --run <epic dir> --gate <qa|design|security|code-review>
+// Usage: node scripts/agents/artifacts.mjs --run <feature dir> --gate <qa|design|security|code-review>
 import { existsSync, readdirSync, realpathSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -39,7 +39,7 @@ if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToP
   const gate = flag('--gate');
   if (!dir || !gate) {
     process.stderr.write(
-      'usage: node scripts/agents/artifacts.mjs --run <epic dir> --gate <qa|design|security|code-review>\n',
+      'usage: node scripts/agents/artifacts.mjs --run <feature dir> --gate <qa|design|security|code-review>\n',
     );
     process.exit(1);
   }

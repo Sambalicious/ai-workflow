@@ -13,7 +13,7 @@ propose; you do not apply anything until the user picks candidates.
    proposal follows.
 
 2. Read the primary sources for the session the user names: the conversation, the
-   run root (`RUN_ROOT/reports`, `RUN_ROOT/logs`, or the epic folder) and the commits
+   run root (`RUN_ROOT/reports`, `RUN_ROOT/logs`, or the feature folder) and the commits
    and diff it produced. Default to the current session when none is named. Judge
    what actually happened, not what the agent said happened.
 
@@ -22,7 +22,7 @@ propose; you do not apply anything until the user picks candidates.
    point at.
 
 - **Navigation**: how easily did the agent find the right files? Look for hidden
-  dependencies between files, a doc with no pointer from `AGENTS.md`, an epic folder
+  dependencies between files, a doc with no pointer from `AGENTS.md`, a feature folder
   with no `CURRENT.md` digest, or a `CONTEXT.md` that omits a term the session had to
   invent. _Use when_ the session took a long time to find one piece of information.
 - **Automated checks**: read the repo's own checks first - its `package.json`

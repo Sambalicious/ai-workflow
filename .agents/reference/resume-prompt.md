@@ -4,7 +4,7 @@ Use this to start a fresh orchestrator session after a repair wave closes or a s
 limit resets.
 
 ```
-Continue EPIC-XXXX-slug from epics/active/EPIC-XXXX-slug/CURRENT.md. Read only that
+Continue FEAT-XXXX-slug from features/active/FEAT-XXXX-slug/CURRENT.md. Read only that
 file first. It lists the gate status, open blockers, and the next step.
 
 Do not re-run gates that already passed on the current candidate. Dispatch only the

@@ -8,10 +8,10 @@ import test from 'node:test';
 import { checkSpec, PATHS } from './spec-check.mjs';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
-const examples = join(here, '..', '..', 'docs', 'proposals', 'gherkin-to-spec', 'example', 'EPIC-0005');
+const examples = join(here, '..', '..', 'docs', 'proposals', 'gherkin-to-spec', 'example', 'FEAT-0005');
 const examplesPresent = await access(examples).then(() => true, () => false);
 
-const HEADER = '# S07 — Test feature\n\nEpic: EPIC-0005 · Stories: 7 · Owner role: Spec Writer\n';
+const HEADER = '# S07 — Test feature\n\nFeature: FEAT-0005 · Stories: 7 · Owner role: Spec Writer\n';
 
 const valid = `${HEADER}
 ## Criteria

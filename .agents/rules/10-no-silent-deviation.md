@@ -15,7 +15,7 @@ Silent deviation is the single highest-impact failure mode in AEDL. This rule go
 ## Do NOT raise a Deviation when
 
 - The agent wants a cleaner pattern (aesthetic preference).
-- A team wants to add scope ("while we're in there…") — that is a new epic.
+- A team wants to add scope ("while we're in there…") — that is a new feature.
 - One engineer disagrees but can still implement the contract.
 - The agent is guessing because it lacks grounding context — load the grounding instead.
 

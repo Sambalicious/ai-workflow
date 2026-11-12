@@ -1,6 +1,6 @@
 ---
 description: Run a retrospective on a session and propose environment improvements, most severe first
-argument-hint: "[session, run root, or epic to review]"
+argument-hint: "[session, run root, or feature to review]"
 ---
 Run a retrospective on the coding agent's environment.
 
