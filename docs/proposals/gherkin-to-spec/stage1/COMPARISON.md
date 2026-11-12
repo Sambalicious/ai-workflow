@@ -69,12 +69,37 @@ Totals excluding concurrency and manual: **A 63, B 58**.
 None of these are reasons to abandon the format. All three are one-paragraph changes, and
 all three are exactly what a stage-1 comparison exists to find.
 
+## Re-run with the corrected role
+
+The same fresh session setup, with the three fixes applied. Output in `stage1/arm-b-rerun/`.
+
+| | A — Gherkin | B — first run | B — re-run |
+|---|---|---|---|
+| Units | 96 scenarios | 80 cases | 92 cases |
+| Non-happy units | 63 | 58 | 72 |
+| Concurrent | 8 | 0 | 8 |
+| Criteria traced | none | 25 | 25 |
+| Checker | n/a | pass | pass |
+
+The re-run answers the only outstanding question. Concurrency went from zero to eight, and
+each one names the resource it races on: an escalation record, an order's payment state, a
+stock record, a chat status. Non-happy coverage moved from behind the Gherkin arm (58 vs 63)
+to ahead of it (72 vs 63).
+
+One observation, not a blocker: the re-run recorded 22 open questions under Gaps, against
+none in the first run. That is either the corrected role being more honest about what the
+PRD leaves open, or it is over-flagging. Worth watching in the next epic; it does not
+affect coverage.
+
+**Gate: pass.** Stage 2 is authorised in the factory checkout only. Shoops and eve keep
+Gherkin until the stage-2 PR merges and a real epic has run on specs.
+
 ## Verdict
 
-**Conditional pass.** The spec format did not lose sad-path coverage; it lost concurrency,
-and it gained traceability that Gherkin never had at the factory level. Stage 2 should not
-start until the three role defects are fixed and one re-run confirms concurrency cases
-appear.
+**Pass, conditional on stage 2 fixing routing in the same PR.** The spec format lost
+concurrency in the first run and won it back once the role asked for it by name. It never
+had the sad-path collapse the review warned about, and it carries criterion traceability the
+Gherkin role does not attempt.
 
 ## Limitations
 

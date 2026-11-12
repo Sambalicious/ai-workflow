@@ -81,7 +81,7 @@ with unparseable rows as errors is the fix, and it is why the old drafts now fai
 
 Case titles were added (B7) so QA can keep its convention of naming tests after the case.
 
-## Stage 1 result: conditional pass
+## Stage 1 result: pass
 
 Two fresh sessions, same model, same PRD scope (groups 3, 5, 7, 9), each seeing only its
 own role file. Results and the full matrix: [`stage1/COMPARISON.md`](stage1/COMPARISON.md).
@@ -91,8 +91,9 @@ own role file. Results and the full matrix: [`stage1/COMPARISON.md`](stage1/COMP
   project's own `gherkin-spec.md` and `validate-specs.mjs`, not from the factory role.
 - **No sad-path collapse:** 63 non-happy scenarios in A against 58 non-happy cases in B,
   with B stronger on boundary and duplicate in the payment group.
-- **B's one real gap is concurrency:** 8 concurrent scenarios in A; B declared races manual
-  or absent.
+- **B's one real gap was concurrency:** 8 concurrent scenarios in A; B's first run declared
+  races manual or absent. The corrected role's re-run produced 8 concurrent cases, each
+  naming its raced resource.
 - **B's numbers are machine-checked; A's are self-reported.**
 
 Three role defects found and fixed: zero-padded AC numbering with a rule for unnumbered PRD
@@ -160,6 +161,8 @@ marked paid) and compare which derived tests catch them.
 
 ## Next step
 
-Stage 2 stays blocked until one re-run with the corrected role shows concurrency cases
-where the PRD has a shared resource. After that: switch QA and the other readers, and fix
-the `spec` artifact alias that routes to the PM, in the same PR with a controller test.
+Stage 2 is authorised in the factory checkout: switch QA and the other readers to specs,
+rename the model role, and fix the `spec` artifact alias that routes findings to the PM, in
+one PR with a controller test. Shoops and eve keep Gherkin until that PR merges and a real
+epic has run on specs. `.agents/gherkin.md` stays until stage 3 so the switch can be
+reverted.
