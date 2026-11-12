@@ -30,7 +30,7 @@ Epic: EPIC-0005 · Stories: 8 · Owner role: Spec Writer
 
 ## Cases
 
-Fixture note: order numbers are local to this file. Here #1042 is 2 × Ankara gown – L at ₦18,500 plus the Lagos Mainland ₦3,000 fee, total ₦40,000, and it is the same order as #1042 in S09 and S10; #1051 is the 25-line order and #1052 the pickup order. A seed shared across specs must keep #2042 in S03 and #5042 in S05 apart from these.
+Fixture note: order numbers are local to this file. Here #1042 is 2 × Ankara gown – L at ₦18,500 plus the Lagos Mainland ₦3,000 fee, total ₦40,000, and it is the same order as #1042 in S09 and S10; #1051 is the 25-line order, #1052 the pickup order of 1 × Silk scarf at ₦4,500 with a ₦0 delivery fee, total ₦4,500, and #1053 the itemised-invoice order of 2 × Ankara gown – L at ₦18,500 plus 1 × Silk scarf at ₦4,500, ₦41,500 before any delivery fee. A seed shared across specs must keep #2042 in S03 and #5042 in S05 apart from these.
 
 | ID | Path | Title | Setup | Action | Expected |
 |---|---|---|---|---|---|
@@ -39,7 +39,7 @@ Fixture note: order numbers are local to this file. Here #1042 is 2 × Ankara go
 | S08_003 | happy | Summary confirmed before the invoice | The cart holds 2 × Ankara gown – L at ₦37,000 and Lagos Mainland is ₦3,000 | The buyer confirms the summary of 2 gowns, Lagos Mainland, 14 Adeola Odeku and Tunde Bello | The invoice is issued for order #1042 at ₦40,000; the summary on screen matches the confirmed cart |
 | S08_004 | sad | Buyer withholds the delivery address | The cart holds 2 × Ankara gown – L and the buyer has chosen Lagos Mainland | The buyer refuses to give a delivery address | No invoice is issued; the cart is held with the quantity still available for the buyer |
 | S08_005 | boundary | Pickup chosen instead of delivery | The cart holds 1 × Silk scarf at ₦4,500 and the vendor offers Pickup at ₦0 | The buyer chooses Pickup and gives the name Tunde Bello | The summary shows Pickup with a ₦0 delivery fee; the invoice total is ₦4,500 |
-| S08_006 | happy | Invoice itemised | The cart holds 2 × Ankara gown – L at ₦18,500 and 1 × Silk scarf at ₦4,500 | The invoice for order #1042 is issued | The invoice shows 2 × Ankara gown – L at ₦18,500 and 1 × Silk scarf at ₦4,500 |
+| S08_006 | happy | Invoice itemised | The cart holds 2 × Ankara gown – L at ₦18,500 and 1 × Silk scarf at ₦4,500 | The invoice for order #1053 is issued | The invoice shows 2 × Ankara gown – L at ₦18,500 and 1 × Silk scarf at ₦4,500 |
 | S08_007 | boundary | Invoice with 25 lines | The cart holds 25 lines totalling ₦212,000 | The invoice for order #1051 is issued | All 25 lines appear with their quantities and unit prices; the total reads ₦212,000 |
 | S08_008 | happy | Delivery fee, total and exact amount | The cart holds 2 × Ankara gown – L at ₦37,000 and Lagos Mainland is ₦3,000 | The invoice for order #1042 is issued | The invoice shows a ₦3,000 delivery fee; the total reads ₦40,000 and the exact amount to pay reads ₦40,000 |
 | S08_009 | happy | Payment details on the invoice | The cart holds 2 × Ankara gown – L for order #1042 at ₦40,000 with Lagos Mainland delivery | The invoice for order #1042 is issued | The invoice shows the account number, bank name and account name for #1042; the amount matches ₦40,000 |
