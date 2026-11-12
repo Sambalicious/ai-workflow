@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Pins the factory files a project installed from ai-workflow, so a local edit fails
-// `agents:check` instead of drifting quietly. Covers factory/ and scripts/agents/.
+// `agents:check` instead of drifting quietly. Covers factory/, scripts/agents/ and the
+// shared spec checker, which is a gate and must not be editable without a re-pin.
 // Usage:
 //   node scripts/agents/factory-lock.mjs [--check]                 files match .agents/factory-lock.json
 //   node scripts/agents/factory-lock.mjs --write --commit <sha>     record the files as installed from <sha>
@@ -17,6 +18,9 @@ import { fileURLToPath } from 'node:url';
 
 export const LOCK = '.agents/factory-lock.json';
 export const DIRS = ['factory', 'scripts/agents'];
+// Files outside DIRS that are factory-owned gates. A tampered checker would otherwise
+// keep passing `agents:check`, because it lives under .agents/.
+export const FILES = ['.agents/skills/spec-check.mjs', '.agents/skills/spec-check.test.mjs'];
 export const SOURCE = 'https://github.com/Sambalicious/ai-workflow';
 const SKIP = new Set(['node_modules', '.DS_Store']);
 
@@ -40,6 +44,14 @@ async function walk(root, dir, out) {
 export async function hashFiles(root) {
   const paths = [];
   for (const dir of DIRS) await walk(root, dir, paths);
+  for (const path of FILES) {
+    try {
+      await readFile(join(root, path));
+      paths.push(path);
+    } catch {
+      // Absent in a project that predates the checker; nothing to lock yet.
+    }
+  }
   const hashes = new Map();
   for (const path of paths.sort()) {
     hashes.set(path, createHash('sha256').update(await readFile(join(root, path))).digest('hex'));

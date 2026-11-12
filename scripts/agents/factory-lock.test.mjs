@@ -19,14 +19,15 @@ async function project(files = { 'factory/cli.mjs': 'cli', 'factory/adapters/a/x
   return root;
 }
 
-test('the lock covers factory/ and scripts/agents/, nested files included, and nothing else', async () => {
+test('the lock covers factory/, scripts/agents/ and the spec checker, and nothing else', async () => {
   const root = await project();
   try {
     await mkdir(join(root, 'apps'), { recursive: true });
     await writeFile(join(root, 'apps/app.ts'), 'app');
     await mkdir(join(root, 'factory/node_modules/dep'), { recursive: true });
     await writeFile(join(root, 'factory/node_modules/dep/index.js'), 'dep');
-    assert.deepEqual([...(await hashFiles(root)).keys()], ['factory/adapters/a/x.mjs', 'factory/cli.mjs', 'scripts/agents/sync.mjs']);
+    assert.deepEqual([...(await hashFiles(root)).keys()],
+      ['factory/adapters/a/x.mjs', 'factory/cli.mjs', 'scripts/agents/sync.mjs']);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
@@ -101,6 +102,24 @@ test('the CLI still runs when called through a symlinked path', async () => {
     assert.equal((await readLock(root)).commit, 'abc123');
   } finally {
     await rm(link, { force: true });
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('a locally edited spec checker fails the check', async () => {
+  const root = await project({
+    'factory/cli.mjs': 'cli',
+    '.agents/skills/spec-check.mjs': 'checker',
+    '.agents/skills/spec-check.test.mjs': 'checker test',
+  });
+  try {
+    const { files } = await writeLock(root, 'abc123');
+    assert.ok('.agents/skills/spec-check.mjs' in files, 'the checker must be locked');
+    assert.equal(compare(files, await hashFiles(root)).ok, true);
+    await writeFile(join(root, '.agents/skills/spec-check.mjs'), 'tampered gate');
+    assert.deepEqual(compare(files, await hashFiles(root)).changed, ['.agents/skills/spec-check.mjs']);
+    assert.equal(compare(files, await hashFiles(root)).ok, false);
+  } finally {
     await rm(root, { recursive: true, force: true });
   }
 });
