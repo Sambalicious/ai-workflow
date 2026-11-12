@@ -18,7 +18,7 @@ the check. Existing pinned graphs and gates remain unchanged.
 
 ## STOP and wait when any of these is true
 
-- The Gherkin spec is not yet complete and you are the Backend Engineer, Frontend Engineer, or QA.
+- The spec is not yet complete and you are the Backend Engineer, Frontend Engineer, or QA.
 - The architecture decision is not yet complete and you are the Backend Engineer.
 - The API contract handoff is not yet complete and you are the Frontend Engineer.
 - The API contract handoff is not yet complete and you are the Backend Engineer (implementation task), DevOps, or the Security Reviewer (threat model pass).
@@ -38,26 +38,26 @@ the check. Existing pinned graphs and gates remain unchanged.
 
 | Agent | Must have before starting |
 |---|---|
-| Gherkin Spec Writer | PRD |
+| Spec Writer | PRD |
 | Growth (opt-in) | PRD + architecture + design spec + API contract handoff |
 | Architect | PRD |
 | Designer | PRD |
-| Copywriter | PRD + Gherkin spec + design spec (copy slots) |
+| Copywriter | PRD + spec + design spec (copy slots) |
 | SEO Specialist (crawl pass) | PRD + architecture + design spec |
 | SEO Specialist (metadata pass) | Crawl pass + copy deck (or design spec when Copywriter is skipped) |
-| Backend Engineer (contract task) | PRD + Gherkin spec + architecture + design spec |
+| Backend Engineer (contract task) | PRD + spec + architecture + design spec |
 | Backend Engineer (implementation task) | API contract handoff + the contract task's inputs |
-| Frontend Engineer | Design spec + Gherkin spec + API contract handoff; copy deck + SEO plan before using them, when those roles run |
+| Frontend Engineer | Design spec + spec + API contract handoff; copy deck + SEO plan before using them, when those roles run |
 | Data Analyst (opt-in) | PRD + API contract handoff |
-| QA (test authoring) | Gherkin spec + API contract handoff |
-| QA (gate) | PRD + Gherkin spec + backend spec + frontend spec + authored tests + published candidate |
+| QA (test authoring) | spec + API contract handoff |
+| QA (gate) | PRD + spec + backend spec + frontend spec + authored tests + published candidate |
 | DevOps | Architecture + API contract handoff + SEO plan (crawl pass, when SEO runs) |
 | Designer (preview mode) | Design spec + DESIGN.md + Frontend preview URL against contract mocks |
 | Designer (review mode) | Design spec + copy deck + DESIGN.md + running build of the candidate |
 | Security Reviewer (threat model pass) | PRD + architecture + API contract handoff |
 | Security Reviewer (candidate pass) | Threat model + backend spec + frontend spec + DevOps config + current QA evidence + candidate |
-| Pentester (opt-in) | Written authorization + isolated running candidate + security review + API contract handoff + Gherkin spec + frontend spec + synthetic accounts |
-| Independent Code Reviewer | Actual candidate + approved scope + full contracts/Gherkin + repository rules + current QA evidence (runs in parallel with the Security candidate pass; also the pentest report when Pentester is enabled) |
+| Pentester (opt-in) | Written authorization + isolated running candidate + security review + API contract handoff + spec + frontend spec + synthetic accounts |
+| Independent Code Reviewer | Actual candidate + approved scope + full contracts/spec + repository rules + current QA evidence (runs in parallel with the Security candidate pass; also the pentest report when Pentester is enabled) |
 | Release Manager (opt-in) | Enabled outputs and approved required evidence, including QA, security, and independent code review |
 
 ---

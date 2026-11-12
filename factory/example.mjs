@@ -43,7 +43,7 @@ exampleInputWithRelease.tasks.push({ id: 'release', role: 'release-manager', dep
 // Feature graph: one contract task, then Backend, Frontend, DevOps, the Security
 // threat model, and QA test authoring run in parallel. The authoring QA session is a
 // work author, so the controller bars it from the QA gate. Security candidate review and code review both follow
-// QA and run in parallel. Approved planning artifacts (PRD, Gherkin, architecture,
+// QA and run in parallel. Approved planning artifacts (PRD, spec, architecture,
 // design spec, copy deck, SEO plan) are inputs to this run, not tasks in it.
 export const exampleFeatureInput = {
   ...structuredClone(exampleInput),

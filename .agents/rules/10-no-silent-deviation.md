@@ -35,7 +35,7 @@ Each entry must include:
 - A plain-language description of the proposed change.
 - **Impact on other teams** (table: Team | Impact | Mitigation).
 - **Alternatives considered** with reasons they were rejected.
-- **Approvals required** (Tech Lead + affected team lead + QA Lead if Gherkin changes + Security Reviewer if auth/data exposure changes).
+- **Approvals required** (Tech Lead + affected team lead + QA Lead if spec cases change + Security Reviewer if auth/data exposure changes).
 
 ---
 

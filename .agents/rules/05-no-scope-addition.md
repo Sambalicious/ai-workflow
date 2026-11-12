@@ -6,15 +6,15 @@ Every agent in this pipeline operates within the scope defined by the PRD. An ag
 
 ## STOP and flag when any of these is true
 
-- An agent wants to add an endpoint not required by any Gherkin scenario or PRD user story.
+- An agent wants to add an endpoint not required by any spec case or PRD user story.
 - A designer wants to add a screen not mapped to a user story.
-- A QA engineer wants to add test cases for behaviour not in the Gherkin spec.
+- A QA engineer wants to add test cases for behaviour not in the spec.
 - A DevOps engineer wants to add infrastructure not required by the engineering spec.
 - Any agent uses the phrase "while we're here" or "it would also make sense to add."
 
 ## Do NOT flag when
 
-- The addition is required to satisfy an existing Gherkin scenario the agent missed on first read — add it and note the omission.
+- The addition is required to satisfy an existing spec case the agent missed on first read — add it and note the omission.
 - The addition is a standard implementation detail (e.g. a health check endpoint, a 404 handler) not worth a PRD user story.
 - The addition is flagging a missing requirement for the PM to decide on — that is correct escalation, not scope addition.
 
@@ -43,7 +43,7 @@ If you notice something that should exist but doesn't:
 
 If you (an agent) feel the impulse to add something beyond your inputs:
 
-1. Ask: is this traceable to a PRD user story or Gherkin scenario?
+1. Ask: is this traceable to a PRD user story or spec case?
 2. If yes: add it. It is in scope.
 3. If no: do not add it. Flag it with `📌 POST-LAUNCH` in the appropriate section.
 4. Do NOT add it "just in case" and omit the flag.

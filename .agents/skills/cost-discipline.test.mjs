@@ -15,6 +15,6 @@ test('cost discipline rules are binding', async () => {
     /Run a project's full suite only when the change touches a\s+contract, schema, migration, configuration, dependency, or shared module/,
   );
   assert.match(orchestrator, /Never run\s+the same suite twice against an unchanged candidate/);
-  assert.match(orchestrator, /Implementation starts only when the `\[5e\]`\s+QA spec files for its Gherkin exist on disk/);
+  assert.match(orchestrator, /Implementation starts only when the `\[5e\]`\s+QA test files for its spec cases exist on disk/);
   assert.match(orchestrator, /Evidence in files, verdict in chat/);
 });

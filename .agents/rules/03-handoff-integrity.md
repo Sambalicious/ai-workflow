@@ -6,7 +6,7 @@ A handoff is only as good as its accuracy. Compressing, paraphrasing, or editori
 
 ## Pass WHOLE — never summarise or paraphrase
 
-- **Gherkin `.feature` files** — Backend Engineer, Frontend Engineer, and QA receive the full file. Every step is a binding contract. Summarising loses scenarios.
+- **spec files** — Backend Engineer, Frontend Engineer, and QA receive the full file. Every step is a binding contract. Summarising loses scenarios.
 - **API contract handoff** — Frontend Engineer receives the complete handoff document from the Backend Engineer. No excerpts, no rewording of field names or types.
 
 ## Pass TL;DR + relevant sections — do not pass the full upstream output
@@ -24,7 +24,7 @@ A handoff is only as good as its accuracy. Compressing, paraphrasing, or editori
 
 ## Anti-patterns (all process defects)
 
-- **Lossy summary** — paraphrasing a Gherkin scenario rather than passing the original step text.
+- **Lossy summary** — paraphrasing a spec case rather than passing the original step text.
 - **Aspirational TL;DR** — writing "auth is handled" when the auth approach is still an open question.
 - **Field renaming** — passing the API contract but using different field names "for clarity."
 - **Selective handoff** — omitting sections of the API contract because they seem unrelated to the current screen.

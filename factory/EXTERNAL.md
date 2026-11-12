@@ -125,7 +125,7 @@ state file; a new directory is not a way to reset budgets or repair waves.
    and `FACTORY_ROOT/factory/PROTOCOL.md`. For independent candidate review, load
    `FACTORY_ROOT/.agents/skills/code-review/SKILL.md` in a fresh reviewer context.
 4. Load the selected role from the team table under `FACTORY_ROOT`, not from the
-   target. Pass full API contracts and Gherkin files unchanged. Preserve existing
+   target. Pass full API contracts and spec files unchanged. Preserve existing
    target artifact paths; assign new report paths explicitly under `RUN_ROOT/reports/`.
 
 The `epics/` ID and lifecycle examples in `AGENTS.md` refer to target project

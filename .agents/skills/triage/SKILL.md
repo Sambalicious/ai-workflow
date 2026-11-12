@@ -36,7 +36,7 @@ Finish when every examined artifact has a revision or content hash and any unrea
 Identify the affected user, observed behavior, desired behavior, environment, frequency, and impact.
 Separate bug correction from new capability. For mixed requests, recommend linked scopes with a verdict for each.
 Do not create or link tickets automatically.
-Establish expected behavior from approved requirements, contracts, full relevant Gherkin files, or a confirmed product decision.
+Establish expected behavior from approved requirements, contracts, full relevant spec files, or a confirmed product decision.
 Record authority and conflicts. Current code and an unconfirmed reporter preference alone do not establish intended behavior.
 Send material intent conflicts to a named human decision owner rather than silently choosing a requirement.
 Finish when the expected behavior has a cited authority or an explicit unresolved question.
@@ -67,7 +67,7 @@ Finish only with a reproducible behavioral failure and causal evidence, or an ex
 ### 5. Define the handoff
 
 For bugs, assign regression IDs such as `REG-001` to observable Given/When/Then criteria.
-Map each criterion to the failure, an existing acceptance or Gherkin ID where available, and a suitable test layer.
+Map each criterion to the failure, an existing acceptance or spec ID where available, and a suitable test layer.
 Include relevant negative, boundary, permission, and concurrency cases without expanding the request arbitrarily.
 For features, capture the problem, target user, desired outcome, constraints, non-goals, and discovery questions.
 Keep unresolved product, security, scope, and irreversible architecture decisions with human owners.
@@ -95,7 +95,7 @@ Do not infer human approval from silence, an agent report, or a readiness label.
 - `READY_BUG`: recommend `.agents/backend-engineer.md` for server, database, or API corrections and `.agents/frontend-engineer.md` for UI or client corrections.
 - For cross-layer bugs, name both owners and resolve the API contract with backend before frontend depends on it.
 - Inspect the selected factory roles before handoff. If they are skeleton-only, actual fixes require an implementation-authorized mode compatible with repository rules; triage grants none.
-- Pass the full bug brief, regression IDs, full relevant Gherkin files, and the unchanged API contract handoff when applicable.
+- Pass the full bug brief, regression IDs, full relevant spec files, and the unchanged API contract handoff when applicable.
 - `READY_FEATURE`: recommend "Grill Me" discovery, then `.agents/skills/product-manager.md` when that file is available in the selected factory.
 - Grill Me protocol: inspect known facts, ask only questions whose prerequisite decisions are settled, challenge assumptions and alternatives, and record user decisions, non-goals, constraints, and measurable success.
 - Use an available grilling skill optionally. Do not assume a global skill is installed. If the PM file is absent, report the missing route.

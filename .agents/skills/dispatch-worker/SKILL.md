@@ -23,7 +23,7 @@ procedure.
 
 ## Inputs
 
-- The approved task, PRD or bug brief, and the sections of the design, Gherkin, or
+- The approved task, PRD or bug brief, and the sections of the design, spec, or
   API contract the change must satisfy. Pass paths, not the session history.
 - Files in scope, acceptance checks, and what not to touch.
 - The current `metrics.md` tally for the epic or task.
