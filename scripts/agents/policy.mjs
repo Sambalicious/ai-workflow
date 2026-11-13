@@ -11,7 +11,8 @@ import { resolveModel } from './which-model.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const TIERS = ['lead', 'advisor', 'swarm', 'worker'];
-const REVIEW_ROLES = ['qa-gate', 'security-review', 'code-review', 'api-contract'];
+const REVIEW_ROLES = ['qa-gate', 'security-review', 'code-review', 'api-contract', 'design-consult'];
+
 
 async function readJson(path, fallback = null) {
   try {

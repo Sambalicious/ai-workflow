@@ -1,7 +1,7 @@
 {
   "tiers": {
     "lead": "Main session and orchestration; Product Manager, Spec Writer, Architect, Designer spec and review, Backend and Frontend implementation, QA test authoring, QA gate, DevOps, Copywriter, SEO, Designer preview, repair fixes.",
-    "advisor": "API contract; Security candidate review; fresh independent code review; advisor consults.",
+    "advisor": "API contract; design-spec consult before the contract publishes; Security candidate review; fresh independent code review; advisor consults.",
     "swarm": "Read-only search and repo maps, file inventories, log and test-output triage, check runs.",
     "worker": "Authoring: implementation, tests and fixtures, refactors, mechanical document and copy edits, searches. Never plans, decides design, writes a contract, runs a gate, or reviews security."
   },
@@ -32,6 +32,7 @@
     "qa-gate": "lead",
     "security-review": "advisor",
     "api-contract": "advisor",
+    "design-consult": "advisor",
     "code-review": "advisor",
     "advisor-consult": "advisor",
     "backend-engineer": "worker",

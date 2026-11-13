@@ -15,6 +15,7 @@ features/
 │       │   └── S08-ordering.md
 │       ├── architecture.md
 │       ├── design-spec.md
+│       ├── design-consult.md          # step [3f], advisor review of the spec before the contract
 │       ├── backend-spec.md
 │       ├── api-contract.md            # step [4], written before implementation
 │       ├── frontend-spec.md
