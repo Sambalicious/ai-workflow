@@ -68,8 +68,15 @@ first, every run, before any role is dispatched.
    `pnpm agents:ledger add ...`. The ledger refuses a lead or advisor dispatch without a
    receipt younger than ten minutes, so the sequence cannot be skipped by habit.
 9. A gate runs only when its inputs exist: `pnpm agents:artifacts --run <feature> --gate
-   <qa|design|security|code-review>`. List inherited test failures in
-   `docs/ops/known-failures.md` and compare a run's report with
+   <qa|design|security|code-review>`. A file that exists is not an input. The design
+   spec must carry screen blueprints with a wireframe, a feedback matrix with pattern
+   and tone, copy slots keyed `screen.element.state` with an intent — or a stated
+   `None` for the slots alone — and a style basis: `Per DESIGN.md`, or the tokens
+   themselves. A headline-only spec fails the design, security and code-review gates
+   the same way a missing file does. The design gate also requires `design-consult.md`
+   and refuses a spec that does not cover every surface and state the PRD's Surfaces
+   table names. Only the highest `.rN.md` revision is read. List inherited test
+   failures in `docs/ops/known-failures.md` and compare a run's report with
    `pnpm agents:known-failures --report <vitest json>` instead of re-deriving them.
 
 ## Role
@@ -199,14 +206,18 @@ The setup, the health check for the local provider and the ledger template are i
 <!-- tier-table:end -->
 
 - **Lead** (main session, decisions only): orchestration, Product Manager, spec
-  authorship, Architect, Designer spec and review, Copywriter, SEO,
-  DevOps, the QA gate, and repair-wave decisions.
+  authorship, Architect, Designer spec and review, Copywriter, SEO, DevOps, the
+  design-time threat model, the QA gate, and repair-wave decisions.
   The lead does not author implementation or tests; it scopes them and reviews them.
 
-- **Advisor**: the API contract, the Security candidate review, and the fresh
-  independent code review, plus advisor consults. The Designer review and the QA gate
-  run on the lead tier; they are never optional consults, and independence holds
-  because the worker tier writes the code. Security runs on the advisor tier because
+- **Advisor**: the API contract, the design-spec consult that precedes it, the Security
+  candidate review, and the fresh independent code review, plus advisor consults. The
+  Designer review and the QA gate run on the lead tier; they are never optional consults,
+  and independence holds because the worker tier writes the code. The design consult sits
+  on the advisor tier because a weak spec is invisible to the gate that reviews against
+  it — [6b] checks the build against the spec, never the spec against the product — and
+  because it is the last cheap moment: after the contract publishes, a weak spec costs a
+  repair wave instead of a rewritten section. Security runs on the advisor tier because
   a missed finding is silent — no cheaper gate contradicts it — and it is serialized
   before the code review so that one Opus session runs at a time.
 - **Swarm** (explore, audit, check runs): in Claude Code, dispatch it through
@@ -216,14 +227,20 @@ The setup, the health check for the local provider and the ledger template are i
   confirms it before it becomes a finding or evidence. Run a single grep or
   call-site lookup in the main session directly.
 
-Consult the `advisor` agent at three moments, passing the plan or the failing
+Consult the `advisor` agent at four moments, passing the plan or the failing
 evidence and the relevant file paths rather than the whole session:
 
-1. Before committing to a plan: after the PRD and again before the API contract is
+1. The design consult: after the Designer's spec and before the API contract
+   publishes, with the PRD's Surfaces table beside the spec. It asks what the spec
+   leaves an engineer to invent — undeclared screens, missing states, a hierarchy
+   that does not match the user's goal, copy slots with no intent. Output is
+   `design-consult.md`; a weak spec returns as `BLOCKER[designer]` and is revised
+   before [4]. This one is a required step, not a discretionary consult.
+2. Before committing to a plan: after the PRD and again before the API contract is
    published, and before any non-trivial repair plan.
-2. When the same error comes back: the same failing check after two fix attempts,
+3. When the same error comes back: the same failing check after two fix attempts,
    or a second repair wave on the same finding.
-3. Before calling the task done, ahead of the QA, Security, and code review gates.
+4. Before calling the task done, ahead of the QA, Security, and code review gates.
 
 Keep advisor consults to a handful per task; each one loads its context fresh. A
 client's built-in advisor feature, where it has one, may replace the `advisor`
@@ -337,14 +354,14 @@ step re-reads its whole history. Keep it lean:
 | Frontend Engineer | `.agents/frontend-engineer.md` | Builds the UI against the contract in parallel with Backend, then integrates |
 | QA Engineer | `.agents/qa.md` | Writes tests from spec + contract during the build; a separate QA session runs them as the gate |
 | DevOps Engineer | `.agents/devops.md` | Turns architecture + API contract into infra and CI/CD config |
-| Security Reviewer | `.agents/security.md` | Writes a threat model from the contract, then reviews the actual candidate against it |
+| Security Reviewer | `.agents/security.md` | Writes the design-time threat model on the lead tier from the architecture and contract, then reviews the actual candidate on the advisor tier against it |
 | Independent Code Reviewer | `.agents/skills/code-review/SKILL.md` | Reviews the actual candidate, current QA evidence, and the security findings, after Security |
 | Copywriter | `.agents/copywriter.md` | Fills the Designer's copy slots with a keyed copy deck and voice guide |
 | SEO Specialist | `.agents/seo.md` | Crawl pass from architecture + design spec; metadata pass from the copy deck |
-| Pentester (opt-in) | `.agents/pentester.md` | Attacks an authorized running candidate and reports reproduced findings |
-| Growth (opt-in) | `.agents/skills/growth.md` | Turns PRD + architecture + design spec + backend spec into a go-to-market plan |
-| Data Analyst (opt-in) | `.agents/data-analyst.md` | Turns PRD + backend spec into a measurement and instrumentation plan |
-| Release Manager (opt-in) | `.agents/release-manager.md` | Aggregates enabled outputs and required evidence into a go/no-go decision |
+| Pentester (opt-in, advisor tier) | `.agents/pentester.md` | Attacks an authorized running candidate and reports reproduced findings |
+| Growth (opt-in, lead tier) | `.agents/skills/growth.md` | Turns PRD + architecture + design spec + backend spec into a go-to-market plan |
+| Data Analyst (opt-in, lead tier) | `.agents/data-analyst.md` | Turns PRD + backend spec into a measurement and instrumentation plan |
+| Release Manager (opt-in, advisor tier) | `.agents/release-manager.md` | Aggregates enabled outputs and required evidence into a go/no-go decision |
 
 ## Pipeline
 
@@ -390,13 +407,13 @@ Escalate to the full lane when a condition fails, a check fails, or a finding re
 ## Instructions
 
 1. Start with the raw idea. Pass it to the Product Manager first. Do not skip this step — every downstream agent depends on the PRD.
-2. Once the PRD is ready, run steps [2] (Spec Writer), [3a] (Architect), and [3b] (Designer) in parallel. Each takes only the PRD. Apply the fast-lane triggers once [3a] and [3b] are complete. Step [3c] (Copywriter) starts once [2] and [3b] are complete. Step [3d] (SEO crawl pass) starts once [3a] and [3b] are complete, in parallel with Copywriter. Step [3e] (SEO metadata pass) starts once [3c] and [3d] are complete. Steps [3c]–[3e] run in parallel with step [4]. Copy-driven spec changes go through the Revision loop, not direct edits.
-3. Step [4] (API contract) cannot start until steps [2], [3a], and [3b] are complete. The Backend Engineer runs in contract mode: it publishes the complete API contract handoff and the spec responsibility map, and stops before implementation. The contract has one writer; later changes to it are `contract` findings routed through the Revision loop.
+2. Once the PRD is ready, run steps [2] (Spec Writer), [3a] (Architect), and [3b] (Designer) in parallel. Each takes only the PRD. Apply the fast-lane triggers once [3a] and [3b] are complete. Step [3f] (design consult) runs once [3b] is complete: an advisor-tier session compares the spec's surfaces, states, and copy slots with the PRD's Surfaces table, the orchestrator saves its reply as `design-consult.md`, and a weak spec comes back as `BLOCKER[designer]`. Step [3c] (Copywriter) starts once [2], [3b], and [3f] are complete, because the consult can change copy slots. Step [3d] (SEO crawl pass) starts once [3a] and [3b] are complete, in parallel with Copywriter. Step [3e] (SEO metadata pass) starts once [3c] and [3d] are complete. Steps [3c]–[3e] run in parallel with step [4]. Copy-driven spec changes go through the Revision loop, not direct edits.
+3. Step [4] (API contract) cannot start until steps [2], [3a], [3b], and [3f] are complete. The Backend Engineer runs in contract mode: it publishes the complete API contract handoff and the spec responsibility map, and stops before implementation. The contract has one writer; later changes to it are `contract` findings routed through the Revision loop.
 4. Once the contract is complete, start steps [5a]–[5e] in parallel, each in its own isolated workspace:
    - [5a] Backend Engineer implements the contract with tests.
    - [5b] Frontend Engineer builds against MSW handlers derived from the contract, then switches to the real backend at integration. It also needs the design spec, the behaviour spec, the copy deck and SEO metadata pass when those roles run, and waits for them only before using them. Once screens render against the mocks, it shares a preview URL and the orchestrator dispatches the Designer in preview mode (see Designer preview below).
    - [5c] DevOps produces infrastructure and CI/CD from the architecture, contract, and SEO crawl pass.
-   - [5d] Security writes the design-time threat model from the architecture and contract.
+   - [5d] Security writes the design-time threat model from the architecture and contract, on the lead tier.
    - [5e] A QA session writes the independent tests from the spec files and contract: Playwright journeys, API integration tests, and fixtures. It writes test files only, never product code. This QA session cannot run the [6a] gate; a different QA session does.
    Only when explicitly requested, Data Analyst and Growth also start here. Data Analyst needs the PRD and contract. Growth needs the PRD, architecture, design spec, and contract.
 5. Each implementer runs its fast checks (format, lint, type check, affected unit tests) and the authored [5e] specs that cover its changes against the real app before handing off. The QA gate then adds only the gaps. A failing fast check or spec is fixed by its author before handoff, not routed as a repair wave.

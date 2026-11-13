@@ -137,6 +137,15 @@ artifacts. Do not create a feature for an existing bug or tooling request merely
 to use this entry. For an authorized new feature, use the target's convention and
 keep run evidence isolated. Completing a target feature does not move the run ledger.
 
+### Design baseline in the target
+
+UI work needs a baseline before it needs a spec. If `PROJECT_ROOT` has no `DESIGN.md`,
+the Designer copies `FACTORY_ROOT/.agents/templates/DESIGN.md` into the target root for
+product-owner approval in the same change that adds the first surface. A target
+`DESIGN.md` is authoritative and is never overwritten by the factory's copy. The design
+gate then checks the spec's style basis and its coverage of the PRD's Surfaces table, so
+a run cannot quietly decide typography or status tones per feature.
+
 ## Call the controller
 
 Use the target project as the command working directory. After validating the

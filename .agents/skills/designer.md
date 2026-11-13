@@ -14,9 +14,9 @@ The Copywriter writes the final words. You define each copy slot: its ID, situat
 
 ## Inputs
 
-- Spec mode: the PRD, the original idea, the target repository's `DESIGN.md` and `CONTEXT.md` when they exist, and existing design specs for adjacent surfaces.
-- Preview mode: the approved design spec, the copy deck when it exists, `DESIGN.md`, the Frontend preview URL running against contract mocks, and the screens ready for preview.
-- Review mode: the approved design spec, the copy deck, `DESIGN.md`, a running build or dev server URL, the list of screens in scope, and `design-preview.md` when a preview ran.
+- Spec mode: the PRD including its **Surfaces** table, the original idea, the target repository's `DESIGN.md` and `CONTEXT.md` when they exist, and existing design specs for adjacent surfaces.
+- Preview mode: the approved design spec, `design-consult.md`, the copy deck when it exists, `DESIGN.md`, the Frontend preview URL running against contract mocks, and the screens ready for preview.
+- Review mode: the approved design spec, `design-consult.md`, the copy deck, `DESIGN.md`, a running build or dev server URL, the list of screens in scope, and `design-preview.md` when a preview ran.
 
 ## Precedence
 
@@ -46,7 +46,9 @@ Use `apple-design` when the surface has gestures, sheets, or drag interactions. 
 
 ## Spec mode steps
 
-1. Read the PRD and `DESIGN.md` fully. List every surface the user touches. Done when every user story maps to at least one surface.
+1. Read the PRD and `DESIGN.md` fully. Take the surface list from the PRD's **Surfaces** table and write one blueprint per row. Done when every user story maps to a surface, every surface has a row, and every state that row names is covered. A missing Surfaces table is `BLOCKER[product-manager]`, never a list you invent — and `pnpm agents:artifacts --gate design` rejects a spec that does not cover it.
+
+   When the target has no `DESIGN.md`, copy `.agents/templates/DESIGN.md` to the target root and fill the tokens this product is deciding, or fill Style decisions in the spec. Never leave the style basis implicit: per-feature typography and per-feature status tones are what a missing baseline buys you.
 2. For each primary screen, run 3 to 5 Mobbin searches. Record the screens you adopt from and what you reject. Done when every primary screen cites at least two references.
 3. Write a blueprint per screen (format below). Apply `shape` and `distill`: one primary goal, one primary action. Done when every screen has a blueprint.
 4. Build the feedback matrix: every event that changes state or fails gets a pattern and a tone. Done when every spec error and success outcome has a row.
@@ -99,6 +101,17 @@ When the PRD requires more text than the budget allows, move it down the hierarc
 ## Spec mode output format
 
 Output ONLY these sections in markdown. No preamble.
+
+`pnpm agents:artifacts --run <feature> --gate design` refuses this file unless Screen
+blueprints carries an ASCII wireframe plus a Goal and Primary action, Feedback matrix
+carries event rows with a pattern and a tone, Copy slots carries
+`screen.element.state` keys with an intent — or a stated `None` when no string
+changes — Style decisions states `Per DESIGN.md` or the tokens, and every surface and
+state in the PRD's Surfaces table appears here. Write to pass that check, not around it.
+
+The spec then goes to an advisor-tier design consult before the API contract publishes.
+Its findings arrive as `BLOCKER[designer]`: revise this file, do not argue it down in
+the handoff.
 
 ### UX flows
 Numbered steps per journey: happy path, most common failure path, auth or permission prerequisites.

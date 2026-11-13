@@ -15,6 +15,11 @@ Your idea
 [2] spec            [3a] Architect         [3b] Product Designer
     (PRD)                   (PRD)                  (PRD)
    │                      │                      │
+   │                      │                [3f] design consult
+   │                      │                  (advisor tier:
+   │                      │                   spec vs the PRD's
+   │                      │                   Surfaces table)
+   │                      │                      │
    │                      ├──────────┬───────────┤
    │                      │          ▼           ▼
    │                      │   [3d] SEO crawl   [3c] Copywriter*
@@ -64,3 +69,7 @@ Backend    Frontend     DevOps     Sec.   QA test       takes copy deck
 
 * Fast lane: runs only when its trigger applies (see Role activation policy).
 ```
+
+[3f] Design consult is required, not a gate. A weak spec returns as `BLOCKER[designer]`
+and is revised before [4]; the orchestrator saves the advisor's reply as
+`design-consult.md`, which the design gate checks for.
