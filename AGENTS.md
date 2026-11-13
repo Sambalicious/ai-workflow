@@ -68,8 +68,15 @@ first, every run, before any role is dispatched.
    `pnpm agents:ledger add ...`. The ledger refuses a lead or advisor dispatch without a
    receipt younger than ten minutes, so the sequence cannot be skipped by habit.
 9. A gate runs only when its inputs exist: `pnpm agents:artifacts --run <feature> --gate
-   <qa|design|security|code-review>`. List inherited test failures in
-   `docs/ops/known-failures.md` and compare a run's report with
+   <qa|design|security|code-review>`. A file that exists is not an input. The design
+   spec must carry screen blueprints with a wireframe, a feedback matrix with pattern
+   and tone, copy slots keyed `screen.element.state` with an intent — or a stated
+   `None` for the slots alone — and a style basis: `Per DESIGN.md`, or the tokens
+   themselves. A headline-only spec fails the design, security and code-review gates
+   the same way a missing file does. The design gate also requires `design-consult.md`
+   and refuses a spec that does not cover every surface and state the PRD's Surfaces
+   table names. Only the highest `.rN.md` revision is read. List inherited test
+   failures in `docs/ops/known-failures.md` and compare a run's report with
    `pnpm agents:known-failures --report <vitest json>` instead of re-deriving them.
 
 ## Role
