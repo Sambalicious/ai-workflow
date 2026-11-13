@@ -206,8 +206,8 @@ The setup, the health check for the local provider and the ledger template are i
 <!-- tier-table:end -->
 
 - **Lead** (main session, decisions only): orchestration, Product Manager, spec
-  authorship, Architect, Designer spec and review, Copywriter, SEO,
-  DevOps, the QA gate, and repair-wave decisions.
+  authorship, Architect, Designer spec and review, Copywriter, SEO, DevOps, the
+  design-time threat model, the QA gate, and repair-wave decisions.
   The lead does not author implementation or tests; it scopes them and reviews them.
 
 - **Advisor**: the API contract, the design-spec consult that precedes it, the Security
@@ -354,14 +354,14 @@ step re-reads its whole history. Keep it lean:
 | Frontend Engineer | `.agents/frontend-engineer.md` | Builds the UI against the contract in parallel with Backend, then integrates |
 | QA Engineer | `.agents/qa.md` | Writes tests from spec + contract during the build; a separate QA session runs them as the gate |
 | DevOps Engineer | `.agents/devops.md` | Turns architecture + API contract into infra and CI/CD config |
-| Security Reviewer | `.agents/security.md` | Writes a threat model from the contract, then reviews the actual candidate against it |
+| Security Reviewer | `.agents/security.md` | Writes the design-time threat model on the lead tier from the architecture and contract, then reviews the actual candidate on the advisor tier against it |
 | Independent Code Reviewer | `.agents/skills/code-review/SKILL.md` | Reviews the actual candidate, current QA evidence, and the security findings, after Security |
 | Copywriter | `.agents/copywriter.md` | Fills the Designer's copy slots with a keyed copy deck and voice guide |
 | SEO Specialist | `.agents/seo.md` | Crawl pass from architecture + design spec; metadata pass from the copy deck |
-| Pentester (opt-in) | `.agents/pentester.md` | Attacks an authorized running candidate and reports reproduced findings |
-| Growth (opt-in) | `.agents/skills/growth.md` | Turns PRD + architecture + design spec + backend spec into a go-to-market plan |
-| Data Analyst (opt-in) | `.agents/data-analyst.md` | Turns PRD + backend spec into a measurement and instrumentation plan |
-| Release Manager (opt-in) | `.agents/release-manager.md` | Aggregates enabled outputs and required evidence into a go/no-go decision |
+| Pentester (opt-in, advisor tier) | `.agents/pentester.md` | Attacks an authorized running candidate and reports reproduced findings |
+| Growth (opt-in, lead tier) | `.agents/skills/growth.md` | Turns PRD + architecture + design spec + backend spec into a go-to-market plan |
+| Data Analyst (opt-in, lead tier) | `.agents/data-analyst.md` | Turns PRD + backend spec into a measurement and instrumentation plan |
+| Release Manager (opt-in, advisor tier) | `.agents/release-manager.md` | Aggregates enabled outputs and required evidence into a go/no-go decision |
 
 ## Pipeline
 
@@ -413,7 +413,7 @@ Escalate to the full lane when a condition fails, a check fails, or a finding re
    - [5a] Backend Engineer implements the contract with tests.
    - [5b] Frontend Engineer builds against MSW handlers derived from the contract, then switches to the real backend at integration. It also needs the design spec, the behaviour spec, the copy deck and SEO metadata pass when those roles run, and waits for them only before using them. Once screens render against the mocks, it shares a preview URL and the orchestrator dispatches the Designer in preview mode (see Designer preview below).
    - [5c] DevOps produces infrastructure and CI/CD from the architecture, contract, and SEO crawl pass.
-   - [5d] Security writes the design-time threat model from the architecture and contract.
+   - [5d] Security writes the design-time threat model from the architecture and contract, on the lead tier.
    - [5e] A QA session writes the independent tests from the spec files and contract: Playwright journeys, API integration tests, and fixtures. It writes test files only, never product code. This QA session cannot run the [6a] gate; a different QA session does.
    Only when explicitly requested, Data Analyst and Growth also start here. Data Analyst needs the PRD and contract. Growth needs the PRD, architecture, design spec, and contract.
 5. Each implementer runs its fast checks (format, lint, type check, affected unit tests) and the authored [5e] specs that cover its changes against the real app before handing off. The QA gate then adds only the gaps. A failing fast check or spec is fixed by its author before handoff, not routed as a repair wave.

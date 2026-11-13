@@ -11,8 +11,48 @@ import { resolveModel } from './which-model.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const TIERS = ['lead', 'advisor', 'swarm', 'worker'];
-const REVIEW_ROLES = ['qa-gate', 'security-review', 'code-review', 'api-contract', 'design-consult'];
+const REVIEW_ROLES = [
+  'qa-gate',
+  'security-review',
+  'security-threat-model',
+  'code-review',
+  'api-contract',
+  'design-consult',
+  'pentester',
+  'release-manager',
+];
 
+// Every dispatchable role must resolve. A role the pipeline names but models.json omits
+// makes `which-model` exit 1, and the Role model policy treats that as a protocol error,
+// so the role cannot be dispatched at all — an opt-in role that is silently unrunnable.
+export const REQUIRED_ROLES = [
+  'product-manager',
+  'spec-writer',
+  'architect',
+  'designer-spec',
+  'designer-preview',
+  'designer-review',
+  'design-consult',
+  'copywriter',
+  'seo',
+  'devops',
+  'qa-gate',
+  'security-threat-model',
+  'security-review',
+  'api-contract',
+  'code-review',
+  'advisor-consult',
+  'backend-engineer',
+  'frontend-engineer',
+  'qa-authoring',
+  'mechanical-edit',
+  'pentester',
+  'growth',
+  'data-analyst',
+  'release-manager',
+  'explore',
+  'audit',
+];
 
 async function readJson(path, fallback = null) {
   try {
@@ -60,6 +100,9 @@ export async function policyProblems(root = ROOT) {
   // Authoring is worker tier: the rule must be present, and the gates must not be.
   const agents = await readText(join(root, 'AGENTS.md'));
   if (!agents.includes('### Authoring is worker tier')) problems.push('AGENTS.md has no "Authoring is worker tier" section');
+  for (const role of REQUIRED_ROLES) {
+    if (!roles[role]) problems.push(`role "${role}" is named by the pipeline but missing from .agents/models.json`);
+  }
   for (const role of REVIEW_ROLES) {
     if (roles[role] && roles[role] !== 'lead' && roles[role] !== 'advisor') {
       problems.push(`gate role "${role}" must be lead or advisor, not "${roles[role]}"`);
