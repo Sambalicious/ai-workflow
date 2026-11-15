@@ -170,3 +170,42 @@ test('a failing fix command is retried and fix config is validated', async () =>
     assert.throws(() => validateConfig({ repo: 'o/r', fix: { command: ['x'] } }), /label/);
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
+
+test('a READY_FEATURE ticket gets a PRD draft, and only the human label starts the feature run', async () => {
+  const dir = await runRoot();
+  const config = { ...CONFIG, notify: false, command: ['triage'], feature: { label: 'factory:prd-approved', prd: { command: ['prd', '{report}'] }, command: ['build', '{id}', '{prd}'] } };
+  const calls = [];
+  const run = (bin) => {
+    calls.push(bin);
+    if (bin === 'triage') return { status: 0, stdout: 'Verdict: READY_FEATURE' };
+    if (bin === 'prd') return { status: 0, stdout: '# PRD\nOpen questions: none' };
+    return { status: 0, stdout: '# Feature run\n\nStatus: pr' };
+  };
+  try {
+    await watch({ config, runRoot: dir, gh: () => labelled([[1, 't1', []]]), run });
+    assert.deepEqual(calls, ['triage']);
+    const drafted = await watch({ config, runRoot: dir, gh: () => labelled([[1, 't1', []]]), run });
+    assert.equal(drafted.prds.length, 1);
+    assert.equal(await readFile(join(dir, 'reports', 'o_r_1.prd.md'), 'utf8'), '# PRD\nOpen questions: none');
+    const idle = await watch({ config, runRoot: dir, gh: () => labelled([[1, 't1', []]]), run });
+    assert.deepEqual(idle.features, []);
+    assert.ok(!calls.includes('build'), 'no label, no build');
+    const built = await watch({ config, runRoot: dir, gh: () => labelled([[1, 't2', ['factory:prd-approved']]]), run });
+    assert.equal(built.features.length, 1);
+    assert.equal(calls.filter((c) => c === 'prd').length, 1, 'PRD not redrafted');
+    await watch({ config, runRoot: dir, gh: () => labelled([[1, 't3', ['factory:prd-approved']]]), run });
+    assert.equal(calls.filter((c) => c === 'build').length, 1);
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('the PRD label alone never starts a feature: needs a PRD and a READY_FEATURE report; config validated', async () => {
+  const dir = await runRoot();
+  const config = { ...CONFIG, notify: false, command: ['triage'], feature: { label: 'ok', prd: { command: ['prd'] }, command: ['build'] } };
+  const run = (bin) => (bin === 'build' ? assert.fail('must not build') : bin === 'prd' ? { status: 0, stdout: '' } : { status: 0, stdout: 'Verdict: READY_BUG' });
+  try {
+    await watch({ config, runRoot: dir, gh: () => labelled([[1, 't1', ['ok']]]), run });
+    await watch({ config, runRoot: dir, gh: () => labelled([[1, 't2', ['ok']]]), run });
+    assert.throws(() => validateConfig({ repo: 'o/r', feature: { label: 'x', command: ['b'] } }), /prd.command/);
+    assert.throws(() => validateConfig({ repo: 'o/r', feature: { command: ['b'], prd: { command: ['p'] } } }), /label/);
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});

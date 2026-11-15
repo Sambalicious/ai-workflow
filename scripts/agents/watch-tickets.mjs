@@ -33,6 +33,13 @@ export function validateConfig(config) {
       throw new Error('config: fix.command must be an array of strings; "{packet}", "{report}" and "{id}" are replaced');
     }
   }
+  if (config.feature !== undefined) {
+    const { feature } = config;
+    const argv = (c) => Array.isArray(c) && c.length > 0 && c.every((part) => typeof part === 'string');
+    if (!feature || typeof feature.label !== 'string' || !feature.label) throw new Error('config: feature needs a "label" the human adds to approve the PRD');
+    if (!argv(feature.command)) throw new Error('config: feature.command must be an array of strings; "{packet}", "{report}", "{prd}" and "{id}" are replaced');
+    if (!feature.prd || !argv(feature.prd.command)) throw new Error('config: feature.prd.command must be an array of strings that prints the PRD');
+  }
   if (config.notify !== undefined && typeof config.notify !== 'boolean') throw new Error('config: notify must be true or false');
   if (label !== undefined && typeof label !== 'string') throw new Error('config: label must be a string');
   if (command !== undefined && (!Array.isArray(command) || !command.every((part) => typeof part === 'string'))) {
@@ -62,6 +69,13 @@ export function defaultNotify(title, message) {
 export function isApproved(ticket, config, reportText) {
   return Boolean(config.fix) && ticket.labels.includes(config.fix.label) && findVerdict(reportText ?? '') === 'READY_BUG';
 }
+
+// A feature starts only when a human labelled the issue after a PRD exists for a READY_FEATURE report.
+export function isFeatureApproved(ticket, config, reportText, prdText) {
+  return Boolean(config.feature) && ticket.labels.includes(config.feature.label) && findVerdict(reportText ?? '') === 'READY_FEATURE' && Boolean(prdText?.trim());
+}
+
+const runStatus = (text) => (text ?? '').match(/^Status: (\w[\w-]*)/m)?.[1] ?? 'done';
 
 const defaultGh = (args) => execFileSync('gh', args, { encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 });
 
@@ -150,16 +164,25 @@ export async function watch({ config, runRoot, projectRoot, gh = defaultGh, run 
   const started = await readSeen(fixFile);
   const reportOf = async (t) => { try { return await readFile(join(runRoot, 'reports', `${slug(t.id)}.md`), 'utf8'); } catch { return null; } };
   const approved = [];
+  const featureApproved = [];
+  const prdNeeded = [];
+  const readIf = async (file) => { try { return await readFile(file, 'utf8'); } catch { return null; } };
+  const prdFile = (t) => join(runRoot, 'reports', `${slug(t.id)}.prd.md`);
   for (const t of unique) {
-    if (!config.fix || started[t.id] || !t.labels.includes(config.fix.label)) continue;
+    if (started[t.id]) continue;
     const text = await reportOf(t);
-    if (isApproved(t, config, text)) approved.push(t);
+    if (config.fix && t.labels.includes(config.fix.label) && isApproved(t, config, text)) approved.push(t);
+    if (config.feature && findVerdict(text ?? '') === 'READY_FEATURE') {
+      const prd = await readIf(prdFile(t));
+      if (!prd?.trim()) prdNeeded.push(t);
+      else if (t.labels.includes(config.feature.label) && isFeatureApproved(t, config, text, prd)) featureApproved.push(t);
+    }
   }
   // Adding the approval label bumps updatedAt; do not triage that ticket again.
-  const approvedIds = new Set(approved.map((t) => t.id));
+  const approvedIds = new Set([...approved, ...featureApproved].map((t) => t.id));
   const fresh = unique.filter((t) => seen[t.id] !== t.updatedAt && !approvedIds.has(t.id));
-  const report = { checked: unique.length, new: fresh.map((t) => t.id), approved: approved.map((t) => t.id), packets: [], reports: [], failed: [], fixes: [] };
-  if (dryRun || (fresh.length === 0 && approved.length === 0)) return report;
+  const report = { checked: unique.length, new: fresh.map((t) => t.id), approved: [...approved, ...featureApproved].map((t) => t.id), prds: [], features: [], packets: [], reports: [], failed: [], fixes: [] };
+  if (dryRun || (fresh.length === 0 && approved.length === 0 && featureApproved.length === 0 && prdNeeded.length === 0)) return report;
 
   await mkdir(inbox, { recursive: true });
   await mkdir(join(runRoot, 'state'), { recursive: true });
@@ -195,7 +218,34 @@ export async function watch({ config, runRoot, projectRoot, gh = defaultGh, run 
     await writeSeen(fixFile, started);
     seen[ticket.id] = ticket.updatedAt;
     await writeSeen(stateFile, seen);
-    if (config.notify !== false) notify('Fix run finished', `${ticket.id} ${ticket.title}\n${fixReport}`);
+    if (config.notify !== false) notify(runStatus(result.stdout) === 'pr' ? 'Fix PR opened' : 'Fix halted: needs you', `${ticket.id} ${ticket.title}\n${fixReport}`);
+  }
+  for (const ticket of prdNeeded) {
+    const packet = join(inbox, `${slug(ticket.id)}.md`);
+    const reportPath = join(runRoot, 'reports', `${slug(ticket.id)}.md`);
+    const [bin, ...args] = config.feature.prd.command.map((part) => part.replaceAll('{packet}', packet).replaceAll('{report}', reportPath).replaceAll('{id}', ticket.id));
+    const result = run(bin, args, { stdio: ['inherit', 'pipe', 'inherit'], encoding: 'utf8', maxBuffer: 32 * 1024 * 1024, ...(projectRoot ? { cwd: projectRoot } : {}) });
+    if (result.status !== 0 || !(result.stdout ?? '').trim()) { report.failed.push(ticket.id); continue; }
+    await mkdir(join(runRoot, 'reports'), { recursive: true });
+    await writeFile(prdFile(ticket), result.stdout);
+    report.prds.push(prdFile(ticket));
+    if (config.notify !== false) notify('PRD ready: approve it with the label', `${ticket.id} ${ticket.title}\n${prdFile(ticket)}`);
+  }
+  for (const ticket of featureApproved) {
+    const packet = join(inbox, `${slug(ticket.id)}.md`);
+    const reportPath = join(runRoot, 'reports', `${slug(ticket.id)}.md`);
+    const [bin, ...args] = config.feature.command.map((part) => part.replaceAll('{packet}', packet).replaceAll('{report}', reportPath).replaceAll('{prd}', prdFile(ticket)).replaceAll('{id}', ticket.id));
+    const result = run(bin, args, { stdio: ['inherit', 'pipe', 'inherit'], encoding: 'utf8', maxBuffer: 32 * 1024 * 1024, ...(projectRoot ? { cwd: projectRoot } : {}) });
+    if (result.status !== 0) { report.failed.push(ticket.id); continue; }
+    const featureReport = join(runRoot, 'reports', `${slug(ticket.id)}.feature.md`);
+    await writeFile(featureReport, result.stdout ?? '');
+    report.features.push(featureReport);
+    started[ticket.id] = ticket.updatedAt;
+    await mkdir(join(runRoot, 'state'), { recursive: true });
+    await writeSeen(fixFile, started);
+    seen[ticket.id] = ticket.updatedAt;
+    await writeSeen(stateFile, seen);
+    if (config.notify !== false) notify(runStatus(result.stdout) === 'pr' ? 'Feature PR opened' : 'Feature halted: needs you', `${ticket.id} ${ticket.title}\n${featureReport}`);
   }
   return report;
 }

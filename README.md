@@ -163,6 +163,35 @@ again. It never merges or deploys.
 minutes and several model sessions, so run it only for tickets you approved; each gate is
 capped at `--budget` USD (default 3).
 
+### Features: one approval, then unattended
+
+A ticket that triages `READY_FEATURE` gets a drafted PRD, and one label starts the build:
+
+```json
+"feature": {
+  "label": "factory:prd-approved",
+  "prd": { "command": ["node", "/abs/ai-team/scripts/agents/feature-runner.mjs", "--draft-prd",
+                       "--id", "{id}", "--report", "{report}", "--project", "/abs/project", "--run", "/abs/run"] },
+  "command": ["node", "/abs/ai-team/scripts/agents/feature-runner.mjs", "--id", "{id}", "--report", "{report}",
+              "--prd", "{prd}", "--packet", "{packet}", "--project", "/abs/project", "--run", "/abs/run",
+              "--qa-tool", "Bash(pnpm:*)"]
+}
+```
+
+1. The next poll after triage drafts `RUN_ROOT/reports/<id>.prd.md` (Product Manager, Sonnet,
+   read-only) and notifies you. Open questions are listed, never invented.
+2. You read the PRD, answer anything it asks, and add the label. That is the only human step.
+3. The build then runs unattended in separate headless sessions: spec, architecture, design
+   spec (Sonnet), design consult and API contract (Opus), tests from the spec and the
+   implementation (worker tier), then the QA, Security and code review gates, then a PR.
+   Documents land in `RUN_ROOT/features/<id>/`.
+4. It stops for you, with no PR and a notification, on any `BLOCKER[...]` line in a stage
+   document, a failed session, a worker that commits nothing, or a gate that does not pass.
+   Read `<id>.feature.md` for the stage and reason. It never merges or deploys.
+
+A feature run is many sessions and costs far more than a bug fix; each session is capped at
+`--budget` USD (default 3).
+
 ## Existing installed usage
 
 Shared-checkout use (see `factory/EXTERNAL.md`) needs no installation. There is no
