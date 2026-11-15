@@ -106,7 +106,7 @@ Do not infer human approval from silence, an agent report, or a readiness label.
 - For cross-layer bugs, name both owners and resolve the API contract with backend before frontend depends on it.
 - Inspect the selected factory roles before handoff. If they are skeleton-only, actual fixes require an implementation-authorized mode compatible with repository rules; triage grants none.
 - Pass the full bug brief, regression IDs, full relevant spec files, and the unchanged API contract handoff when applicable.
-- `READY_FEATURE`: recommend "Grill Me" discovery, then `.agents/skills/product-manager.md` when that file is available in the selected factory.
+- `READY_FEATURE`: recommend "Grill Me" discovery, then `.agents/product-manager.md` when that file is available in the selected factory.
 - Grill Me protocol: inspect known facts, ask only questions whose prerequisite decisions are settled, challenge assumptions and alternatives, and record user decisions, non-goals, constraints, and measurable success.
 - Use an available grilling skill optionally. Do not assume a global skill is installed. If the PM file is absent, report the missing route.
 - Product discovery ends with a confirmed brief for the PM, not code. Follow the existing PRD-first pipeline after authorized handoff.

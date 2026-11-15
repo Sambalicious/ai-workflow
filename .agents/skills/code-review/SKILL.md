@@ -54,7 +54,7 @@ Finish when all changed paths are accounted for as reviewed, excluded with reaso
 Read current repository rules and applicable nested `AGENTS.md` instructions for every affected path.
 Locate the approved originating issue, PRD, architecture decisions, design spec, API contract, and full relevant spec files.
 Record source IDs, revisions or content hashes, approval evidence, and any conflicts.
-Use `.agents/skills/architect.md` when present for system boundaries, operational simplicity, and hard-to-reverse decisions.
+Use `.agents/architect.md` when present for system boundaries, operational simplicity, and hard-to-reverse decisions.
 Assess both repository standards and spec conformance. Current implementation and implementer summaries are not substitute specifications.
 Missing or unapproved specs mean a partial spec review. Identify precisely which conformance claims cannot be checked.
 If missing authority is required for the requested verdict, mark that evidence gap as blocking.

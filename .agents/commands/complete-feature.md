@@ -1,3 +1,9 @@
+---
+description: Mark a feature as deployed to production by moving it from features/active/ to features/completed/
+argument-hint: "FEAT-XXXX"
+---
+Feature ID argument: $ARGUMENTS
+
 # Complete Feature
 
 ## Role
@@ -13,9 +19,9 @@ Close out a shipped feature by appending a completion stamp to its existing repo
 
 ## Instructions
 
-1. **Validate the input** — the argument must match `FEAT-[0-9]{4}`. If no argument is provided, list all folders in `features/active/` and ask the user which one to complete.
+1. **Validate the input** - the argument must match `FEAT-[0-9]{4}`. If no argument is provided, list all folders in `features/active/` and ask the user which one to complete.
 
-2. **Locate the feature folder** — find the folder under `features/active/` whose name starts with the given ID (e.g. `FEAT-0004-property-rental-listing`). If not found, stop and report: "Feature FEAT-XXXX not found in features/active/."
+2. **Locate the feature folder** - find the folder under `features/active/` whose name starts with the given ID (e.g. `FEAT-0004-property-rental-listing`). If not found, stop and report: "Feature FEAT-XXXX not found in features/active/."
 
 3. **Confirm deployment and select the report**. Stop without user authorization and production deployment evidence. If Release Manager ran, use its latest `release-report` revision. Otherwise use the latest `code-review` report, without relabeling it as release approval. If the report is missing, stop and report the gap rather than invoking Release Manager or creating a release report. Preserve approved gates and unresolved blockers.
 
@@ -51,8 +57,8 @@ Close out a shipped feature by appending a completion stamp to its existing repo
 
 7. **Confirm** with a short summary:
    ```
-   ✓ FEAT-XXXX-slug marked as completed.
-   Moved: features/active/FEAT-XXXX-slug → features/completed/FEAT-XXXX-slug
+   OK FEAT-XXXX-slug marked as completed.
+   Moved: features/active/FEAT-XXXX-slug -> features/completed/FEAT-XXXX-slug
    ```
 
 ## Rules

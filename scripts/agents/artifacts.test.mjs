@@ -399,6 +399,6 @@ test('the DESIGN.md template is shipped and the designer points at it', () => {
   ]) {
     assert.ok(template.includes(section), `template is missing ${section}`);
   }
-  const designer = readFileSync(join(root, '.agents/skills/designer.md'), 'utf8');
+  const designer = readFileSync(join(root, '.agents/designer.md'), 'utf8');
   assert.ok(designer.includes('.agents/templates/DESIGN.md'), 'the designer role does not reference the template');
 });
