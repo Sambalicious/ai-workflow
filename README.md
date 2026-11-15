@@ -208,6 +208,13 @@ A feature run is many sessions and costs far more than a bug fix; each session i
   push to the same PR. A wave runs only for feedback it has not seen, at most `maxWaves` (cap 3)
   per ticket; after that you are notified and the PR is yours. It never merges.
 
+- **Push to your phone.** Create a T3 scheduled task with a `webhook` trigger whose prompt posts one
+  line per event, save its URL (a secret) in a file readable only by you, and add
+  `"webhook": {"file": "/abs/path/to/that/file"}` to the config. A halted run, an opened or updated
+  PR, or a PR that still has feedback after the last wave then POSTs `{event, ticket, url}`; triage
+  results do not. Titles, bodies and reports never leave the machine. The scheduled poll stays as the
+  safety net for a missed delivery.
+
 ## Existing installed usage
 
 Shared-checkout use (see `factory/EXTERNAL.md`) needs no installation. There is no

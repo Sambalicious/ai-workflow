@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -262,4 +262,24 @@ test('feedback on an open factory PR starts a capped repair wave, once per new i
 test('repair config is validated', () => {
   assert.throws(() => validateConfig({ ...CONFIG, repair: { maxWaves: 9 } }), /maxWaves/);
   validateConfig({ ...CONFIG, repair: {} });
+});
+
+test('events that need a human POST the id and PR url to the webhook, never titles or report text', async () => {
+  const dir = await runRoot();
+  await writeFile(join(dir, 'hook'), 'https://hook.example/secret\n');
+  const config = { ...CONFIG, command: ['triage'], fix: { label: 'factory:approved', command: ['fixer', '{id}'] }, webhook: { file: join(dir, 'hook') } };
+  const posts = [];
+  const post = async (url, body) => { posts.push([url, body]); };
+  const run = (bin) => ({ status: 0, stdout: bin === 'triage' ? 'Verdict: READY_BUG' : 'Status: pr\nurl: https://github.com/o/r/pull/9\n' });
+  try {
+    await watch({ config, runRoot: dir, gh: () => labelled([[1, 'secret title', ['bug']]]), run, notify: () => {}, post });
+    assert.deepEqual(posts, [], 'triage does not push');
+    await watch({ config, runRoot: dir, gh: () => labelled([[1, 'secret title', ['bug', 'factory:approved']]]), run, notify: () => {}, post });
+    assert.equal(posts.length, 1);
+    assert.equal(posts[0][0], 'https://hook.example/secret');
+    assert.deepEqual(posts[0][1].event, 'Fix PR opened');
+    assert.equal(posts[0][1].ticket, 'o/r#1');
+    assert.doesNotMatch(JSON.stringify(posts[0][1]), /secret title/);
+  } finally { await rm(dir, { recursive: true, force: true }); }
+  assert.throws(() => validateConfig({ ...CONFIG, webhook: { file: 'relative' } }), /webhook/);
 });
