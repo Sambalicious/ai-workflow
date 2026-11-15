@@ -163,6 +163,34 @@ again. It never merges or deploys.
 minutes and several model sessions, so run it only for tickets you approved; each gate is
 capped at `--budget` USD (default 3).
 
+### Features: one approval, then unattended
+
+You write the PRD (the ticket), and one label starts the build:
+
+```json
+"feature": {
+  "label": "factory:prd-approved",
+  "command": ["node", "/abs/ai-team/scripts/agents/feature-runner.mjs", "--id", "{id}", "--prd", "{prd}",
+              "--packet", "{packet}", "--project", "/abs/project", "--run", "/abs/run",
+              "--qa-tool", "Bash(pnpm:*)"]
+}
+```
+
+1. You write the requirement as an issue and refine it until it is the PRD you would approve.
+2. You add the label. That is the only human step: the label is the PRD approval, no triage
+   verdict is needed, and the ticket text as it stands at that moment is written to
+   `RUN_ROOT/inbox/<id>.md` and passed as `{prd}`. A labelled ticket is not triaged.
+3. The build runs unattended in separate headless sessions: spec, architecture, design spec
+   (Sonnet), design consult and API contract (Opus), tests from the spec and the
+   implementation (worker tier), then the QA, Security and code review gates, then a PR.
+   Documents land in `RUN_ROOT/features/<id>/`.
+4. It stops for you, with no PR and a notification, on any `BLOCKER[...]` line in a stage
+   document, a failed session, a worker that commits nothing, or a gate that does not pass.
+   Read `<id>.feature.md` for the stage and reason. It never merges or deploys.
+
+A feature run is many sessions and costs far more than a bug fix; each session is capped at
+`--budget` USD (default 3).
+
 ## Existing installed usage
 
 Shared-checkout use (see `factory/EXTERNAL.md`) needs no installation. There is no

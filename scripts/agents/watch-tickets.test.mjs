@@ -170,3 +170,37 @@ test('a failing fix command is retried and fix config is validated', async () =>
     assert.throws(() => validateConfig({ repo: 'o/r', fix: { command: ['x'] } }), /label/);
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
+
+test('the approval label starts one feature run from the ticket text as it is at approval, without triage', async () => {
+  const dir = await runRoot();
+  const config = { ...CONFIG, notify: false, command: ['triage'], feature: { label: 'factory:prd-approved', command: ['build', '{id}', '{prd}'] } };
+  const calls = [];
+  const run = (bin, args) => { calls.push([bin, args]); return { status: 0, stdout: bin === 'triage' ? 'Verdict: READY_FEATURE' : '# Feature run\n\nStatus: pr' }; };
+  const gh = (labels, body = 'b') => () => JSON.stringify([{ number: 1, title: 't', body, url: 'u', updatedAt: labels.join(), labels: labels.map((name) => ({ name })), author: { login: 'a' } }]);
+  try {
+    await watch({ config, runRoot: dir, gh: gh([]), run });
+    assert.deepEqual(calls.map((c) => c[0]), ['triage'], 'no label, no build, no PRD drafting');
+    const built = await watch({ config, runRoot: dir, gh: gh(['factory:prd-approved'], 'EDITED PRD'), run });
+    assert.equal(built.features.length, 1);
+    assert.deepEqual(calls.map((c) => c[0]), ['triage', 'build'], 'approval does not re-triage');
+    assert.match(await readFile(calls[1][1][1], 'utf8'), /EDITED PRD/, '{prd} is the packet written at approval');
+    assert.equal(await readFile(join(dir, 'reports', 'o_r_1.feature.md'), 'utf8').then((t) => /Status: pr/.test(t)), true);
+    await watch({ config, runRoot: dir, gh: gh(['factory:prd-approved', 'x']), run });
+    assert.equal(calls.filter((c) => c[0] === 'build').length, 1, 'runs once');
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('a failed feature command is retried; feature config is validated', async () => {
+  const dir = await runRoot();
+  const config = { ...CONFIG, notify: false, feature: { label: 'ok', command: ['build'] } };
+  let status = 1;
+  const run = () => ({ status, stdout: 'Status: pr' });
+  const gh = () => labelled([[1, 't1', ['ok']]]);
+  try {
+    assert.deepEqual((await watch({ config, runRoot: dir, gh, run })).failed, ['o/r#1']);
+    status = 0;
+    assert.equal((await watch({ config, runRoot: dir, gh, run })).features.length, 1);
+    assert.throws(() => validateConfig({ repo: 'o/r', feature: { command: ['b'] } }), /label/);
+    assert.throws(() => validateConfig({ repo: 'o/r', feature: { label: 'x' } }), /feature.command/);
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
