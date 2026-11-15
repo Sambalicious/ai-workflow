@@ -3,7 +3,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { draftPrd, featurePlan } from './feature-runner.mjs';
+import { featurePlan } from './feature-runner.mjs';
 import { fixRun } from './fix-runner.mjs';
 
 async function setup(verdict = 'READY_FEATURE') {
@@ -36,7 +36,7 @@ function fake({ blockOn, gates = {}, ahead = '1' } = {}) {
   return { run, calls };
 }
 
-const opts = (dir, reportPath, prdPath, run) => ({ id: 'o/r#12', reportPath, packetPath: join(dir, 'packet.md'), projectRoot: '/proj', runRoot: dir, factoryRoot: '/factory', run, plan: (ctx) => featurePlan({ ...ctx, prdPath }) });
+const opts = (dir, reportPath, prdPath, run) => ({ id: 'o/r#12', packetPath: join(dir, 'packet.md'), projectRoot: '/proj', runRoot: dir, factoryRoot: '/factory', run, plan: (ctx) => featurePlan({ ...ctx, prdPath }) });
 const ledger = (calls, sub) => calls.filter(([bin, args]) => bin === 'node' && args[0].endsWith('ledger.mjs') && args[1] === sub);
 
 test('approved PRD: five document stages, two worker passes, three gates, one PR, ledger always closed', async () => {
@@ -69,25 +69,15 @@ test('a BLOCKER line halts for a human before any worker or PR', async () => {
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
 
-test('a failed gate halts the feature with no PR; a bug report is refused as a feature', async () => {
+test('a failed gate halts the feature with no PR, and no triage report is needed', async () => {
   const { dir, reportPath, prdPath } = await setup();
   const f = fake({ gates: { 'Code review': 'REVIEW FINDINGS\nCR-1' } });
   try {
     const result = await fixRun(opts(dir, reportPath, prdPath, f.run));
     assert.deepEqual([result.status, result.stage], ['halted', 'code-review']);
     assert.ok(!f.calls.some(([bin]) => bin === 'gh'));
-    await writeFile(reportPath, 'Verdict: READY_BUG');
     const g = fake();
-    assert.equal((await fixRun(opts(dir, reportPath, prdPath, g.run))).stage, 'precheck');
-  } finally { await rm(dir, { recursive: true, force: true }); }
-});
-
-test('draftPrd only drafts for READY_FEATURE reports and returns the printed PRD', async () => {
-  const { dir, reportPath } = await setup();
-  try {
-    const out = await draftPrd({ id: 'o/r#12', reportPath, projectRoot: '/proj', runRoot: dir, run: () => ({ status: 0, stdout: '# PRD' }) });
-    assert.deepEqual(out, { ok: true, prd: '# PRD' });
-    await writeFile(reportPath, 'Verdict: BLOCKED');
-    assert.equal((await draftPrd({ id: 'o/r#12', reportPath, projectRoot: '/proj', runRoot: dir, run: () => assert.fail('no') })).ok, false);
+    const noReport = await fixRun({ ...opts(dir, reportPath, prdPath, g.run), reportPath: undefined });
+    assert.equal(noReport.status, 'pr', 'a feature run needs no triage report');
   } finally { await rm(dir, { recursive: true, force: true }); }
 });

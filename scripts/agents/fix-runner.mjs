@@ -58,16 +58,16 @@ export function bugPlan({ reportPath, wt }) {
 
 export async function fixRun({ id, reportPath, packetPath, projectRoot, runRoot, factoryRoot = FACTORY_ROOT, base = 'origin/main', qaTools = [], budget = 3, run = defaultRun, log = () => {}, dryRun = false, plan = bugPlan }) {
   for (const [name, value] of [['project', projectRoot], ['run', runRoot], ['report', reportPath]]) {
-    if (!isAbsolute(value)) throw new Error(`${name} must be an absolute path`);
+    if (value !== undefined && !isAbsolute(value)) throw new Error(`${name} must be an absolute path`);
   }
   const target = parseRepo(id);
   if (!target) throw new Error(`id must look like owner/name#number, got "${id}"`);
-  const report = await readFile(reportPath, 'utf8');
   const slug = slugOf(id);
   const wt = join(runRoot, 'worktrees', slug);
   const artifactsDir = join(runRoot, 'features', slug);
   const p = plan({ id, slug, wt, reportPath, packetPath, runRoot, factoryRoot, artifactsDir, base });
-  if (findVerdict(report) !== p.verdict) return { status: 'halted', stage: 'precheck', reason: `triage verdict is ${findVerdict(report) ?? 'missing'}, not ${p.verdict}` };
+  const report = p.verdict ? await readFile(reportPath, 'utf8') : '';
+  if (p.verdict && findVerdict(report) !== p.verdict) return { status: 'halted', stage: 'precheck', reason: `triage verdict is ${findVerdict(report) ?? 'missing'}, not ${p.verdict}` };
   const branch = `${p.kind === 'fix' ? 'fix' : 'feat'}/${slug.toLowerCase()}`;
   const reports = join(runRoot, 'reports');
   const sh = (bin, args, opts) => run(bin, args, opts);

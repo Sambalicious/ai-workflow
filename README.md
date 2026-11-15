@@ -165,24 +165,23 @@ capped at `--budget` USD (default 3).
 
 ### Features: one approval, then unattended
 
-A ticket that triages `READY_FEATURE` gets a drafted PRD, and one label starts the build:
+You write the PRD (the ticket), and one label starts the build:
 
 ```json
 "feature": {
   "label": "factory:prd-approved",
-  "prd": { "command": ["node", "/abs/ai-team/scripts/agents/feature-runner.mjs", "--draft-prd",
-                       "--id", "{id}", "--report", "{report}", "--project", "/abs/project", "--run", "/abs/run"] },
-  "command": ["node", "/abs/ai-team/scripts/agents/feature-runner.mjs", "--id", "{id}", "--report", "{report}",
-              "--prd", "{prd}", "--packet", "{packet}", "--project", "/abs/project", "--run", "/abs/run",
+  "command": ["node", "/abs/ai-team/scripts/agents/feature-runner.mjs", "--id", "{id}", "--prd", "{prd}",
+              "--packet", "{packet}", "--project", "/abs/project", "--run", "/abs/run",
               "--qa-tool", "Bash(pnpm:*)"]
 }
 ```
 
-1. The next poll after triage drafts `RUN_ROOT/reports/<id>.prd.md` (Product Manager, Sonnet,
-   read-only) and notifies you. Open questions are listed, never invented.
-2. You read the PRD, answer anything it asks, and add the label. That is the only human step.
-3. The build then runs unattended in separate headless sessions: spec, architecture, design
-   spec (Sonnet), design consult and API contract (Opus), tests from the spec and the
+1. You write the requirement as an issue and refine it until it is the PRD you would approve.
+2. You add the label. That is the only human step: the label is the PRD approval, no triage
+   verdict is needed, and the ticket text as it stands at that moment is written to
+   `RUN_ROOT/inbox/<id>.md` and passed as `{prd}`. A labelled ticket is not triaged.
+3. The build runs unattended in separate headless sessions: spec, architecture, design spec
+   (Sonnet), design consult and API contract (Opus), tests from the spec and the
    implementation (worker tier), then the QA, Security and code review gates, then a PR.
    Documents land in `RUN_ROOT/features/<id>/`.
 4. It stops for you, with no PR and a notification, on any `BLOCKER[...]` line in a stage
