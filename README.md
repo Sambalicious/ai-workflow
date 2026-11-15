@@ -94,6 +94,38 @@ supplies the scope. For first-time checkout and private-repository access, see
 [checkout discovery](factory/EXTERNAL.md#find-or-reuse-the-checkout).
 For repeated use, see the [optional project instruction snippet](factory/EXTERNAL.md#remember-the-reference-in-a-project).
 
+## Watch a project's tickets
+
+The factory does not launch agents, so a small script watches the tracker and a
+scheduler runs it. The logic lives here; each project keeps only its config, and the
+state stays in `RUN_ROOT`, outside the source.
+
+Create `.agents/tickets.json` in the project:
+
+```json
+{
+  "repo": "owner/name",
+  "label": "needs-triage",
+  "project": { "owner": "owner", "number": 3, "statusField": "status", "readyValue": "Ready" },
+  "command": ["claude", "-p", "Run the triage skill on {packet}. Report only."]
+}
+```
+
+`repo` and `project` are each optional, but one is required. `project` needs
+`gh auth refresh -s read:project`. `command` is optional; without it the script only
+writes packets.
+
+```bash
+node scripts/agents/watch-tickets.mjs --project /abs/project --run /abs/run --dry-run
+node scripts/agents/watch-tickets.mjs --project /abs/project --run /abs/run
+```
+
+Each new or updated ticket becomes `RUN_ROOT/inbox/<id>.md`, with the ticket text fenced
+as untrusted data, and is recorded in `RUN_ROOT/state/tickets-seen.json` only after the
+command succeeds. The script never comments on, labels or moves a ticket. Run it on a
+schedule with `/loop` or cron. Fixing a bug stays a separate, human-approved step through
+`factory-loop`.
+
 ## Existing installed usage
 
 Shared-checkout use (see `factory/EXTERNAL.md`) needs no installation. There is no
