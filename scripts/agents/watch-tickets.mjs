@@ -45,6 +45,9 @@ export function validateConfig(config) {
   if (config.repair !== undefined && (typeof config.repair !== 'object' || (config.repair.maxWaves !== undefined && !(Number.isInteger(config.repair.maxWaves) && config.repair.maxWaves >= 1 && config.repair.maxWaves <= 3)))) {
     throw new Error('config: repair must be an object; maxWaves is an integer from 1 to 3');
   }
+  if (config.webhook !== undefined && (!config.webhook || typeof config.webhook.file !== 'string' || !isAbsolute(config.webhook.file))) {
+    throw new Error('config: webhook needs "file", an absolute path to a file holding the webhook URL');
+  }
   if (config.notify !== undefined && typeof config.notify !== 'boolean') throw new Error('config: notify must be true or false');
   if (label !== undefined && typeof label !== 'string') throw new Error('config: label must be a string');
   if (command !== undefined && (!Array.isArray(command) || !command.every((part) => typeof part === 'string'))) {
@@ -64,6 +67,8 @@ export function findVerdict(text) {
 }
 
 // macOS notification; ticket text goes in as argv, never into the script source.
+export const defaultPost = (url, body) => fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(10000) });
+
 export function defaultNotify(title, message) {
   if (process.platform !== 'darwin') return;
   spawnSync('osascript', ['-e', 'on run argv', '-e', 'display notification (item 1 of argv) with title (item 2 of argv)', '-e', 'end run', message.slice(0, 200), title.slice(0, 100)], { stdio: 'ignore' });
@@ -158,9 +163,17 @@ async function writeSeen(file, seen) {
   await rename(tmp, file);
 }
 
-export async function watch({ config, runRoot, projectRoot, gh = defaultGh, run = spawnSync, notify = defaultNotify, dryRun = false }) {
+export async function watch({ config, runRoot, projectRoot, gh = defaultGh, run = spawnSync, notify: localNotify = defaultNotify, post = defaultPost, dryRun = false }) {
   validateConfig(config);
   if (!isAbsolute(runRoot)) throw new Error('RUN_ROOT must be an absolute path');
+  // Optional push: events that need a human also POST to a webhook whose URL (a secret) is read from a file.
+  // Only the event, the ticket id and a PR url leave the machine, never titles, bodies or report text.
+  const hookUrl = config.webhook?.file ? (await readFile(config.webhook.file, 'utf8').catch(() => '')).trim() : '';
+  const pending = [];
+  const notify = (title, message) => {
+    localNotify(title, message);
+    if (hookUrl && !title.startsWith('Triage')) pending.push(post(hookUrl, { event: title, ticket: message.split(/\s/)[0], url: message.match(/https:\/\/github\.com\/\S+\/pull\/\d+/)?.[0] }).catch(() => {}));
+  };
   const tickets = [...fetchIssues(config, gh), ...fetchProjectItems(config, gh)];
   const unique = [...new Map(tickets.map((t) => [t.id, t])).values()];
   const stateFile = join(runRoot, 'state', 'tickets-seen.json');
@@ -316,6 +329,7 @@ export async function watch({ config, runRoot, projectRoot, gh = defaultGh, run 
     report.repairs.push(ticket.id);
     if (config.notify !== false) notify(runStatus(result.stdout) === 'repaired' ? `PR updated (wave ${wave})` : 'Repair halted: needs you', `${ticket.id} ${ticket.title}`);
   }
+  await Promise.allSettled(pending);
   return report;
 }
 
