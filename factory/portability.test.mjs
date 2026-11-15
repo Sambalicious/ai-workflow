@@ -131,7 +131,7 @@ test('GitHub reference prompts explicitly load the external entry with task cont
 });
 
 test('complete-feature uses the target root', async () => {
-  const source = await readFile(join(root, '.agents/skills/complete-feature.md'), 'utf8');
+  const source = await readFile(join(root, '.agents/commands/complete-feature.md'), 'utf8');
   assert.doesNotMatch(source, /\/Users\/|\/home\/|[A-Z]:\\Users\\/);
   assert.match(source, /PROJECT_ROOT/);
   assert.match(source, /Stop without user authorization and production deployment evidence/);

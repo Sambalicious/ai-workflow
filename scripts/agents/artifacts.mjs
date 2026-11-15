@@ -119,7 +119,7 @@ const SLOT_ID = /^[^.\s]+\.[^.\s]+\.[^.\s]+$/;
 const NONE = /^\*{0,2}none\*{0,2}\.?\s*$/i;
 
 // The design spec must carry the three sections an implementer builds from. Output
-// format for each lives in .agents/skills/designer.md; this checks substance, not the
+// format for each lives in .agents/designer.md; this checks substance, not the
 // prose, so a designer cannot pass by writing the heading and moving on.
 export function designSpecProblems(source, file = 'design-spec') {
   const problems = [];

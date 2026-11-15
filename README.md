@@ -11,10 +11,10 @@ A portable set of agent skills that simulate a full startup team. Each agent is 
 
 | Agent | File | Role | Produces |
 |---|---|---|---|
-| product-manager | `.agents/skills/product-manager.md` | Product Manager | PRD, user stories, acceptance criteria, future backlog |
+| product-manager | `.agents/product-manager.md` | Product Manager | PRD, user stories, acceptance criteria, future backlog |
 | spec-writer | `.agents/spec-writer.md` | Spec Writer | `specs/S<nn>-<slug>.md` with criterion, rule and case tables |
-| architect | `.agents/skills/architect.md` | Tech Lead / Architect | System design, architecture decisions, data flow |
-| designer | `.agents/skills/designer.md` | Product Designer | Blueprints, feedback matrix, copy slots; rendered design review |
+| architect | `.agents/architect.md` | Tech Lead / Architect | System design, architecture decisions, data flow |
+| designer | `.agents/designer.md` | Product Designer | Blueprints, feedback matrix, copy slots; rendered design review |
 | backend-engineer | `.agents/backend-engineer.md` | Backend Engineer | API contract, data model, implementation and tests |
 | frontend-engineer | `.agents/frontend-engineer.md` | Frontend Engineer | Working UI, API integration and tests |
 | qa | `.agents/qa.md` | QA Engineer | Independent test execution, evidence and coverage gaps |
@@ -23,7 +23,7 @@ A portable set of agent skills that simulate a full startup team. Each agent is 
 | code-review | `.agents/skills/code-review/SKILL.md` | Independent Code Reviewer | Candidate findings and verification gaps |
 | copywriter | `.agents/copywriter.md` | Copywriter | Voice guide, glossary, keyed copy deck |
 | seo | `.agents/seo.md` | SEO Specialist | Indexability map, metadata, crawl config, performance budgets |
-| growth (opt-in) | `.agents/skills/growth.md` | Growth / Marketing | Go-to-market plan, launch copy, acquisition strategy |
+| growth (opt-in) | `.agents/growth.md` | Growth / Marketing | Go-to-market plan, launch copy, acquisition strategy |
 | data-analyst (opt-in) | `.agents/data-analyst.md` | Data Analyst | Measurement plan, event taxonomy, north star metric |
 | pentester (opt-in) | `.agents/pentester.md` | Penetration Tester | Reproduced attacks on a running candidate, coverage, repair owners |
 | release-manager (opt-in) | `.agents/release-manager.md` | Engineering Review Manager | Go/no-go decision, open issues, next steps |
@@ -424,9 +424,9 @@ persists local attestations but does not launch agents.
 Best for: Claude.ai, ChatGPT, quick experiments.
 
 1. Open a new chat
-2. Paste the contents of `.agents/skills/product-manager.md` as your first message, followed by your idea
+2. Paste the contents of `.agents/product-manager.md` as your first message, followed by your idea
 3. Copy the output
-4. Start a new chat, paste `.agents/skills/designer.md`, then paste the PRD from step 3
+4. Start a new chat, paste `.agents/designer.md`, then paste the PRD from step 3
 5. Repeat down the chain
 
 ### Pattern 4 — Cursor rules

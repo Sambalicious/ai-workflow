@@ -136,7 +136,7 @@ test('agent-agnostic cost policy has one authority and short role references', f
 test('opt-in agent definitions and client links remain usable', async () => {
   const root = new URL('../../', import.meta.url);
   for (const definition of [
-    '.agents/skills/growth.md',
+    '.agents/growth.md',
     '.agents/data-analyst.md',
     '.agents/pentester.md',
     '.agents/release-manager.md',
@@ -215,7 +215,7 @@ test('every shared command has one neutral source', async () => {
 test('designer owns layout and copy slots, copywriter owns words, and review mode is wired', async () => {
   const root = new URL('../../', import.meta.url);
   const read = path => readFile(new URL(path, root), 'utf8');
-  const designer = await read('.agents/skills/designer.md');
+  const designer = await read('.agents/designer.md');
   for (const section of ['### Screen blueprints', '### Feedback matrix', '### Copy slots', '## Review mode steps', '### Findings']) {
     assert.ok(designer.includes(section), `designer missing ${section}`);
   }
