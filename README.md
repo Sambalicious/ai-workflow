@@ -126,6 +126,21 @@ command succeeds. The script never comments on, labels or moves a ticket. Run it
 schedule with `/loop` or cron. Fixing a bug stays a separate, human-approved step through
 `factory-loop`.
 
+### Approve a fix with a label
+
+Add an optional `fix` block to start a fix run once a human approves:
+
+```json
+"fix": { "label": "factory:approved", "command": ["your-fix-runner", "{id}", "{report}"] }
+```
+
+When an issue carries that label **and** its saved triage report says `READY_BUG`, the
+next poll runs `fix.command` once from `PROJECT_ROOT` (`{id}`, `{packet}` and `{report}`
+are replaced) and saves its output as `RUN_ROOT/reports/<id>.fix.md`. Adding the label
+does not trigger a second triage. The label is the only approval: the watcher never adds
+it, and any other verdict, a missing report or a failing command starts nothing (a failed
+fix is retried). The command is yours; keep it to a PR, never merge or deploy.
+
 ## Existing installed usage
 
 Shared-checkout use (see `factory/EXTERNAL.md`) needs no installation. There is no
