@@ -3,7 +3,7 @@ import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { findVerdict, renderPacket, validateConfig, watch } from './watch-tickets.mjs';
+import { findVerdict, isApproved, renderPacket, validateConfig, watch } from './watch-tickets.mjs';
 
 const issues = (list) => JSON.stringify(list.map(([number, updatedAt, body = 'b']) => ({
   number, title: `t${number}`, body, url: `https://x/${number}`, updatedAt, labels: [{ name: 'bug' }], author: { login: 'a' },
@@ -117,4 +117,56 @@ test('findVerdict prefers the stated verdict and returns null when none is prese
   assert.equal(findVerdict('table: READY_BUG BLOCKED\nVerdict: NEEDS_INFORMATION'), 'NEEDS_INFORMATION');
   assert.equal(findVerdict('only BLOCKED here'), 'BLOCKED');
   assert.equal(findVerdict('nothing'), null);
+});
+
+const labelled = (list) => JSON.stringify(list.map(([number, updatedAt, labels]) => ({
+  number, title: `t${number}`, body: 'b', url: `https://x/${number}`, updatedAt, labels: labels.map((name) => ({ name })), author: { login: 'a' },
+})));
+
+test('a human label on a READY_BUG ticket starts one fix run and skips re-triage', async () => {
+  const dir = await runRoot();
+  const config = { ...CONFIG, notify: false, command: ['triage'], fix: { label: 'factory:approved', command: ['fixer', '{id}', '{report}'] } };
+  const calls = [];
+  const run = (bin, args) => { calls.push([bin, args]); return { status: 0, stdout: bin === 'triage' ? 'Verdict: READY_BUG' : 'PR opened' }; };
+  try {
+    await watch({ config, runRoot: dir, gh: () => labelled([[1, 't1', ['bug']]]), run });
+    assert.deepEqual(calls.map((c) => c[0]), ['triage']);
+    const after = await watch({ config, runRoot: dir, gh: () => labelled([[1, 't2', ['bug', 'factory:approved']]]), run });
+    assert.deepEqual(calls.map((c) => c[0]), ['triage', 'fixer']);
+    assert.deepEqual(after.new, []);
+    assert.equal(after.approved.length, 1);
+    assert.equal(await readFile(join(dir, 'reports', 'o_r_1.fix.md'), 'utf8'), 'PR opened');
+    assert.match(calls[1][1][0], /o\/r#1/);
+    await watch({ config, runRoot: dir, gh: () => labelled([[1, 't3', ['bug', 'factory:approved']]]), run });
+    assert.equal(calls.filter((c) => c[0] === 'fixer').length, 1);
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('the label alone is not enough: other verdicts and missing reports never start a fix', async () => {
+  const dir = await runRoot();
+  const config = { ...CONFIG, notify: false, command: ['triage'], fix: { label: 'ok', command: ['fixer'] } };
+  const run = (bin) => (bin === 'fixer' ? assert.fail('must not fix') : { status: 0, stdout: 'Verdict: BLOCKED' });
+  try {
+    await watch({ config, runRoot: dir, gh: () => labelled([[1, 't1', ['ok']]]), run });
+    await watch({ config, runRoot: dir, gh: () => labelled([[1, 't2', ['ok']]]), run });
+    assert.equal(isApproved({ labels: ['ok'] }, config, null), false);
+    assert.equal(isApproved({ labels: [] }, config, 'Verdict: READY_BUG'), false);
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('a failing fix command is retried and fix config is validated', async () => {
+  const dir = await runRoot();
+  const config = { ...CONFIG, notify: false, command: ['triage'], fix: { label: 'ok', command: ['fixer'] } };
+  let fixStatus = 1;
+  const run = (bin) => (bin === 'fixer' ? { status: fixStatus, stdout: 'done' } : { status: 0, stdout: 'Verdict: READY_BUG' });
+  try {
+    await watch({ config, runRoot: dir, gh: () => labelled([[1, 't1', []]]), run });
+    const bad = await watch({ config, runRoot: dir, gh: () => labelled([[1, 't2', ['ok']]]), run });
+    assert.deepEqual(bad.failed, ['o/r#1']);
+    fixStatus = 0;
+    const good = await watch({ config, runRoot: dir, gh: () => labelled([[1, 't2', ['ok']]]), run });
+    assert.equal(good.fixes.length, 1);
+    assert.throws(() => validateConfig({ repo: 'o/r', fix: { label: 'x' } }), /fix.command/);
+    assert.throws(() => validateConfig({ repo: 'o/r', fix: { command: ['x'] } }), /label/);
+  } finally { await rm(dir, { recursive: true, force: true }); }
 });

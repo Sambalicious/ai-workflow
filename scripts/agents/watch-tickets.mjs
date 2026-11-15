@@ -26,6 +26,13 @@ export function validateConfig(config) {
     if (!project.owner || !Number.isInteger(project.number)) throw new Error('config: project needs "owner" and integer "number"');
     if (project.readyValue && !project.statusField) throw new Error('config: project.readyValue needs project.statusField');
   }
+  if (config.fix !== undefined) {
+    const { fix } = config;
+    if (!fix || typeof fix !== 'object' || typeof fix.label !== 'string' || !fix.label) throw new Error('config: fix needs a "label" the human adds to approve');
+    if (!Array.isArray(fix.command) || !fix.command.length || !fix.command.every((part) => typeof part === 'string')) {
+      throw new Error('config: fix.command must be an array of strings; "{packet}", "{report}" and "{id}" are replaced');
+    }
+  }
   if (config.notify !== undefined && typeof config.notify !== 'boolean') throw new Error('config: notify must be true or false');
   if (label !== undefined && typeof label !== 'string') throw new Error('config: label must be a string');
   if (command !== undefined && (!Array.isArray(command) || !command.every((part) => typeof part === 'string'))) {
@@ -48,6 +55,12 @@ export function findVerdict(text) {
 export function defaultNotify(title, message) {
   if (process.platform !== 'darwin') return;
   spawnSync('osascript', ['-e', 'on run argv', '-e', 'display notification (item 1 of argv) with title (item 2 of argv)', '-e', 'end run', message.slice(0, 200), title.slice(0, 100)], { stdio: 'ignore' });
+}
+
+// A fix starts only for an issue a human labelled, whose saved triage report says READY_BUG.
+// The label is the approval; the watcher never adds or removes labels.
+export function isApproved(ticket, config, reportText) {
+  return Boolean(config.fix) && ticket.labels.includes(config.fix.label) && findVerdict(reportText ?? '') === 'READY_BUG';
 }
 
 const defaultGh = (args) => execFileSync('gh', args, { encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 });
@@ -133,9 +146,20 @@ export async function watch({ config, runRoot, projectRoot, gh = defaultGh, run 
   const stateFile = join(runRoot, 'state', 'tickets-seen.json');
   const inbox = join(runRoot, 'inbox');
   const seen = await readSeen(stateFile);
-  const fresh = unique.filter((t) => seen[t.id] !== t.updatedAt);
-  const report = { checked: unique.length, new: fresh.map((t) => t.id), packets: [], reports: [], failed: [] };
-  if (dryRun || fresh.length === 0) return report;
+  const fixFile = join(runRoot, 'state', 'fixes-started.json');
+  const started = await readSeen(fixFile);
+  const reportOf = async (t) => { try { return await readFile(join(runRoot, 'reports', `${slug(t.id)}.md`), 'utf8'); } catch { return null; } };
+  const approved = [];
+  for (const t of unique) {
+    if (!config.fix || started[t.id] || !t.labels.includes(config.fix.label)) continue;
+    const text = await reportOf(t);
+    if (isApproved(t, config, text)) approved.push(t);
+  }
+  // Adding the approval label bumps updatedAt; do not triage that ticket again.
+  const approvedIds = new Set(approved.map((t) => t.id));
+  const fresh = unique.filter((t) => seen[t.id] !== t.updatedAt && !approvedIds.has(t.id));
+  const report = { checked: unique.length, new: fresh.map((t) => t.id), approved: approved.map((t) => t.id), packets: [], reports: [], failed: [], fixes: [] };
+  if (dryRun || (fresh.length === 0 && approved.length === 0)) return report;
 
   await mkdir(inbox, { recursive: true });
   await mkdir(join(runRoot, 'state'), { recursive: true });
@@ -155,6 +179,23 @@ export async function watch({ config, runRoot, projectRoot, gh = defaultGh, run 
     }
     seen[ticket.id] = ticket.updatedAt;
     await writeSeen(stateFile, seen);
+  }
+  for (const ticket of approved) {
+    const packet = join(inbox, `${slug(ticket.id)}.md`);
+    const reportPath = join(runRoot, 'reports', `${slug(ticket.id)}.md`);
+    const [bin, ...args] = config.fix.command.map((part) => part.replaceAll('{packet}', packet).replaceAll('{report}', reportPath).replaceAll('{id}', ticket.id));
+    const result = run(bin, args, { stdio: ['inherit', 'pipe', 'inherit'], encoding: 'utf8', maxBuffer: 32 * 1024 * 1024, ...(projectRoot ? { cwd: projectRoot } : {}) });
+    if (result.status !== 0) { report.failed.push(ticket.id); continue; }
+    await mkdir(join(runRoot, 'reports'), { recursive: true });
+    const fixReport = join(runRoot, 'reports', `${slug(ticket.id)}.fix.md`);
+    await writeFile(fixReport, result.stdout ?? '');
+    report.fixes.push(fixReport);
+    started[ticket.id] = ticket.updatedAt;
+    await mkdir(join(runRoot, 'state'), { recursive: true });
+    await writeSeen(fixFile, started);
+    seen[ticket.id] = ticket.updatedAt;
+    await writeSeen(stateFile, seen);
+    if (config.notify !== false) notify('Fix run finished', `${ticket.id} ${ticket.title}\n${fixReport}`);
   }
   return report;
 }
