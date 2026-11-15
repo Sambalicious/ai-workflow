@@ -141,6 +141,28 @@ does not trigger a second triage. The label is the only approval: the watcher ne
 it, and any other verdict, a missing report or a failing command starts nothing (a failed
 fix is retried). The command is yours; keep it to a PR, never merge or deploy.
 
+`scripts/agents/fix-runner.mjs` is a ready-made `fix.command`. It makes a worktree under
+`RUN_ROOT/worktrees/`, has the worker tier (DeepSeek via `opencode`) implement the
+approved brief, then runs QA (Sonnet), Security (Opus) and code review (Opus) one at a
+time as separate headless sessions, each recorded in the run ledger. Only when all three
+open with `<GATE> PASS` does it push and run `gh pr create`. Any other first line halts
+the run for a human with no PR, and still exits 0 so the watcher does not retry and pay
+again. It never merges or deploys.
+
+```json
+"fix": {
+  "label": "factory:approved",
+  "command": ["node", "/abs/ai-team/scripts/agents/fix-runner.mjs", "--id", "{id}", "--report", "{report}",
+              "--packet", "{packet}", "--project", "/abs/project", "--run", "/abs/run",
+              "--qa-tool", "Bash(pnpm:*)", "--qa-tool", "Bash(bash:*)"]
+}
+```
+
+`--qa-tool` adds the commands the QA gate may run (it is read-only otherwise).
+`--dry-run` prints the branch and worktree without touching anything. A run takes
+minutes and several model sessions, so run it only for tickets you approved; each gate is
+capped at `--budget` USD (default 3).
+
 ## Existing installed usage
 
 Shared-checkout use (see `factory/EXTERNAL.md`) needs no installation. There is no

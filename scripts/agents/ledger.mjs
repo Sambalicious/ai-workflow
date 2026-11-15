@@ -6,9 +6,10 @@
 //     (preflight.mjs <role> --record <dir>); --force skips that check.
 //   node scripts/agents/ledger.mjs check --run <dir> [--max-claude 8] [--max-concurrent 2] [--max-concurrent-advisor 1]
 //   node scripts/agents/ledger.mjs show --run <dir>
+//   node scripts/agents/ledger.mjs done --run <dir> --role <r> [--state done|failed]   closes that role's running entries
 // Exit 1 when an entry is malformed or a cap would be exceeded.
 import { realpathSync } from 'node:fs';
-import { appendFile, readFile } from 'node:fs/promises';
+import { appendFile, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -98,11 +99,24 @@ if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToP
   const maxClaude = Number(flag('--max-claude') ?? 8);
   const maxConcurrent = Number(flag('--max-concurrent') ?? 2);
   const maxAdvisorConcurrent = Number(flag('--max-concurrent-advisor') ?? 1);
-  if (!run || !['add', 'check', 'show'].includes(command)) {
-    process.stderr.write('usage: node scripts/agents/ledger.mjs <add|check|show> --run <dir> [flags]\n');
+  if (!run || !['add', 'check', 'show', 'done'].includes(command)) {
+    process.stderr.write('usage: node scripts/agents/ledger.mjs <add|check|show|done> --run <dir> [flags]\n');
     process.exit(1);
   }
   const { entries, problems } = parseLedger(await readLedger(run));
+  if (command === 'done') {
+    const role = flag('--role');
+    const state = flag('--state') ?? 'done';
+    if (!role || !['done', 'failed'].includes(state)) {
+      process.stderr.write('usage: node scripts/agents/ledger.mjs done --run <dir> --role <r> [--state done|failed]\n');
+      process.exit(1);
+    }
+    let closed = 0;
+    const next = entries.map((entry) => (entry.role === role && entry.state === 'running' ? (closed += 1, { ...entry, state }) : entry));
+    await writeFile(ledgerPath(run), next.map((entry) => `${JSON.stringify(entry)}\n`).join(''));
+    process.stdout.write(`closed ${closed} ${role} entr${closed === 1 ? 'y' : 'ies'} as ${state}\n`);
+    process.exit(0);
+  }
   if (command === 'show') {
     for (const entry of entries) process.stdout.write(`${entry.round} | ${entry.role} | ${entry.tier} | ${entry.model} | ${entry.artifact} | ${entry.state}\n`);
     process.exit(problems.length === 0 ? 0 : 1);
