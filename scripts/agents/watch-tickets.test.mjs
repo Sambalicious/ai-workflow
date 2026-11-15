@@ -204,3 +204,62 @@ test('a failed feature command is retried; feature config is validated', async (
     assert.throws(() => validateConfig({ repo: 'o/r', feature: { label: 'x' } }), /feature.command/);
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
+
+test('the retry label resumes a started run once, then is removed', async () => {
+  const dir = await runRoot();
+  const config = { ...CONFIG, notify: false, command: ['triage'], fix: { label: 'factory:approved', command: ['fixer', '{id}'] } };
+  const calls = [];
+  const run = (bin, args) => { calls.push([bin, args]); return { status: 0, stdout: bin === 'triage' ? 'Verdict: READY_BUG' : 'Status: halted' }; };
+  const ghCalls = [];
+  const gh = (args) => { ghCalls.push(args); return labelled([[1, 't3', ['bug', 'factory:approved', 'factory:retry']]]); };
+  try {
+    await watch({ config, runRoot: dir, gh: () => labelled([[1, 't1', ['bug']]]), run });
+    await watch({ config, runRoot: dir, gh: () => labelled([[1, 't2', ['bug', 'factory:approved']]]), run });
+    const first = await watch({ config, runRoot: dir, gh, run });
+    assert.deepEqual(first.retried, ['o/r#1']);
+    assert.deepEqual(first.new, []);
+    assert.deepEqual(calls.at(-1)[1].slice(-1), ['--resume']);
+    assert.ok(ghCalls.some((a) => a.includes('--remove-label') && a.includes('factory:retry')));
+    await watch({ config, runRoot: dir, gh, run });
+    assert.equal(calls.filter((c) => c[0] === 'fixer').length, 2);
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('feedback on an open factory PR starts a capped repair wave, once per new item', async () => {
+  const dir = await runRoot();
+  const config = { ...CONFIG, notify: false, command: ['triage'], fix: { label: 'factory:approved', command: ['fixer', '{id}'] }, repair: { maxWaves: 2 } };
+  const calls = [];
+  const run = (bin, args) => { calls.push([bin, args]); return { status: 0, stdout: bin === 'triage' ? 'Verdict: READY_BUG' : bin === 'fixer' && args.includes('--repair') ? 'Status: repaired' : 'Status: pr\nurl: https://github.com/o/r/pull/9\n' }; };
+  let pr = { state: 'OPEN', headRefOid: 'a', statusCheckRollup: [], reviews: [], comments: [] };
+  const gh = (args) => (args[0] === 'pr' ? JSON.stringify(pr) : labelled([[1, 'x', ['bug', 'factory:approved']]]));
+  try {
+    await watch({ config, runRoot: dir, gh: () => labelled([[1, 't1', ['bug']]]), run });
+    await watch({ config, runRoot: dir, gh, run });
+    assert.equal(calls.filter((c) => c[0] === 'fixer').length, 1);
+    await watch({ config, runRoot: dir, gh, run });
+    assert.equal(calls.filter((c) => c[0] === 'fixer').length, 1, 'a clean PR starts nothing');
+    pr = { ...pr, statusCheckRollup: [{ name: 'test', conclusion: 'FAILURE' }] };
+    const one = await watch({ config, runRoot: dir, gh, run });
+    assert.deepEqual(one.repairs, ['o/r#1']);
+    const repair = calls.filter((c) => c[0] === 'fixer').at(-1)[1];
+    assert.deepEqual(repair.slice(-5, -2).slice(0, 2), ['--resume', '--repair']);
+    assert.deepEqual(repair.slice(-2), ['--wave', '1']);
+    assert.match(await readFile(repair.at(-3), 'utf8'), /test/);
+    await watch({ config, runRoot: dir, gh, run });
+    assert.equal(calls.filter((c) => c[0] === 'fixer').length, 2, 'the same failure is not repaired twice');
+    pr = { ...pr, headRefOid: 'b' };
+    await watch({ config, runRoot: dir, gh, run });
+    assert.equal(calls.filter((c) => c[0] === 'fixer').length, 3);
+    pr = { ...pr, headRefOid: 'c' };
+    await watch({ config, runRoot: dir, gh, run });
+    assert.equal(calls.filter((c) => c[0] === 'fixer').length, 3, 'capped at maxWaves');
+    pr = { ...pr, state: 'MERGED', headRefOid: 'd' };
+    await watch({ config, runRoot: dir, gh, run });
+    assert.equal(calls.filter((c) => c[0] === 'fixer').length, 3);
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('repair config is validated', () => {
+  assert.throws(() => validateConfig({ ...CONFIG, repair: { maxWaves: 9 } }), /maxWaves/);
+  validateConfig({ ...CONFIG, repair: {} });
+});

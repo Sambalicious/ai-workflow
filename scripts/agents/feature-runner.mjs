@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Feature runs for a human-approved PRD, unattended up to an open PR.
 //   node scripts/agents/feature-runner.mjs --id <owner/name#n> --prd <file> --project <dir> --run <dir>
-//        [--packet <file>] [--base origin/main] [--qa-tool <tool>]... [--budget 3] [--dry-run]
+//        [--packet <file>] [--base origin/main] [--qa-tool <tool>]... [--budget 3] [--resume] [--repair <feedback file> --wave <n>] [--dry-run]
 //
 // You write the PRD (the ticket); adding the approval label is the one human step, and the
 // watcher passes the ticket text as it stands at that moment as --prd. The build then chains separate headless sessions:
@@ -51,7 +51,7 @@ if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToP
     const prdPath = flag('--prd');
     const result = await fixRun({
       id: flag('--id'), packetPath: flag('--packet'), projectRoot: flag('--project'), runRoot: flag('--run'),
-      base: flag('--base') ?? 'origin/main', qaTools: many('--qa-tool'), budget: Number(flag('--budget') ?? 3), dryRun: args.includes('--dry-run'),
+      base: flag('--base') ?? 'origin/main', qaTools: many('--qa-tool'), budget: Number(flag('--budget') ?? 3), dryRun: args.includes('--dry-run'), resume: args.includes('--resume'), repair: flag('--repair') ? { feedbackPath: flag('--repair'), wave: Number(flag('--wave') ?? 1) } : null,
       log: (line) => process.stderr.write(`feature-runner: ${line}\n`),
       plan: (ctx) => featurePlan({ ...ctx, prdPath }),
     });

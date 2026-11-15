@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -95,5 +95,51 @@ test('only READY_BUG reports run; bad ids and relative paths are refused', async
     assert.equal(f.calls.length, 0);
     await assert.rejects(fixRun({ ...base(dir, reportPath, f.run), id: 'nope' }), /owner\/name#number/);
     await assert.rejects(fixRun({ ...base(dir, reportPath, f.run), runRoot: 'rel' }), /absolute/);
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('a resumed run skips finished steps and runs the one that stopped it', async () => {
+  const { dir, reportPath } = await setup();
+  try {
+    const first = fake({ gates: { Security: 'SECURITY FINDINGS\n1 high' } });
+    const halted = await fixRun(base(dir, reportPath, first.run));
+    assert.equal(halted.stage, 'security-review');
+    // The worktree is a real directory only once something creates it; the fake git does not.
+    await mkdir(join(dir, 'worktrees', 'o_r_7'), { recursive: true });
+    const refused = await fixRun(base(dir, reportPath, fake().run));
+    assert.match(refused.reason, /--resume/);
+    const second = fake();
+    const done = await fixRun({ ...base(dir, reportPath, second.run), resume: true });
+    assert.equal(done.status, 'pr');
+    assert.equal(second.calls.filter((c) => c[0] === 'opencode').length, 0);
+    const claudes = second.calls.filter((c) => c[0] === 'claude').length;
+    assert.equal(claudes, 2);
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('a repair wave runs one worker and the gates again, then pushes without a new PR', async () => {
+  const { dir, reportPath } = await setup();
+  try {
+    const first = fake();
+    const pr = await fixRun(base(dir, reportPath, first.run));
+    assert.equal(pr.status, 'pr');
+    await mkdir(join(dir, 'worktrees', 'o_r_7'), { recursive: true });
+    await writeFile(join(dir, 'feedback.md'), '# Feedback');
+    const calls = [];
+    let heads = 0;
+    const run = (bin, args, opts) => {
+      calls.push([bin, args]);
+      if (bin === 'git' && args.includes('rev-parse')) return { status: 0, stdout: `sha${heads++}\n` };
+      return fake().run(bin, args, opts);
+    };
+    const done = await fixRun({ ...base(dir, reportPath, run), repair: { feedbackPath: join(dir, 'feedback.md'), wave: 1 } });
+    assert.equal(done.status, 'repaired');
+    const workers = calls.filter((c) => c[0] === 'opencode');
+    assert.equal(workers.length, 1);
+    assert.match(workers[0][1].at(-1), /Repair wave 1/);
+    assert.equal(calls.filter((c) => c[0] === 'claude').length, 3);
+    assert.equal(calls.filter((c) => c[0] === 'gh').length, 0);
+    const none = await fixRun({ ...base(dir, reportPath, fake().run), repair: { feedbackPath: '/x', wave: 1 }, id: 'o/r#8' });
+    assert.equal(none.stage, 'repair');
   } finally { await rm(dir, { recursive: true, force: true }); }
 });

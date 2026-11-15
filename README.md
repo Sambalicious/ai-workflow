@@ -191,6 +191,23 @@ You write the PRD (the ticket), and one label starts the build:
 A feature run is many sessions and costs far more than a bug fix; each session is capped at
 `--budget` USD (default 3).
 
+### See, resume and repair runs
+
+- **Status.** `pnpm agents:status --run /abs/run` lists every ticket the watcher has acted on:
+  triage verdict, fix or feature state, the PR, the step a halted run stopped at, and any running
+  dispatch. It reads files only. Add `--json` for scripts.
+- **Resume.** A halted run keeps its worktree and a list of finished steps in
+  `RUN_ROOT/state/runs/<id>.json`. Fix what stopped it, then add the label `factory:retry` to the
+  ticket (change it with `"retryLabel"`). The watcher reruns the same command with `--resume`,
+  which skips finished stages, workers and gates and reruns the one that stopped, then removes
+  the label. Without `--resume` a run refuses to start over an existing worktree.
+- **PR feedback.** Add `"repair": {"maxWaves": 3}` to the config to turn it on (off by default).
+  For each open factory PR the watcher reads failed checks and reviews or comments from the
+  owner, members and collaborators only, writes them to `RUN_ROOT/inbox/<id>.feedback.<n>.md`,
+  and runs one repair wave: one worker, then all three gates again on the changed branch, then a
+  push to the same PR. A wave runs only for feedback it has not seen, at most `maxWaves` (cap 3)
+  per ticket; after that you are notified and the PR is yours. It never merges.
+
 ## Existing installed usage
 
 Shared-checkout use (see `factory/EXTERNAL.md`) needs no installation. There is no
