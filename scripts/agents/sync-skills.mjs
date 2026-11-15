@@ -23,7 +23,7 @@ const PAYLOAD = [
   { dir: '.agents/reference', recursive: false },
 ];
 
-const LINK_DIRS = ['.claude/commands', '.kilo/command'];
+const LINK_DIRS = ['.claude/commands'];
 
 const toPosix = path => path.split(sep).join('/');
 

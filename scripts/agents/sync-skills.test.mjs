@@ -35,11 +35,10 @@ test('a fresh target receives the skill payload and command links', async () => 
       '.agents/rules/01-rule.md',
       '.agents/skills/alpha/SKILL.md',
       '.claude/commands/go.md',
-      '.kilo/command/go.md',
     ]);
     assert.deepEqual(report.extra, []);
     assert.equal(await readFile(join(target, '.agents/skills/alpha/SKILL.md'), 'utf8'), '---\nname: alpha\n---\nAlpha.\n');
-    for (const dir of ['.claude/commands', '.kilo/command']) {
+    for (const dir of ['.claude/commands']) {
       assert.ok((await lstat(join(target, dir, 'go.md'))).isSymbolicLink());
       assert.equal(await readlink(join(target, dir, 'go.md')), '../../.agents/commands/go.md');
     }

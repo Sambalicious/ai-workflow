@@ -51,11 +51,17 @@ test('--check reports stale files and writes nothing; unknown client and relativ
   const source = await factory();
   const target = await mkdtemp(join(tmpdir(), 'export-dst-'));
   try {
-    const stale = await exportClient({ client: 'kilo', target, source, check: true });
-    assert.deepEqual(stale, ['.kilo/command/retro.md']);
-    await assert.rejects(lstat(join(target, '.kilo')), { code: 'ENOENT' });
+    const stale = await exportClient({ client: 'claude-code', target, source, check: true });
+    assert.deepEqual([...stale].sort(), [
+      '.claude/agents/advisor.md',
+      '.claude/agents/qa.md',
+      '.claude/commands/retro.md',
+      '.claude/settings.json',
+      '.claude/skills/architect.md',
+    ]);
+    await assert.rejects(lstat(join(target, '.claude')), { code: 'ENOENT' });
     await assert.rejects(exportClient({ client: 'nope', target, source }), /unknown client/);
-    await assert.rejects(exportClient({ client: 'kilo', target: 'rel', source }), /absolute/);
+    await assert.rejects(exportClient({ client: 'claude-code', target: 'rel', source }), /absolute/);
   } finally {
     await rm(source, { recursive: true, force: true });
     await rm(target, { recursive: true, force: true });

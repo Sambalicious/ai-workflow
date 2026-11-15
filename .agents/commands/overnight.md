@@ -6,9 +6,8 @@ Prepare this session to run unattended overnight.
 Extra notes from the product owner (may be empty): $ARGUMENTS
 
 This command is client-neutral. Map each capability to what your client provides:
-structured question round (Kilo/OpenCode `question`, Claude Code `AskUserQuestion`,
-otherwise one numbered message); scheduled wakeup (Kilo `schedule_wakeup` or
-`cron_create`, Claude Code `/loop` or a scheduled task). If the client has no
+structured question round (Claude Code `AskUserQuestion`,
+otherwise one numbered message); scheduled wakeup (Claude Code `/loop` or a scheduled task). If the client has no
 scheduled wakeup, say so and record in the plan that work stops when this turn
 ends. Never replace a wakeup with a sleep or polling loop.
 

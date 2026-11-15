@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 // Writes one coding client's native files into a project, on demand. This repo commits
-// no client-specific files (.claude/, .kilo/): the neutral sources live in
+// no client-specific files (.claude/): the neutral sources live in
 // .agents/, and a project that wants native subagents or slash commands exports them.
 //
-// Usage: node scripts/agents/export.mjs --client claude-code|kilo --target <dir> [--check]
+// Usage: node scripts/agents/export.mjs --client claude-code --target <dir> [--check]
 //
 // Role files, skills and commands become symlinks to this checkout, so nothing is
 // copied into the project. Generated agent files and model settings are written as
@@ -54,10 +54,6 @@ export const CLIENTS = {
         hooks: { PreToolUse: [{ matcher: 'Agent', hooks: [{ type: 'command', command: GUARD_HOOK.replace('%ROOT%', root) }] }] },
       },
     }),
-  },
-  kilo: {
-    supports: () => false,
-    links: { commands: '.kilo/command' },
   },
 };
 
@@ -144,7 +140,7 @@ if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToP
   try {
     const client = arg('--client');
     const target = arg('--target');
-    if (!client || !target) throw new Error('Usage: node scripts/agents/export.mjs --client <claude-code|kilo> --target <abs dir> [--check]');
+    if (!client || !target) throw new Error('Usage: node scripts/agents/export.mjs --client <claude-code> --target <abs dir> [--check]');
     const changed = await exportClient({ client, target, check });
     if (check && changed.length) {
       console.error(`Out of date:\n${changed.map((p) => `  ${p}`).join('\n')}`);
