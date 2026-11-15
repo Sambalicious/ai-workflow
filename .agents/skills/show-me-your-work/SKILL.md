@@ -53,7 +53,7 @@ Commit it only when the work is ambitious enough that a reviewer needs the trail
 
 ## Audit the log against the transcript
 
-At the end of the run, before handing back, check the log told the truth. Read this run's transcript with the `kilo_local_recall` tool in `read` mode, scoped to this session. Don't search across other sessions or projects; that reads unrelated private chats. Walk the log against what actually happened:
+At the end of the run, before handing back, check the log told the truth. Read this run's own transcript, scoped to this session. Don't search across other sessions or projects; that reads unrelated private chats. Walk the log against what actually happened:
 
 - Every row maps to a real action. Cut invented or aspirational entries.
 - Each row's evidence resolves and shows what the row claims.

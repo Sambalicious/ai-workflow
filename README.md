@@ -101,8 +101,7 @@ installer; projects that want native client files export them:
 
 ```bash
 node scripts/agents/export.mjs --client claude-code --target /absolute/path/to/my-project
-node scripts/agents/export.mjs --client opencode --target /absolute/path/to/my-project
-node scripts/agents/export.mjs --client kilo --target /absolute/path/to/my-project --check
+node scripts/agents/export.mjs --client claude-code --target /absolute/path/to/my-project --check
 ```
 
 The export symlinks role files, skills and commands to this checkout and writes the
@@ -119,8 +118,7 @@ node scripts/agents/sync-skills.mjs /path/to/my-project --check   # exit 1 on dr
 ```
 
 The sync copies `.agents/skills/`, `.agents/commands/`, `.agents/rules/`,
-`.agents/reference/`, and recreates the `.claude/commands/` and `.kilo/command/`
-links. It leaves `AGENTS.md`, `.agents/models.json`, the role files, `factory/`, and
+`.agents/reference/`, and recreates the `.claude/commands/` links. It leaves `AGENTS.md`, `.agents/models.json`, the role files, `factory/`, and
 any project-only skill in place, and names the project-only ones it skipped. It prints
 the source branch and commit it copied from; run it from a merged commit, or point it
 at a clean checkout with `--source <path>`, so an unmerged feature branch does not leak
@@ -229,7 +227,7 @@ node --test .agents/skills/skills.test.mjs
 
 Commands live in `.agents/commands/`, the single source of truth. This repo commits no
 client folders; `export.mjs` links them into a project (`.claude/commands/` for Claude
-Code, `.kilo/command/` for Kilo, `.opencode/command/` for OpenCode). Other clients can
+Code). Other clients can
 read the file directly.
 
 | Command | Definition | Purpose |
@@ -240,7 +238,6 @@ To use a command in every project without installing, link it into your global
 client config, for example:
 
 ```bash
-ln -s /absolute/path/to/ai-team/.agents/commands/overnight.md ~/.config/kilo/command/overnight.md
 ln -s /absolute/path/to/ai-team/.agents/commands/overnight.md ~/.claude/commands/overnight.md
 ```
 

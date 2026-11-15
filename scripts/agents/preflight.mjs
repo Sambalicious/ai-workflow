@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Proves a role's tier model can actually answer before an agent is dispatched.
-// Usage: node scripts/agents/preflight.mjs <role|tier> [--client opencode|claude-code] [--json] [--record <run dir>]
+// Usage: node scripts/agents/preflight.mjs <role|tier> [--client claude-code] [--json] [--record <run dir>]
 // Exit codes: 0 ready, 1 bad usage, 2 rate window closed (Retry-After), 3 credential
 // rejected, 4 provider error, 5 no provider configuration.
 import { realpathSync } from 'node:fs';
@@ -78,10 +78,10 @@ if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToP
   };
   const asJson = args.includes('--json');
   const record = flag('--record');
-  const client = flag('--client') ?? process.env.EVE_AGENT_CLIENT ?? 'opencode';
+  const client = flag('--client') ?? process.env.EVE_AGENT_CLIENT ?? 'claude-code';
   const question = args[0];
   if (!question) {
-    process.stderr.write('usage: node scripts/agents/preflight.mjs <role|tier> [--client opencode|claude-code] [--json] [--record <run dir>]\n');
+    process.stderr.write('usage: node scripts/agents/preflight.mjs <role|tier> [--client claude-code] [--json] [--record <run dir>]\n');
     process.exit(1);
   }
   try {

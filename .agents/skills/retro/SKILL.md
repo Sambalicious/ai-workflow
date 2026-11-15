@@ -90,7 +90,6 @@ Read the transcript, not a reconstruction of it.
 - OpenCode: `~/.local/share/opencode/` holds `opencode.db` (sessions and messages),
   plus `log/` and `tool-output/` with the raw tool results.
 - Claude Code: `~/.claude/projects/<project-path-with-dashes>/<session-id>.jsonl`.
-- Kilo: the client's session directory under its application-data folder.
 - Installed runs: `RUN_ROOT/logs/` and `RUN_ROOT/reports/` hold what the run wrote;
   git history holds the rest.
 
