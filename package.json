@@ -32,7 +32,7 @@
     "agents:export": "node scripts/agents/export.mjs",
     "agents:check": "node scripts/agents/sync.mjs --check && node scripts/agents/policy.mjs --check",
     "skills:sync": "node scripts/agents/sync-skills.mjs",
-    "agents:test": "node --test scripts/agents/sync.test.mjs scripts/agents/export.test.mjs scripts/agents/sync-skills.test.mjs scripts/agents/which-model.test.mjs scripts/agents/ledger.test.mjs scripts/agents/preflight.test.mjs scripts/agents/worker-guard.test.mjs scripts/agents/policy.test.mjs scripts/agents/stale.test.mjs scripts/agents/artifacts.test.mjs scripts/agents/known-failures.test.mjs scripts/agents/factory-lock.test.mjs scripts/agents/watch-tickets.test.mjs .agents/skills/skills.test.mjs .agents/skills/cost-discipline.test.mjs .agents/skills/spec-check.test.mjs",
+    "agents:test": "node --test scripts/agents/sync.test.mjs scripts/agents/export.test.mjs scripts/agents/sync-skills.test.mjs scripts/agents/which-model.test.mjs scripts/agents/ledger.test.mjs scripts/agents/preflight.test.mjs scripts/agents/worker-guard.test.mjs scripts/agents/policy.test.mjs scripts/agents/stale.test.mjs scripts/agents/artifacts.test.mjs scripts/agents/known-failures.test.mjs scripts/agents/factory-lock.test.mjs scripts/agents/watch-tickets.test.mjs scripts/agents/fix-runner.test.mjs .agents/skills/skills.test.mjs .agents/skills/cost-discipline.test.mjs .agents/skills/spec-check.test.mjs",
     "agents:boundary": "node scripts/agents/worker-guard.mjs --base origin/main",
     "agents:model": "node scripts/agents/which-model.mjs",
     "agents:preflight": "node scripts/agents/preflight.mjs",
@@ -41,6 +41,7 @@
     "agents:artifacts": "node scripts/agents/artifacts.mjs",
     "agents:known-failures": "node scripts/agents/known-failures.mjs",
     "agents:lock": "node scripts/agents/factory-lock.mjs",
-    "agents:watch": "node scripts/agents/watch-tickets.mjs"
+    "agents:watch": "node scripts/agents/watch-tickets.mjs",
+    "agents:fix": "node scripts/agents/fix-runner.mjs"
   }
 }

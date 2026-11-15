@@ -115,3 +115,19 @@ test('a Claude dispatch without a preflight receipt is refused, and --force over
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test('done closes a role\'s running entries so the concurrency cap frees up', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'ledger-'));
+  try {
+    const add = (role) => run(['add', '--run', dir, '--round', '1', '--role', role, '--tier', 'advisor', '--model', 'opus', '--artifact', 'a', '--state', 'running', '--force']);
+    assert.equal(add('security-review').status, 0);
+    assert.equal(add('code-review').status, 1, 'second advisor refused while the first runs');
+    const closed = run(['done', '--run', dir, '--role', 'security-review']);
+    assert.equal(closed.status, 0);
+    assert.match(closed.stdout, /closed 1 security-review entry as done/);
+    assert.equal(add('code-review').status, 0);
+    assert.match(run(['show', '--run', dir]).stdout, /security-review \| advisor \| opus \| a \| done/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
