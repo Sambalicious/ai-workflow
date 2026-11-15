@@ -48,11 +48,13 @@ test('a failing command leaves the ticket unseen so it is retried', async () => 
   const config = { ...CONFIG, command: ['triage-runner', '{packet}'] };
   const calls = [];
   try {
-    const fail = await watch({ config, runRoot: dir, gh: ghWith([[1, 't1']]), run: (bin, args) => { calls.push([bin, args]); return { status: 1 }; } });
+    const fail = await watch({ config, runRoot: dir, gh: ghWith([[1, 't1']]), projectRoot: '/proj', run: (bin, args, opts) => { calls.push([bin, args, opts.cwd]); return { status: 1 }; } });
+    assert.equal(calls[0][2], '/proj');
     assert.deepEqual(fail.failed, ['o/r#1']);
     assert.equal(calls[0][0], 'triage-runner');
     assert.match(calls[0][1][0], /inbox\/o_r_1\.md$/);
-    const retry = await watch({ config, runRoot: dir, gh: ghWith([[1, 't1']]), run: () => ({ status: 0 }) });
+    const retry = await watch({ config, runRoot: dir, gh: ghWith([[1, 't1']]), run: () => ({ status: 0, stdout: 'REPORT' }) });
+    assert.equal(await readFile(join(dir, 'reports', 'o_r_1.md'), 'utf8'), 'REPORT');
     assert.deepEqual(retry.new, ['o/r#1']);
     assert.deepEqual(retry.failed, []);
     const done = await watch({ config, runRoot: dir, gh: ghWith([[1, 't1']]), run: () => assert.fail('must not rerun') });

@@ -4,8 +4,10 @@
 // Usage: node scripts/agents/watch-tickets.mjs --project <dir> --run <dir> [--config <file>] [--dry-run] [--json]
 //
 // Read-only toward the tracker: it never comments, labels or moves a ticket. It does not
-// launch agents; the optional `command` in the config does, one ticket at a time, and a
-// ticket is marked seen only when that command exits 0 (or when no command is set).
+// launch agents; the optional `command` in the config does, one ticket at a time, from
+// PROJECT_ROOT, and a
+// command's stdout is saved as RUN_ROOT/reports/<id>.md, and a ticket is marked seen only when
+// that command exits 0 (or when no command is set).
 // State and packets live in RUN_ROOT, outside the project's source.
 import { execFileSync, spawnSync } from 'node:child_process';
 import { realpathSync } from 'node:fs';
@@ -106,7 +108,7 @@ async function writeSeen(file, seen) {
   await rename(tmp, file);
 }
 
-export async function watch({ config, runRoot, gh = defaultGh, run = spawnSync, dryRun = false }) {
+export async function watch({ config, runRoot, projectRoot, gh = defaultGh, run = spawnSync, dryRun = false }) {
   validateConfig(config);
   if (!isAbsolute(runRoot)) throw new Error('RUN_ROOT must be an absolute path');
   const tickets = [...fetchIssues(config, gh), ...fetchProjectItems(config, gh)];
@@ -126,8 +128,10 @@ export async function watch({ config, runRoot, gh = defaultGh, run = spawnSync, 
     report.packets.push(packet);
     if (config.command?.length) {
       const [bin, ...args] = config.command.map((part) => part.replaceAll('{packet}', packet));
-      const result = run(bin, args, { stdio: 'inherit' });
+      const result = run(bin, args, { stdio: ['inherit', 'pipe', 'inherit'], encoding: 'utf8', maxBuffer: 32 * 1024 * 1024, ...(projectRoot ? { cwd: projectRoot } : {}) });
       if (result.status !== 0) { report.failed.push(ticket.id); continue; }
+      await mkdir(join(runRoot, 'reports'), { recursive: true });
+      await writeFile(join(runRoot, 'reports', `${slug(ticket.id)}.md`), result.stdout ?? '');
     }
     seen[ticket.id] = ticket.updatedAt;
     await writeSeen(stateFile, seen);
@@ -147,7 +151,7 @@ if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToP
   try {
     const configPath = flag('--config') ?? join(project, '.agents', 'tickets.json');
     const config = JSON.parse(await readFile(configPath, 'utf8'));
-    const report = await watch({ config, runRoot, dryRun: args.includes('--dry-run') });
+    const report = await watch({ config, runRoot, projectRoot: project, dryRun: args.includes('--dry-run') });
     process.stdout.write(args.includes('--json')
       ? `${JSON.stringify(report, null, 2)}\n`
       : `checked ${report.checked}, new ${report.new.length}, failed ${report.failed.length}\n${report.new.join('\n')}${report.new.length ? '\n' : ''}`);
