@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Resolves the model a role must run on, from .agents/models.json.
-// Usage: node scripts/agents/which-model.mjs <role|tier> [--client opencode|claude-code] [--json]
+// Usage: node scripts/agents/which-model.mjs <role|tier> [--client claude-code] [--json]
 // Exits 1 when the role, the tier or the client's model is missing, so a dispatch
 // cannot silently fall back to the session model.
 import { realpathSync } from 'node:fs';
@@ -38,12 +38,12 @@ const flag = (name) => {
   return value ?? '';
 };
 const asJson = args.includes('--json');
-const client = flag('--client') ?? process.env.EVE_AGENT_CLIENT ?? 'opencode';
+const client = flag('--client') ?? process.env.EVE_AGENT_CLIENT ?? 'claude-code';
 const question = args[0];
 
 if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
   if (!question) {
-    process.stderr.write('usage: node scripts/agents/which-model.mjs <role|tier> [--client opencode|claude-code] [--json]\n');
+    process.stderr.write('usage: node scripts/agents/which-model.mjs <role|tier> [--client claude-code] [--json]\n');
     process.exit(1);
   }
   try {

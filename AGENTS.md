@@ -197,13 +197,17 @@ The setup, the health check for the local provider and the ledger template are i
 [docs/ops/agent-models.md](docs/ops/agent-models.md).
 
 <!-- tier-table:start (generated from .agents/models.json by npm run agents:sync; edit models.json) -->
-| Tier | claude-code | opencode |
-|---|---|---|
-| lead | sonnet | anthropic/claude-sonnet-5-5 |
-| advisor | opus | anthropic/claude-opus-5-5 |
-| swarm | opencode-go/deepseek-v4.1-flash | opencode-go/deepseek-v4.1-flash |
-| worker | opencode-go/deepseek-v4.1-flash | opencode-go/deepseek-v4.1-flash |
+| Tier | claude-code |
+|---|---|
+| lead | sonnet |
+| advisor | opus |
+| swarm | opencode-go/deepseek-v4.1-flash |
+| worker | opencode-go/deepseek-v4.1-flash |
 <!-- tier-table:end -->
+
+Claude models run only through Anthropic (the `claude-code` client). OpenCode is used only
+for worker and swarm dispatch to DeepSeek, never for a Claude model.
+
 
 - **Lead** (main session, decisions only): orchestration, Product Manager, spec
   authorship, Architect, Designer spec and review, Copywriter, SEO, DevOps, the

@@ -9,7 +9,7 @@ that spend least for the same output.
 ```sh
 pnpm agents:preflight qa-gate    # one max_tokens request; non-zero means do not dispatch
 pnpm agents:ledger add --run <dir> --round 1 --role qa-gate --tier lead \
-  --model anthropic/claude-sonnet-5-5 --artifact qa/ --state running
+  --model sonnet --artifact qa/ --state running
 pnpm agents:ledger check --run <dir>    # caps: 8 Claude dispatches, 2 running, 1 advisor running
 pnpm agents:ledger show --run <dir>
 ```

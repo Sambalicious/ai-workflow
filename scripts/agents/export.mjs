@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 // Writes one coding client's native files into a project, on demand. This repo commits
-// no client-specific files (.claude/, .opencode/, .kilo/): the neutral sources live in
+// no client-specific files (.claude/, .kilo/): the neutral sources live in
 // .agents/, and a project that wants native subagents or slash commands exports them.
 //
-// Usage: node scripts/agents/export.mjs --client claude-code|opencode|kilo --target <dir> [--check]
+// Usage: node scripts/agents/export.mjs --client claude-code|kilo --target <dir> [--check]
 //
 // Role files, skills and commands become symlinks to this checkout, so nothing is
 // copied into the project. Generated agent files and model settings are written as
@@ -54,27 +54,6 @@ export const CLIENTS = {
         hooks: { PreToolUse: [{ matcher: 'Agent', hooks: [{ type: 'command', command: GUARD_HOOK.replace('%ROOT%', root) }] }] },
       },
     }),
-  },
-  opencode: {
-    supports: () => true,
-    agentPath: (meta) => `.opencode/agents/${meta.name}.md`,
-    render({ meta, body }, model) {
-      return [
-        '---',
-        `description: ${JSON.stringify(meta.description)}`,
-        'mode: subagent',
-        `model: ${model}`,
-        'permissions:',
-        '  - action: edit',
-        '    resource: "*"',
-        '    effect: deny',
-        '---',
-        '',
-        notice(meta.name) + body,
-      ].join('\n');
-    },
-    links: { commands: '.opencode/command' },
-    settings: (m) => ({ path: 'opencode.json', keys: { $schema: 'https://opencode.ai/config.json', model: m.lead } }),
   },
   kilo: {
     supports: () => false,
@@ -165,7 +144,7 @@ if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToP
   try {
     const client = arg('--client');
     const target = arg('--target');
-    if (!client || !target) throw new Error('Usage: node scripts/agents/export.mjs --client <claude-code|opencode|kilo> --target <abs dir> [--check]');
+    if (!client || !target) throw new Error('Usage: node scripts/agents/export.mjs --client <claude-code|kilo> --target <abs dir> [--check]');
     const changed = await exportClient({ client, target, check });
     if (check && changed.length) {
       console.error(`Out of date:\n${changed.map((p) => `  ${p}`).join('\n')}`);

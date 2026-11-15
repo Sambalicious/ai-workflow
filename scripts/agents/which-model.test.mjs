@@ -47,7 +47,7 @@ test('a client without a model for the tier fails instead of returning nothing',
 test('the script prints the model and exits 0', () => {
   const result = run('spec-writer');
   assert.equal(result.status, 0);
-  assert.match(result.stdout.trim(), /^anthropic\/claude-sonnet-5-5$/);
+  assert.match(result.stdout.trim(), /^sonnet$/);
 });
 
 test('the script exits 1 with nothing on stdout for an unknown role', () => {

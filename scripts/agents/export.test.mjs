@@ -47,19 +47,6 @@ test('claude-code export links roles, skills and commands, and skips tiers it ca
   }
 });
 
-test('opencode export generates agents and the model setting', async () => {
-  const source = await factory();
-  const target = await mkdtemp(join(tmpdir(), 'export-dst-'));
-  try {
-    await exportClient({ client: 'opencode', target, source });
-    assert.match(await readFile(join(target, '.opencode/agents/explore.md'), 'utf8'), /^model: p\/swarm$/m);
-    assert.equal(JSON.parse(await readFile(join(target, 'opencode.json'), 'utf8')).model, 'p/lead');
-  } finally {
-    await rm(source, { recursive: true, force: true });
-    await rm(target, { recursive: true, force: true });
-  }
-});
-
 test('--check reports stale files and writes nothing; unknown client and relative target fail', async () => {
   const source = await factory();
   const target = await mkdtemp(join(tmpdir(), 'export-dst-'));
