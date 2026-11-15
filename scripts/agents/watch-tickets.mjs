@@ -3,7 +3,8 @@
 // one untrusted-data packet per ticket under RUN_ROOT/inbox/, ready for the `triage` skill.
 // Usage: node scripts/agents/watch-tickets.mjs --project <dir> --run <dir> [--config <file>] [--dry-run] [--json]
 //
-// Read-only toward the tracker: it never comments, labels or moves a ticket. It does not
+// Toward the tracker it reads, and writes one thing: it removes the retry label after acting on it.
+// It never comments, moves a ticket or merges. It does not
 // launch agents; the optional `command` in the config does, one ticket at a time, from
 // PROJECT_ROOT, and a
 // command's stdout is saved as RUN_ROOT/reports/<id>.md, and a ticket is marked seen only when
@@ -14,6 +15,7 @@ import { realpathSync } from 'node:fs';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { isAbsolute, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { collectFeedback, renderFeedback } from './pr-feedback.mjs';
 
 const MAX_BODY = 20000;
 
@@ -39,6 +41,9 @@ export function validateConfig(config) {
     if (!Array.isArray(feature.command) || !feature.command.length || !feature.command.every((part) => typeof part === 'string')) {
       throw new Error('config: feature.command must be an array of strings; "{prd}", "{packet}", "{report}" and "{id}" are replaced');
     }
+  }
+  if (config.repair !== undefined && (typeof config.repair !== 'object' || (config.repair.maxWaves !== undefined && !(Number.isInteger(config.repair.maxWaves) && config.repair.maxWaves >= 1 && config.repair.maxWaves <= 3)))) {
+    throw new Error('config: repair must be an object; maxWaves is an integer from 1 to 3');
   }
   if (config.notify !== undefined && typeof config.notify !== 'boolean') throw new Error('config: notify must be true or false');
   if (label !== undefined && typeof label !== 'string') throw new Error('config: label must be a string');
@@ -166,17 +171,51 @@ export async function watch({ config, runRoot, projectRoot, gh = defaultGh, run 
   const reportOf = async (t) => { try { return await readFile(join(runRoot, 'reports', `${slug(t.id)}.md`), 'utf8'); } catch { return null; } };
   const approved = [];
   const featureApproved = [];
+  const retryFile = join(runRoot, 'state', 'retries.json');
+  const retried = await readSeen(retryFile);
+  const retryLabel = config.retryLabel ?? 'factory:retry';
+  const retrying = [];
   for (const t of unique) {
-    if (started[t.id]) continue;
+    if (started[t.id]) {
+      // A started ticket labelled for retry resumes its run once per label application.
+      if (t.labels.includes(retryLabel) && retried[t.id] !== t.updatedAt && (config.fix || config.feature)) retrying.push(t);
+      continue;
+    }
     const text = await reportOf(t);
     if (config.fix && t.labels.includes(config.fix.label) && isApproved(t, config, text)) approved.push(t);
     else if (isFeatureApproved(t, config)) featureApproved.push(t);
   }
   // Adding the approval label bumps updatedAt; do not triage that ticket again.
   const approvedIds = new Set([...approved, ...featureApproved].map((t) => t.id));
-  const fresh = unique.filter((t) => seen[t.id] !== t.updatedAt && !approvedIds.has(t.id));
-  const report = { checked: unique.length, new: fresh.map((t) => t.id), approved: [...approved, ...featureApproved].map((t) => t.id), features: [], packets: [], reports: [], failed: [], fixes: [] };
-  if (dryRun || (fresh.length === 0 && approved.length === 0 && featureApproved.length === 0)) return report;
+  const fresh = unique.filter((t) => seen[t.id] !== t.updatedAt && !approvedIds.has(t.id) && !started[t.id]);
+  const report = { checked: unique.length, new: fresh.map((t) => t.id), approved: [...approved, ...featureApproved].map((t) => t.id), retried: [], features: [], packets: [], reports: [], failed: [], fixes: [] };
+  report.retrying = retrying.map((t) => t.id);
+  // Open factory PRs with new failed checks or reviewer comments. Capped at maxWaves per ticket.
+  const repairFile = join(runRoot, 'state', 'repairs.json');
+  const repairs = await readSeen(repairFile);
+  const maxWaves = config.repair?.maxWaves ?? 3;
+  const repairing = [];
+  report.repairs = [];
+  if (config.repair && !dryRun) {
+    for (const t of unique) {
+      if (!started[t.id]) continue;
+      const text = (await readFile(join(runRoot, 'reports', `${slug(t.id)}.feature.md`), 'utf8').catch(() => null)) ?? (await readFile(join(runRoot, 'reports', `${slug(t.id)}.fix.md`), 'utf8').catch(() => null));
+      const url = runStatus(text) === 'pr' ? text.match(/^url: (.+)$/m)?.[1] : undefined;
+      if (!url) continue;
+      let pr;
+      try { pr = JSON.parse(gh(['pr', 'view', url, '--json', 'url,state,headRefOid,statusCheckRollup,reviews,comments'])); } catch { continue; }
+      if (pr.state !== 'OPEN') continue;
+      const feedback = collectFeedback(pr);
+      const entry = repairs[t.id] ?? { wave: 0, seen: [] };
+      if (!feedback.items.some((item) => !entry.seen.includes(item))) continue;
+      if (entry.wave >= maxWaves) {
+        if (!entry.capped) { repairs[t.id] = { ...entry, capped: true }; await mkdir(join(runRoot, 'state'), { recursive: true }); await writeSeen(repairFile, repairs); if (config.notify !== false) notify('PR needs you', `${t.id} still has feedback after ${maxWaves} repair waves\n${url}`); }
+        continue;
+      }
+      repairing.push({ ticket: t, pr, feedback, entry });
+    }
+  }
+  if (dryRun || (fresh.length === 0 && approved.length === 0 && featureApproved.length === 0 && retrying.length === 0 && repairing.length === 0)) return report;
 
   await mkdir(inbox, { recursive: true });
   await mkdir(join(runRoot, 'state'), { recursive: true });
@@ -233,6 +272,49 @@ export async function watch({ config, runRoot, projectRoot, gh = defaultGh, run 
     seen[ticket.id] = ticket.updatedAt;
     await writeSeen(stateFile, seen);
     if (config.notify !== false) notify(runStatus(result.stdout) === 'pr' ? 'Feature PR opened' : 'Feature halted: needs you', `${ticket.id} ${ticket.title}\n${featureReport}`);
+  }
+  for (const ticket of retrying) {
+    const featureReport = join(runRoot, 'reports', `${slug(ticket.id)}.feature.md`);
+    const isFeature = await readFile(featureReport, 'utf8').then(() => true, () => false);
+    const block = isFeature ? config.feature : config.fix;
+    if (!block) continue;
+    const packet = join(inbox, `${slug(ticket.id)}.md`);
+    await mkdir(inbox, { recursive: true });
+    await writeFile(packet, renderPacket(ticket));
+    const reportPath = join(runRoot, 'reports', `${slug(ticket.id)}.md`);
+    const [bin, ...args] = [...block.command, '--resume'].map((part) => part.replaceAll('{packet}', packet).replaceAll('{prd}', packet).replaceAll('{report}', reportPath).replaceAll('{id}', ticket.id));
+    const result = run(bin, args, { stdio: ['inherit', 'pipe', 'inherit'], encoding: 'utf8', maxBuffer: 32 * 1024 * 1024, ...(projectRoot ? { cwd: projectRoot } : {}) });
+    // Record the label application first so a failed label removal cannot loop the retry.
+    retried[ticket.id] = ticket.updatedAt;
+    await writeSeen(retryFile, retried);
+    const number = ticket.id.match(/^([^#]+)#(\d+)$/);
+    if (number) { try { gh(['issue', 'edit', number[2], '--repo', number[1], '--remove-label', retryLabel]); } catch { /* label stays; the recorded timestamp prevents a rerun */ } }
+    if (result.status !== 0) { report.failed.push(ticket.id); continue; }
+    await writeFile(isFeature ? featureReport : join(runRoot, 'reports', `${slug(ticket.id)}.fix.md`), result.stdout ?? '');
+    report.retried.push(ticket.id);
+    if (config.notify !== false) notify(runStatus(result.stdout) === 'pr' ? `${isFeature ? 'Feature' : 'Fix'} PR opened (retry)` : 'Retry halted: needs you', `${ticket.id} ${ticket.title}`);
+  }
+  for (const { ticket, pr, feedback, entry } of repairing) {
+    const isFeature = await readFile(join(runRoot, 'reports', `${slug(ticket.id)}.feature.md`), 'utf8').then(() => true, () => false);
+    const block = isFeature ? config.feature : config.fix;
+    if (!block) continue;
+    const wave = entry.wave + 1;
+    const feedbackFile = join(inbox, `${slug(ticket.id)}.feedback.${wave}.md`);
+    await mkdir(inbox, { recursive: true });
+    await writeFile(feedbackFile, renderFeedback(pr, feedback));
+    const packet = join(inbox, `${slug(ticket.id)}.md`);
+    await writeFile(packet, renderPacket(ticket));
+    const reportPath = join(runRoot, 'reports', `${slug(ticket.id)}.md`);
+    const [bin, ...args] = [...block.command, '--resume', '--repair', feedbackFile, '--wave', String(wave)].map((part) => part.replaceAll('{packet}', packet).replaceAll('{prd}', packet).replaceAll('{report}', reportPath).replaceAll('{id}', ticket.id));
+    const result = run(bin, args, { stdio: ['inherit', 'pipe', 'inherit'], encoding: 'utf8', maxBuffer: 32 * 1024 * 1024, ...(projectRoot ? { cwd: projectRoot } : {}) });
+    // The wave counts and its items are consumed whether or not it succeeded; the cap bounds the loop.
+    repairs[ticket.id] = { wave, seen: [...new Set([...entry.seen, ...feedback.items])] };
+    await mkdir(join(runRoot, 'state'), { recursive: true });
+    await writeSeen(repairFile, repairs);
+    if (result.status !== 0) { report.failed.push(ticket.id); continue; }
+    await writeFile(join(runRoot, 'reports', `${slug(ticket.id)}.repair.md`), result.stdout ?? '');
+    report.repairs.push(ticket.id);
+    if (config.notify !== false) notify(runStatus(result.stdout) === 'repaired' ? `PR updated (wave ${wave})` : 'Repair halted: needs you', `${ticket.id} ${ticket.title}`);
   }
   return report;
 }
