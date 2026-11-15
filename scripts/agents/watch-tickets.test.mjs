@@ -3,7 +3,7 @@ import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { renderPacket, validateConfig, watch } from './watch-tickets.mjs';
+import { findVerdict, renderPacket, validateConfig, watch } from './watch-tickets.mjs';
 
 const issues = (list) => JSON.stringify(list.map(([number, updatedAt, body = 'b']) => ({
   number, title: `t${number}`, body, url: `https://x/${number}`, updatedAt, labels: [{ name: 'bug' }], author: { login: 'a' },
@@ -98,4 +98,23 @@ test('a relative RUN_ROOT is refused', async () => {
 
 test('renderPacket names the next step as report-only', () => {
   assert.match(renderPacket({ id: 'o/r#1', source: 'issue', title: 't', body: 'b', url: null, updatedAt: 'x', author: null, labels: [] }), /Report only/);
+});
+
+test('a saved report triggers one notification with its verdict, unless notify is false', async () => {
+  const dir = await runRoot();
+  const sent = [];
+  const run = () => ({ status: 0, stdout: 'Triage\n**Verdict: `READY_BUG`** (not BLOCKED)' });
+  try {
+    await watch({ config: { ...CONFIG, command: ['x'] }, runRoot: dir, gh: ghWith([[1, 't1']]), run, notify: (t, m) => sent.push([t, m]) });
+    assert.equal(sent.length, 1);
+    assert.equal(sent[0][0], 'Triage: READY_BUG');
+    assert.match(sent[0][1], /o\/r#1 t1/);
+    await watch({ config: { ...CONFIG, notify: false, command: ['x'] }, runRoot: dir, gh: ghWith([[2, 't1']]), run, notify: () => assert.fail('muted') });
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('findVerdict prefers the stated verdict and returns null when none is present', () => {
+  assert.equal(findVerdict('table: READY_BUG BLOCKED\nVerdict: NEEDS_INFORMATION'), 'NEEDS_INFORMATION');
+  assert.equal(findVerdict('only BLOCKED here'), 'BLOCKED');
+  assert.equal(findVerdict('nothing'), null);
 });

@@ -26,11 +26,28 @@ export function validateConfig(config) {
     if (!project.owner || !Number.isInteger(project.number)) throw new Error('config: project needs "owner" and integer "number"');
     if (project.readyValue && !project.statusField) throw new Error('config: project.readyValue needs project.statusField');
   }
+  if (config.notify !== undefined && typeof config.notify !== 'boolean') throw new Error('config: notify must be true or false');
   if (label !== undefined && typeof label !== 'string') throw new Error('config: label must be a string');
   if (command !== undefined && (!Array.isArray(command) || !command.every((part) => typeof part === 'string'))) {
     throw new Error('config: command must be an array of strings; "{packet}" is replaced by the packet path');
   }
   return config;
+}
+
+const VERDICTS = ['READY_BUG', 'READY_FEATURE', 'DUPLICATE', 'NEEDS_INFORMATION', 'BLOCKED', 'DECLINED'];
+
+// The first verdict word that appears in the report, or null. Reports quote the whole
+// table, so a stated verdict line wins over a bare mention.
+export function findVerdict(text) {
+  const stated = text.match(/verdict[^\n]*?\b(READY_BUG|READY_FEATURE|DUPLICATE|NEEDS_INFORMATION|BLOCKED|DECLINED)\b/i);
+  if (stated) return stated[1].toUpperCase();
+  return VERDICTS.find((v) => text.includes(v)) ?? null;
+}
+
+// macOS notification; ticket text goes in as argv, never into the script source.
+export function defaultNotify(title, message) {
+  if (process.platform !== 'darwin') return;
+  spawnSync('osascript', ['-e', 'on run argv', '-e', 'display notification (item 1 of argv) with title (item 2 of argv)', '-e', 'end run', message.slice(0, 200), title.slice(0, 100)], { stdio: 'ignore' });
 }
 
 const defaultGh = (args) => execFileSync('gh', args, { encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 });
@@ -108,7 +125,7 @@ async function writeSeen(file, seen) {
   await rename(tmp, file);
 }
 
-export async function watch({ config, runRoot, projectRoot, gh = defaultGh, run = spawnSync, dryRun = false }) {
+export async function watch({ config, runRoot, projectRoot, gh = defaultGh, run = spawnSync, notify = defaultNotify, dryRun = false }) {
   validateConfig(config);
   if (!isAbsolute(runRoot)) throw new Error('RUN_ROOT must be an absolute path');
   const tickets = [...fetchIssues(config, gh), ...fetchProjectItems(config, gh)];
@@ -117,7 +134,7 @@ export async function watch({ config, runRoot, projectRoot, gh = defaultGh, run 
   const inbox = join(runRoot, 'inbox');
   const seen = await readSeen(stateFile);
   const fresh = unique.filter((t) => seen[t.id] !== t.updatedAt);
-  const report = { checked: unique.length, new: fresh.map((t) => t.id), packets: [], failed: [] };
+  const report = { checked: unique.length, new: fresh.map((t) => t.id), packets: [], reports: [], failed: [] };
   if (dryRun || fresh.length === 0) return report;
 
   await mkdir(inbox, { recursive: true });
@@ -131,7 +148,10 @@ export async function watch({ config, runRoot, projectRoot, gh = defaultGh, run 
       const result = run(bin, args, { stdio: ['inherit', 'pipe', 'inherit'], encoding: 'utf8', maxBuffer: 32 * 1024 * 1024, ...(projectRoot ? { cwd: projectRoot } : {}) });
       if (result.status !== 0) { report.failed.push(ticket.id); continue; }
       await mkdir(join(runRoot, 'reports'), { recursive: true });
-      await writeFile(join(runRoot, 'reports', `${slug(ticket.id)}.md`), result.stdout ?? '');
+      const reportPath = join(runRoot, 'reports', `${slug(ticket.id)}.md`);
+      await writeFile(reportPath, result.stdout ?? '');
+      report.reports.push(reportPath);
+      if (config.notify !== false) notify(`Triage: ${findVerdict(result.stdout ?? '') ?? 'done'}`, `${ticket.id} ${ticket.title}\n${reportPath}`);
     }
     seen[ticket.id] = ticket.updatedAt;
     await writeSeen(stateFile, seen);
