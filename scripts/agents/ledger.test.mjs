@@ -131,3 +131,11 @@ test('done closes a role\'s running entries so the concurrency cap frees up', as
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test('a retry of the same role on the same artifact counts once toward the cap', () => {
+  const attempt = (state) => ({ round: '1', role: 'designer-spec', tier: 'lead', model: 'sonnet', artifact: 'design-spec.md', state });
+  const other = { round: '1', role: 'architect', tier: 'lead', model: 'sonnet', artifact: 'architecture.md', state: 'done' };
+  const summary = caps([attempt('done'), attempt('failed'), attempt('done'), other], { maxClaude: 2, maxConcurrent: 2 });
+  assert.equal(summary.claude, 2);
+  assert.deepEqual(summary.problems, []);
+});

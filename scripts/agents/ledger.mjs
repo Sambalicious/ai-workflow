@@ -32,7 +32,9 @@ export function caps(entries, limits = {}) {
   const maxClaude = limits.maxClaude ?? 8;
   const maxConcurrent = limits.maxConcurrent ?? 2;
   const maxAdvisorConcurrent = limits.maxAdvisorConcurrent ?? 1;
-  const claude = entries.filter((entry) => CLAUDE_TIERS.has(entry.tier)).length;
+  // A retry of the same role on the same artifact replaces its earlier attempt: the cap
+  // counts distinct dispatches, so a rerun or a repair wave does not trip it.
+  const claude = new Set(entries.filter((entry) => CLAUDE_TIERS.has(entry.tier)).map((entry) => `${entry.role}|${entry.artifact}`)).size;
   const running = entries.filter((entry) => CLAUDE_TIERS.has(entry.tier) && entry.state === 'running');
   const concurrent = running.length;
   // One advisor session at a time: the gates on that tier serialize rather than

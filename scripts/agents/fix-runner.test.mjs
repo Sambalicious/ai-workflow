@@ -143,3 +143,14 @@ test('a repair wave runs one worker and the gates again, then pushes without a n
     assert.equal(none.stage, 'repair');
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
+
+test('the ledger lives in a per-ticket folder', async () => {
+  const { dir, reportPath } = await setup();
+  const f = fake();
+  try {
+    await fixRun(base(dir, reportPath, f.run));
+    const adds = f.calls.filter(([bin, args]) => bin === 'node' && args[0].endsWith('ledger.mjs') && args[1] === 'add');
+    assert.ok(adds.length > 0);
+    for (const [, args] of adds) assert.equal(args[args.indexOf('--run') + 1], join(dir, 'ledgers', 'o_r_7'));
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});

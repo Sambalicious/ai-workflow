@@ -63,6 +63,9 @@ export async function fixRun({ id, reportPath, packetPath, projectRoot, runRoot,
   const target = parseRepo(id);
   if (!target) throw new Error(`id must look like owner/name#number, got "${id}"`);
   const slug = slugOf(id);
+  // One ledger per ticket, so one ticket's retries never count against another's cap.
+  const ledgerRoot = join(runRoot, 'ledgers', slug);
+  await mkdir(ledgerRoot, { recursive: true });
   const wt = join(runRoot, 'worktrees', slug);
   const artifactsDir = join(runRoot, 'features', slug);
   const p = plan({ id, slug, wt, reportPath, packetPath, runRoot, factoryRoot, artifactsDir, base });
@@ -97,8 +100,8 @@ export async function fixRun({ id, reportPath, packetPath, projectRoot, runRoot,
   await mkdir(artifactsDir, { recursive: true });
   const produced = [];
   const ensure = (role, tier, model, artifact) => {
-    must(node('preflight.mjs', [role, '--record', runRoot]), `${role} preflight`);
-    must(node('ledger.mjs', ['add', '--run', runRoot, '--round', '1', '--role', role, '--tier', tier, '--model', model, '--artifact', artifact, '--state', 'running']), `${role} ledger`);
+    must(node('preflight.mjs', [role, '--record', ledgerRoot]), `${role} preflight`);
+    must(node('ledger.mjs', ['add', '--run', ledgerRoot, '--round', '1', '--role', role, '--tier', tier, '--model', model, '--artifact', artifact, '--state', 'running']), `${role} ledger`);
   };
   for (const stage of p.stages) {
     const artifact = join(artifactsDir, stage.file);
@@ -110,7 +113,7 @@ export async function fixRun({ id, reportPath, packetPath, projectRoot, runRoot,
     const result = sh('claude', claudeArgs({ model, prompt, dirs: [wt, factoryRoot, runRoot], tools: READ_TOOLS, budget }), { cwd: wt });
     const text = result.stdout ?? '';
     await writeFile(artifact, text);
-    node('ledger.mjs', ['done', '--run', runRoot, '--role', stage.role, '--state', result.status === 0 ? 'done' : 'failed']);
+    node('ledger.mjs', ['done', '--run', ledgerRoot, '--role', stage.role, '--state', result.status === 0 ? 'done' : 'failed']);
     if (result.status !== 0) return { status: 'halted', stage: stage.role, reason: `session exited ${result.status}`, worktree: wt };
     const blocker = text.split('\n').find((line) => /^[\s*_>#-]*BLOCKER\[/.test(line));
     if (blocker) return { status: 'halted', stage: stage.role, reason: blocker.trim().slice(0, 300), worktree: wt, artifact };
@@ -154,7 +157,7 @@ export async function fixRun({ id, reportPath, packetPath, projectRoot, runRoot,
     await writeFile(join(runRoot, 'logs', `${slug}.${gate.role}.log`), `exit ${result.status}\n--- stderr ---\n${result.stderr ?? ''}\n--- stdout ---\n${text}`);
     await writeFile(join(runRoot, artifact), text);
     const verdict = gateVerdict(text, gate);
-    node('ledger.mjs', ['done', '--run', runRoot, '--role', gate.role, '--state', result.status === 0 ? 'done' : 'failed']);
+    node('ledger.mjs', ['done', '--run', ledgerRoot, '--role', gate.role, '--state', result.status === 0 ? 'done' : 'failed']);
     verdicts.push({ ...gate, artifact, verdict });
     if (result.status !== 0) return { status: 'halted', stage: gate.role, reason: `session exited ${result.status}`, worktree: wt };
     if (!verdict.pass) return { status: 'halted', stage: gate.role, reason: verdict.line || 'no verdict line', worktree: wt, artifact: join(runRoot, artifact) };

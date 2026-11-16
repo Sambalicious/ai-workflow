@@ -36,7 +36,8 @@ export async function collect(runRoot) {
       steps: progress,
     });
   }
-  const ledger = (await read(join(runRoot, 'dispatch-ledger.jsonl')))?.split('\n').filter(Boolean).map((l) => JSON.parse(l)) ?? [];
+  const ledgerFiles = [join(runRoot, 'dispatch-ledger.jsonl'), ...(await readdir(join(runRoot, 'ledgers')).catch(() => [])).map((d) => join(runRoot, 'ledgers', d, 'dispatch-ledger.jsonl'))];
+  const ledger = (await Promise.all(ledgerFiles.map((f) => read(f)))).flatMap((text) => text?.split('\n').filter(Boolean).map((l) => JSON.parse(l)) ?? []);
   return { tickets, dispatches: ledger.length, running: ledger.filter((e) => e.state === 'running').map((e) => e.role) };
 }
 
