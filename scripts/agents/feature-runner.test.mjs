@@ -16,7 +16,7 @@ async function setup(verdict = 'READY_FEATURE') {
   return { dir, reportPath, prdPath };
 }
 
-function fake({ blockOn, gates = {}, ahead = '1' } = {}) {
+function fake({ blockOn, blockText = 'BLOCKER[product-manager]: which currency?\n', gates = {}, ahead = '1' } = {}) {
   const calls = [];
   const run = (bin, args, opts = {}) => {
     calls.push([bin, args, opts.cwd]);
@@ -25,7 +25,7 @@ function fake({ blockOn, gates = {}, ahead = '1' } = {}) {
       const prompt = args[1];
       const gate = ['QA', 'Security', 'Code review'].find((g) => prompt.includes(`independent ${g} reviewer`));
       if (gate) return { status: 0, stdout: gates[gate] ?? `${gate === 'QA' ? 'QA' : gate === 'Security' ? 'SECURITY' : 'REVIEW'} PASS\nok` };
-      if (blockOn && prompt.includes(blockOn)) return { status: 0, stdout: 'BLOCKER[product-manager]: which currency?\n' };
+      if (blockOn && prompt.includes(blockOn)) return { status: 0, stdout: blockText };
       return { status: 0, stdout: `doc for ${args[args.indexOf('--model') + 1]}` };
     }
     if (bin === 'git' && args.includes('rev-list')) return { status: 0, stdout: ahead };
@@ -80,4 +80,28 @@ test('a failed gate halts the feature with no PR, and no triage report is needed
     const noReport = await fixRun({ ...opts(dir, reportPath, prdPath, g.run), reportPath: undefined });
     assert.equal(noReport.status, 'pr', 'a feature run needs no triage report');
   } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('a flagged design consult makes the designer revise the existing spec in place', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'fp-'));
+  try {
+    const stage = () => featurePlan({ prdPath: '/p', wt: '/wt', factoryRoot: '/f', artifactsDir: dir }).stages.find((s) => s.role === 'designer-spec').prompt;
+    assert.doesNotMatch(stage(), /Edit it in place/);
+    await writeFile(join(dir, 'design-spec.md'), 'spec');
+    await writeFile(join(dir, 'design-consult.md'), 'BLOCKER[designer]: gap');
+    assert.match(stage(), /Edit it in place[\s\S]*design-consult\.md|design-consult\.md[\s\S]*Edit it in place/);
+    await writeFile(join(dir, 'design-consult.md'), 'No gaps');
+    assert.doesNotMatch(stage(), /Edit it in place/);
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('a bold or quoted BLOCKER line also halts', async () => {
+  for (const line of ['**BLOCKER[designer]: gap**', '> BLOCKER[designer]: gap', '- BLOCKER[designer]: gap']) {
+    const { dir, reportPath, prdPath } = await setup();
+    const f = fake({ blockOn: 'spec-writer.md', blockText: `intro\n${line}\n` });
+    try {
+      const result = await fixRun(opts(dir, reportPath, prdPath, f.run));
+      assert.equal(result.status, 'halted', line);
+    } finally { await rm(dir, { recursive: true, force: true }); }
+  }
 });
