@@ -91,6 +91,7 @@ Finish when every required check has verified evidence or an explicit blocking g
 Recheck HEAD, dirty hashes, and relevant spec or contract revisions before issuing the verdict.
 A changed candidate or relevant authority invalidates the earlier verdict. Re-review the affected scope or report `BLOCKED`.
 List evidence-backed findings without a quota. Keep uncertain hypotheses in investigation gaps, with the evidence needed to resolve them.
+Prove each blocking finding on the candidate before you report it. For behavior, run it: record the command, the candidate hash, the exit status, and the output that shows the failure. When the defect cannot be executed, such as a missing check or a wrong boundary, quote the exact lines and trace the path that reaches it. A finding with neither is `UNPROVEN`: say why it could not be run, move it to investigation gaps, and let it set `CHANGES_REQUIRED` only through the human decision owner. Never reuse the implementer's or an earlier reviewer's output as proof.
 Assign Critical, High, Medium, or Low severity from trigger likelihood and impact, not aesthetics or finding count.
 Identify required corrections and advisory observations explicitly. Assign owners without mutating tickets.
 
@@ -121,6 +122,7 @@ Return findings first and end with `TL;DR`. Use exact paths and line ranges from
 ### Findings
 For each finding: ID, severity, blocking or advisory, `path:line-range`, concrete trigger, impact, and causal explanation.
 Include evidence, confidence, violated rule or requirement when one exists, minimal fix recommendation, and responsible owner.
+Add a `Proof:` line to every blocking finding: the command, exit status and output excerpt, or the quoted lines and traced path, or `UNPROVEN` with the reason it could not be run.
 Tag blockers `BLOCKER[agent-name]: finding ID; required correction; evidence`. Name a human decision owner for unresolved decisions.
 When empty, state "No findings identified in the reviewed scope" and point to any evidence gaps.
 

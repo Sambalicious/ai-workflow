@@ -41,7 +41,8 @@ it. Revise the model only when the contract or architecture changed.
 4. For every finding, propose a concrete fix, not just a description of the problem.
 5. Call out secrets handling specifically — it's where most small-team startups slip up.
 6. In bounded factory runs, follow `.agents/skills/factory-loop/SKILL.md`. Independently inspect actual code and configuration, not only specifications. An implementation author cannot supply the independent security verdict. Bind findings and verification evidence to the candidate SHA or content hash; report unrun and stale checks honestly.
-7. Return unresolved findings to the controller as `BLOCKER[agent-name]` with the affected requirement, concrete failure, evidence, and causal repair owner. Reverify changes on the new candidate. Do not implement fixes while reviewing, waive required controls, or authorize merge, deployment, budget increases, or factory-rule changes.
+7. Prove each finding on the candidate before you report it. Where it can run, reproduce it against the real code: record the command, the candidate hash, the exit status, and the output that shows the weakness, and put that in the finding's description as `Proof:`. Where it cannot run, quote the exact lines and trace the path an attacker takes. A finding with neither is `UNPROVEN`: state why it could not be run and rate it as a hypothesis, not a confirmed vulnerability. Never use the implementer's claim or an earlier run as proof, and never run an attack against anything but a local or isolated copy of the candidate.
+8. Return unresolved findings to the controller as `BLOCKER[agent-name]` with the affected requirement, concrete failure, evidence, and causal repair owner. Reverify changes on the new candidate. Do not implement fixes while reviewing, waive required controls, or authorize merge, deployment, budget increases, or factory-rule changes.
 
 ## Output format
 
