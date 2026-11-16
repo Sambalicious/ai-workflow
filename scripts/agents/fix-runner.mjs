@@ -20,7 +20,7 @@ const FACTORY_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..'
 export const slugOf = (id) => id.replace(/[^\w.-]+/g, '_');
 
 const GATES = [
-  { role: 'qa-gate', tier: 'lead', label: 'QA', pass: 'QA PASS', task: 'Run the project\'s own checks for the changed files once, on the unchanged candidate. Confirm the diff matches the brief and that the new regression test fails when the fix is reverted (do that in a throwaway copy, never in the candidate). Map each regression criterion to the check that covers it.' },
+  { role: 'qa-gate', tier: 'lead', label: 'QA', pass: 'QA PASS', task: 'Run the project\'s own checks for the changed files once, on the unchanged candidate. Confirm the diff matches the brief and that the new regression test fails when the fix is reverted (do that in a throwaway copy, never in the candidate; if no copy can be made, or the work is a feature with no single fix, say so under "Not done" and judge on the other evidence: a missing revert check alone is not a block). Map each regression criterion to the check that covers it.' },
   { role: 'security-review', tier: 'advisor', label: 'Security', pass: 'SECURITY PASS', task: 'Review the candidate for injection, quoting, fail-open behaviour, secrets and paths, and for anything the change could hide (a check that now passes when it should fail). Report only real findings with file:line.' },
   { role: 'code-review', tier: 'advisor', label: 'Code review', pass: 'REVIEW PASS', task: 'Do your own pass over the diff first, then read the QA and Security reports as claims to confirm or refute. Judge correctness against the brief, whether the tests really exercise the fix, and scope.' },
 ];
@@ -112,7 +112,7 @@ export async function fixRun({ id, reportPath, packetPath, projectRoot, runRoot,
     await writeFile(artifact, text);
     node('ledger.mjs', ['done', '--run', runRoot, '--role', stage.role, '--state', result.status === 0 ? 'done' : 'failed']);
     if (result.status !== 0) return { status: 'halted', stage: stage.role, reason: `session exited ${result.status}`, worktree: wt };
-    const blocker = text.split('\n').find((line) => /^\s*BLOCKER\[/.test(line));
+    const blocker = text.split('\n').find((line) => /^[\s*_>#-]*BLOCKER\[/.test(line));
     if (blocker) return { status: 'halted', stage: stage.role, reason: blocker.trim().slice(0, 300), worktree: wt, artifact };
     produced.push(artifact);
     await mark(`stage:${stage.role}`);
@@ -150,6 +150,8 @@ export async function fixRun({ id, reportPath, packetPath, projectRoot, runRoot,
     const tools = gate.role === 'qa-gate' ? [...READ_TOOLS, ...qaTools] : READ_TOOLS;
     const result = sh('claude', claudeArgs({ model, prompt, dirs: [wt, factoryRoot, runRoot], tools, budget }), { cwd: wt });
     const text = result.stdout ?? '';
+    await mkdir(join(runRoot, 'logs'), { recursive: true });
+    await writeFile(join(runRoot, 'logs', `${slug}.${gate.role}.log`), `exit ${result.status}\n--- stderr ---\n${result.stderr ?? ''}\n--- stdout ---\n${text}`);
     await writeFile(join(runRoot, artifact), text);
     const verdict = gateVerdict(text, gate);
     node('ledger.mjs', ['done', '--run', runRoot, '--role', gate.role, '--state', result.status === 0 ? 'done' : 'failed']);
