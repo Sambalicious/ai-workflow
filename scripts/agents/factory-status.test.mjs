@@ -3,6 +3,8 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { collect, render } from './factory-status.mjs';
 
 test('status joins triage, run reports, progress and the ledger by ticket', async () => {
@@ -28,7 +30,26 @@ test('status joins triage, run reports, progress and the ledger by ticket', asyn
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
 
-test('an empty run root reports nothing', async () => {
+test('a run root with no reports directory is an error that names the path', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'status-'));
-  try { assert.deepEqual(await collect(dir), { tickets: [], dispatches: 0, running: [] }); } finally { await rm(dir, { recursive: true, force: true }); }
+  try {
+    await assert.rejects(collect(dir), (error) => error.message.includes(join(dir, 'reports')));
+    const result = spawnSync(process.execPath, [fileURLToPath(new URL('./factory-status.mjs', import.meta.url)), '--run', dir], { encoding: 'utf8' });
+    assert.equal(result.status, 1);
+    assert.ok(result.stderr.includes(join(dir, 'reports')));
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('a truncated ledger line or progress file is a row, not a crash', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'status-'));
+  try {
+    await mkdir(join(dir, 'reports'), { recursive: true });
+    await mkdir(join(dir, 'state', 'runs'), { recursive: true });
+    await writeFile(join(dir, 'reports', 'o_r_1.md'), 'Verdict: READY_BUG');
+    await writeFile(join(dir, 'state', 'runs', 'o_r_1.json'), '{"done":[');
+    await writeFile(join(dir, 'dispatch-ledger.jsonl'), `${JSON.stringify({ role: 'qa-gate', state: 'done' })}\n{"role":`);
+    const text = render(await collect(dir));
+    assert.match(text, /o_r_1\.json: invalid JSON/);
+    assert.match(text, /dispatch-ledger\.jsonl line 2: invalid JSON/);
+  } finally { await rm(dir, { recursive: true, force: true }); }
 });

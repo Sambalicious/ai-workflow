@@ -168,11 +168,19 @@ export async function watch({ config, runRoot, projectRoot, gh = defaultGh, run 
   if (!isAbsolute(runRoot)) throw new Error('RUN_ROOT must be an absolute path');
   // Optional push: events that need a human also POST to a webhook whose URL (a secret) is read from a file.
   // Only the event, the ticket id and a PR url leave the machine, never titles, bodies or report text.
-  const hookUrl = config.webhook?.file ? (await readFile(config.webhook.file, 'utf8').catch(() => '')).trim() : '';
+  const errors = [];
+  let hookUrl = '';
+  if (config.webhook?.file) {
+    try {
+      hookUrl = (await readFile(config.webhook.file, 'utf8')).trim();
+    } catch (error) {
+      process.stderr.write(`watch-tickets: webhook file ${config.webhook.file} unreadable (${error.code ?? error.message}); no push notifications this run\n`);
+    }
+  }
   const pending = [];
   const notify = (title, message) => {
     localNotify(title, message);
-    if (hookUrl && !title.startsWith('Triage')) pending.push(post(hookUrl, { event: title, ticket: message.split(/\s/)[0], url: message.match(/https:\/\/github\.com\/\S+\/pull\/\d+/)?.[0] }).catch(() => {}));
+    if (hookUrl && !title.startsWith('Triage')) pending.push(post(hookUrl, { event: title, ticket: message.split(/\s/)[0], url: message.match(/https:\/\/github\.com\/\S+\/pull\/\d+/)?.[0] }).catch((error) => { errors.push(`webhook post failed for ${title}: ${error?.message ?? error}`); }));
   };
   const tickets = [...fetchIssues(config, gh), ...fetchProjectItems(config, gh)];
   const unique = [...new Map(tickets.map((t) => [t.id, t])).values()];
@@ -181,7 +189,15 @@ export async function watch({ config, runRoot, projectRoot, gh = defaultGh, run 
   const seen = await readSeen(stateFile);
   const fixFile = join(runRoot, 'state', 'fixes-started.json');
   const started = await readSeen(fixFile);
-  const reportOf = async (t) => { try { return await readFile(join(runRoot, 'reports', `${slug(t.id)}.md`), 'utf8'); } catch { return null; } };
+  // Absent is a normal state (not triaged yet); unreadable is not, and must not read as absent.
+  const reportOf = async (t) => {
+    try {
+      return { text: await readFile(join(runRoot, 'reports', `${slug(t.id)}.md`), 'utf8') };
+    } catch (error) {
+      return error?.code === 'ENOENT' ? { text: null } : { unreadable: `${error?.code ?? error?.message}` };
+    }
+  };
+  const unreadable = [];
   const approved = [];
   const featureApproved = [];
   const retryFile = join(runRoot, 'state', 'retries.json');
@@ -194,7 +210,8 @@ export async function watch({ config, runRoot, projectRoot, gh = defaultGh, run 
       if (t.labels.includes(retryLabel) && retried[t.id] !== t.updatedAt && (config.fix || config.feature)) retrying.push(t);
       continue;
     }
-    const text = await reportOf(t);
+    const { text, unreadable: why } = await reportOf(t);
+    if (why) { unreadable.push(t.id); errors.push(`${t.id}: triage report unreadable (${why})`); continue; }
     if (config.fix && t.labels.includes(config.fix.label) && isApproved(t, config, text)) approved.push(t);
     else if (isFeatureApproved(t, config)) featureApproved.push(t);
   }
@@ -203,6 +220,8 @@ export async function watch({ config, runRoot, projectRoot, gh = defaultGh, run 
   const fresh = unique.filter((t) => seen[t.id] !== t.updatedAt && !approvedIds.has(t.id) && !started[t.id]);
   const report = { checked: unique.length, new: fresh.map((t) => t.id), approved: [...approved, ...featureApproved].map((t) => t.id), retried: [], features: [], packets: [], reports: [], failed: [], fixes: [] };
   report.retrying = retrying.map((t) => t.id);
+  report.errors = errors;
+  report.failed.push(...unreadable);
   // Open factory PRs with new failed checks or reviewer comments. Capped at maxWaves per ticket.
   const repairFile = join(runRoot, 'state', 'repairs.json');
   const repairs = await readSeen(repairFile);
@@ -216,7 +235,7 @@ export async function watch({ config, runRoot, projectRoot, gh = defaultGh, run 
       const url = runStatus(text) === 'pr' ? text.match(/^url: (.+)$/m)?.[1] : undefined;
       if (!url) continue;
       let pr;
-      try { pr = JSON.parse(gh(['pr', 'view', url, '--json', 'url,state,headRefOid,statusCheckRollup,reviews,comments'])); } catch { continue; }
+      try { pr = JSON.parse(gh(['pr', 'view', url, '--json', 'url,state,headRefOid,statusCheckRollup,reviews,comments'])); } catch (error) { errors.push(`${t.id}: gh pr view failed (${String(error?.message ?? error).slice(0, 200)})`); continue; }
       if (pr.state !== 'OPEN') continue;
       const feedback = collectFeedback(pr);
       const entry = repairs[t.id] ?? { wave: 0, seen: [] };
@@ -330,6 +349,7 @@ export async function watch({ config, runRoot, projectRoot, gh = defaultGh, run 
     if (config.notify !== false) notify(runStatus(result.stdout) === 'repaired' ? `PR updated (wave ${wave})` : 'Repair halted: needs you', `${ticket.id} ${ticket.title}`);
   }
   await Promise.allSettled(pending);
+  for (const message of errors) process.stderr.write(`watch-tickets: ${message}\n`);
   return report;
 }
 

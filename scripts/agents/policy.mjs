@@ -54,11 +54,20 @@ export const REQUIRED_ROLES = [
   'audit',
 ];
 
+// { ok, value, reason }: a missing file is ok with the fallback; a file that exists but
+// cannot be read or parsed is not ok, and says why.
 async function readJson(path, fallback = null) {
+  let raw;
   try {
-    return JSON.parse(await readFile(path, 'utf8'));
-  } catch {
-    return fallback;
+    raw = await readFile(path, 'utf8');
+  } catch (error) {
+    if (error?.code === 'ENOENT') return { ok: true, value: fallback };
+    return { ok: false, value: fallback, reason: `${error?.code ?? error?.message}` };
+  }
+  try {
+    return { ok: true, value: JSON.parse(raw) };
+  } catch (error) {
+    return { ok: false, value: fallback, reason: error.message };
   }
 }
 
@@ -72,7 +81,9 @@ async function readText(path) {
 
 export async function policyProblems(root = ROOT) {
   const problems = [];
-  const models = await readJson(join(root, '.agents/models.json'));
+  const parsed = await readJson(join(root, '.agents/models.json'));
+  if (!parsed.ok) return [`models.json: ${parsed.reason}`];
+  const models = parsed.value;
   if (models === null) return ['no .agents/models.json'];
 
   const clients = Object.keys(models.clients ?? {});
@@ -123,7 +134,9 @@ export async function policyProblems(root = ROOT) {
 // A project that uses Claude Code must wire the dispatch guard, or the worker-tier rule is
 // only convention. Run with --project <dir> in the project's own check.
 export async function projectProblems(project) {
-  const settings = await readJson(join(project, '.claude/settings.json'), null);
+  const parsed = await readJson(join(project, '.claude/settings.json'), null);
+  if (!parsed.ok) return [`${project}/.claude/settings.json: ${parsed.reason}`];
+  const settings = parsed.value;
   if (settings === null) return [`${project}/.claude/settings.json is missing; run scripts/agents/export.mjs --client claude-code`];
   return JSON.stringify(settings?.hooks?.PreToolUse ?? []).includes('worker-guard.mjs')
     ? []
