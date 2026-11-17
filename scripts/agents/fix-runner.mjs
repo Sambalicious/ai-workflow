@@ -86,7 +86,26 @@ export async function fixRun({ id, reportPath, packetPath, projectRoot, runRoot,
   const progressFile = join(runRoot, 'state', 'runs', `${slug}.json`);
   await mkdir(dirname(progressFile), { recursive: true });
   if (repair && !exists) return { status: 'halted', stage: 'repair', reason: `no worktree at ${wt} to repair; use --resume or start a run` };
-  const finished = new Set(exists && (resume || repair) ? JSON.parse(await readFile(progressFile, 'utf8').catch(() => '{"done":[]}')).done : []);
+  const readProgress = async () => {
+    let raw;
+    try {
+      raw = await readFile(progressFile, 'utf8');
+    } catch (error) {
+      if (error?.code === 'ENOENT') return [];
+      throw new Error(`cannot read progress file ${progressFile}: ${error?.code ?? error?.message}`);
+    }
+    try {
+      return JSON.parse(raw).done;
+    } catch {
+      throw new Error(`progress file ${progressFile} is not valid JSON`);
+    }
+  };
+  let finished;
+  try {
+    finished = new Set(exists && (resume || repair) ? await readProgress() : []);
+  } catch (error) {
+    return { status: 'halted', stage: 'progress', reason: error.message, worktree: wt };
+  }
   const mark = async (key) => { finished.add(key); await writeFile(progressFile, `${JSON.stringify({ done: [...finished] }, null, 2)}\n`); };
   if (repair) for (const key of [...finished]) if (key.startsWith('gate:')) finished.delete(key);
   if (!exists) {
@@ -113,7 +132,7 @@ export async function fixRun({ id, reportPath, packetPath, projectRoot, runRoot,
     const result = sh('claude', claudeArgs({ model, prompt, dirs: [wt, factoryRoot, runRoot], tools: READ_TOOLS, budget }), { cwd: wt });
     const text = result.stdout ?? '';
     await writeFile(artifact, text);
-    node('ledger.mjs', ['done', '--run', ledgerRoot, '--role', stage.role, '--state', result.status === 0 ? 'done' : 'failed']);
+    must(node('ledger.mjs', ['done', '--run', ledgerRoot, '--role', stage.role, '--state', result.status === 0 ? 'done' : 'failed']), `${stage.role} ledger done`);
     if (result.status !== 0) return { status: 'halted', stage: stage.role, reason: `session exited ${result.status}`, worktree: wt };
     const blocker = text.split('\n').find((line) => /^[\s*_>#-]*BLOCKER\[/.test(line));
     if (blocker) return { status: 'halted', stage: stage.role, reason: blocker.trim().slice(0, 300), worktree: wt, artifact };
@@ -157,7 +176,7 @@ export async function fixRun({ id, reportPath, packetPath, projectRoot, runRoot,
     await writeFile(join(runRoot, 'logs', `${slug}.${gate.role}.log`), `exit ${result.status}\n--- stderr ---\n${result.stderr ?? ''}\n--- stdout ---\n${text}`);
     await writeFile(join(runRoot, artifact), text);
     const verdict = gateVerdict(text, gate);
-    node('ledger.mjs', ['done', '--run', ledgerRoot, '--role', gate.role, '--state', result.status === 0 ? 'done' : 'failed']);
+    must(node('ledger.mjs', ['done', '--run', ledgerRoot, '--role', gate.role, '--state', result.status === 0 ? 'done' : 'failed']), `${gate.role} ledger done`);
     verdicts.push({ ...gate, artifact, verdict });
     if (result.status !== 0) return { status: 'halted', stage: gate.role, reason: `session exited ${result.status}`, worktree: wt };
     if (!verdict.pass) return { status: 'halted', stage: gate.role, reason: verdict.line || 'no verdict line', worktree: wt, artifact: join(runRoot, artifact) };

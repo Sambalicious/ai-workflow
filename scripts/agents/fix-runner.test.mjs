@@ -117,6 +117,21 @@ test('a resumed run skips finished steps and runs the one that stopped it', asyn
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
 
+test('a corrupt progress file on resume halts naming the file and calls no session', async () => {
+  const { dir, reportPath } = await setup();
+  try {
+    await mkdir(join(dir, 'worktrees', 'o_r_7'), { recursive: true });
+    await mkdir(join(dir, 'state', 'runs'), { recursive: true });
+    const progress = join(dir, 'state', 'runs', 'o_r_7.json');
+    await writeFile(progress, '{"done":[');
+    const f = fake();
+    const result = await fixRun({ ...base(dir, reportPath, f.run), resume: true });
+    assert.equal(result.status, 'halted');
+    assert.ok(result.reason.includes(progress));
+    assert.equal(f.calls.filter((c) => c[0] === 'claude').length, 0);
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
 test('a repair wave runs one worker and the gates again, then pushes without a new PR', async () => {
   const { dir, reportPath } = await setup();
   try {
