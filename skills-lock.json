@@ -67,6 +67,13 @@
       "skillPath": "skills/mobile-native/SKILL.md",
       "computedHash": "2141766c0a370128cbee3dc004d3f254a411e54f8352e154e73b040e52070e38"
     },
+    "msw": {
+      "source": "anivar/msw-skill",
+      "commit": "b512d34a916d43e0a315640a22feb09a316e912f",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "64d37a78468a85e627978c623de68559a9ef69c40ef30c406b195afbe47a1147"
+    },
     "nestjs-code-audit": {
       "source": "amirtaherkhani/nestjs-skills",
       "commit": "c5964882a0da6e90580de91cba327b31beaaec23",
