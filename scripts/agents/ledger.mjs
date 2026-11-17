@@ -9,7 +9,7 @@
 //   node scripts/agents/ledger.mjs done --run <dir> --role <r> [--state done|failed]   closes that role's running entries
 // Exit 1 when an entry is malformed or a cap would be exceeded.
 import { realpathSync } from 'node:fs';
-import { appendFile, readFile, writeFile } from 'node:fs/promises';
+import { appendFile, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -82,8 +82,10 @@ const ledgerPath = (run) => join(run, 'dispatch-ledger.jsonl');
 async function readLedger(run) {
   try {
     return await readFile(ledgerPath(run), 'utf8');
-  } catch {
-    return '';
+  } catch (error) {
+    // Absent means a run with no dispatches yet; anything else means the caps cannot be trusted.
+    if (error?.code === 'ENOENT') return '';
+    throw new Error(`cannot read ${ledgerPath(run)}: ${error?.code ?? error?.message}`);
   }
 }
 
@@ -105,7 +107,14 @@ if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToP
     process.stderr.write('usage: node scripts/agents/ledger.mjs <add|check|show|done> --run <dir> [flags]\n');
     process.exit(1);
   }
-  const { entries, problems } = parseLedger(await readLedger(run));
+  let parsed;
+  try {
+    parsed = parseLedger(await readLedger(run));
+  } catch (error) {
+    process.stderr.write(`ledger: ${error.message}\n`);
+    process.exit(1);
+  }
+  const { entries, problems } = parsed;
   if (command === 'done') {
     const role = flag('--role');
     const state = flag('--state') ?? 'done';
@@ -113,9 +122,24 @@ if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToP
       process.stderr.write('usage: node scripts/agents/ledger.mjs done --run <dir> --role <r> [--state done|failed]\n');
       process.exit(1);
     }
+    // A rewrite would drop a corrupt line, so refuse and name the file instead.
+    if (problems.length > 0) {
+      for (const problem of problems) process.stderr.write(`ledger: ${ledgerPath(run)} ${problem}\n`);
+      process.exit(1);
+    }
     let closed = 0;
-    const next = entries.map((entry) => (entry.role === role && entry.state === 'running' ? (closed += 1, { ...entry, state }) : entry));
-    await writeFile(ledgerPath(run), next.map((entry) => `${JSON.stringify(entry)}\n`).join(''));
+    const next = [];
+    for (const entry of entries) {
+      if (entry.role === role && entry.state === 'running') {
+        closed += 1;
+        next.push({ ...entry, state });
+      } else {
+        next.push(entry);
+      }
+    }
+    const temp = `${ledgerPath(run)}.${process.pid}.tmp`;
+    await writeFile(temp, next.map((entry) => `${JSON.stringify(entry)}\n`).join(''));
+    await rename(temp, ledgerPath(run));
     process.stdout.write(`closed ${closed} ${role} entr${closed === 1 ? 'y' : 'ies'} as ${state}\n`);
     process.exit(0);
   }
@@ -125,7 +149,7 @@ if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToP
   }
   if (command === 'check') {
     const summary = caps(entries, { maxClaude, maxConcurrent, maxAdvisorConcurrent });
-    const all = [...problems, ...summary.problems];
+    const all = [...problems.map((problem) => `${ledgerPath(run)} ${problem}`), ...summary.problems];
     process.stdout.write(`total ${summary.total}, Claude ${summary.claude}, running ${summary.concurrent}, advisor running ${summary.advisorConcurrent}, tiers ${JSON.stringify(summary.byTier)}\n`);
     for (const problem of all) process.stderr.write(`ledger: ${problem}\n`);
     process.exit(all.length === 0 ? 0 : 1);
@@ -156,7 +180,7 @@ if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToP
   };
   const found = entryProblems(entry);
   const summary = caps([...entries, entry], { maxClaude, maxConcurrent, maxAdvisorConcurrent });
-  const all = [...found, ...summary.problems];
+  const all = [...problems.map((problem) => `${ledgerPath(run)} ${problem}`), ...found, ...summary.problems];
   if (all.length > 0) {
     for (const problem of all) process.stderr.write(`ledger: ${problem}\n`);
     process.exit(1);

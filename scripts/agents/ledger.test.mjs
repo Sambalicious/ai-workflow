@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -138,4 +138,49 @@ test('a retry of the same role on the same artifact counts once toward the cap',
   const summary = caps([attempt('done'), attempt('failed'), attempt('done'), other], { maxClaude: 2, maxConcurrent: 2 });
   assert.equal(summary.claude, 2);
   assert.deepEqual(summary.problems, []);
+});
+
+async function ledgerDir(lines) {
+  const dir = await mkdtemp(join(tmpdir(), 'ledger-'));
+  await writeFile(join(dir, 'dispatch-ledger.jsonl'), lines);
+  return dir;
+}
+const good = (role, state) => `${JSON.stringify(entry({ role, state, tier: 'worker' }))}\n`;
+
+test('a corrupt ledger line fails check and names the file', async () => {
+  const dir = await ledgerDir(`${good('a', 'done')}{not json\n`);
+  try {
+    const result = run(['check', '--run', dir]);
+    assert.equal(result.status, 1);
+    assert.ok(result.stderr.includes(join(dir, 'dispatch-ledger.jsonl')));
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('an unreadable ledger fails instead of reading as empty', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'ledger-'));
+  try {
+    await mkdir(join(dir, 'dispatch-ledger.jsonl'));
+    const result = run(['check', '--run', dir]);
+    assert.equal(result.status, 1);
+    assert.ok(result.stderr.includes('dispatch-ledger.jsonl'));
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('done closes one entry, keeps the other two, and leaves no temp file', async () => {
+  const dir = await ledgerDir(good('a', 'done') + good('qa', 'running') + good('b', 'running'));
+  try {
+    assert.equal(run(['done', '--run', dir, '--role', 'qa']).status, 0);
+    const lines = (await readFile(join(dir, 'dispatch-ledger.jsonl'), 'utf8')).trim().split('\n').map((l) => JSON.parse(l));
+    assert.deepEqual(lines.map((l) => `${l.role}:${l.state}`), ['a:done', 'qa:done', 'b:running']);
+    assert.deepEqual((await readdir(dir)).filter((f) => f.endsWith('.tmp')), []);
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('done refuses a ledger with a corrupt line and leaves it untouched', async () => {
+  const text = `${good('qa', 'running')}{bad\n`;
+  const dir = await ledgerDir(text);
+  try {
+    assert.equal(run(['done', '--run', dir, '--role', 'qa']).status, 1);
+    assert.equal(await readFile(join(dir, 'dispatch-ledger.jsonl'), 'utf8'), text);
+  } finally { await rm(dir, { recursive: true, force: true }); }
 });
