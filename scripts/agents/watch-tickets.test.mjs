@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -282,4 +282,31 @@ test('events that need a human POST the id and PR url to the webhook, never titl
     assert.doesNotMatch(JSON.stringify(posts[0][1]), /secret title/);
   } finally { await rm(dir, { recursive: true, force: true }); }
   assert.throws(() => validateConfig({ ...CONFIG, webhook: { file: 'relative' } }), /webhook/);
+});
+
+test('a failed webhook POST is reported once in report.errors, not swallowed', async () => {
+  const dir = await runRoot();
+  await writeFile(join(dir, 'hook'), 'https://hook.example/x\n');
+  const config = { ...CONFIG, command: ['triage'], fix: { label: 'factory:approved', command: ['fixer', '{id}'] }, webhook: { file: join(dir, 'hook') } };
+  const run = (bin) => ({ status: 0, stdout: bin === 'triage' ? 'Verdict: READY_BUG' : 'Status: pr\nurl: https://github.com/o/r/pull/9\n' });
+  const post = async () => { throw new Error('connect refused'); };
+  try {
+    await watch({ config, runRoot: dir, gh: () => labelled([[1, 't1', ['bug']]]), run, notify: () => {}, post });
+    const report = await watch({ config, runRoot: dir, gh: () => labelled([[1, 't2', ['bug', 'factory:approved']]]), run, notify: () => {}, post });
+    assert.equal(report.errors.length, 1);
+    assert.match(report.errors[0], /webhook post failed.*connect refused/);
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('an unreadable triage report fails the ticket with a reason instead of silently not approving it', async () => {
+  const dir = await runRoot();
+  const config = { ...CONFIG, notify: false, command: ['triage'], fix: { label: 'ok', command: ['fixer'] } };
+  try {
+    await mkdir(join(dir, 'reports', 'o_r_1.md'), { recursive: true });
+    await mkdir(join(dir, 'state'), { recursive: true });
+    await writeFile(join(dir, 'state', 'tickets-seen.json'), JSON.stringify({ 'o/r#1': 't1' }));
+    const report = await watch({ config, runRoot: dir, gh: () => labelled([[1, 't1', ['ok']]]), run: () => ({ status: 0, stdout: '' }) });
+    assert.deepEqual(report.failed, ['o/r#1']);
+    assert.match(report.errors[0], /o\/r#1: triage report unreadable/);
+  } finally { await rm(dir, { recursive: true, force: true }); }
 });

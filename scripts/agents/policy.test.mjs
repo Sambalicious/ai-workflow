@@ -114,3 +114,13 @@ test('a project must wire the worker-guard hook', async () => {
     await rm(project, { recursive: true, force: true });
   }
 });
+
+test('an invalid models.json is reported with its parse error, not as missing', async () => {
+  const root = await fixture({ models: 'x' });
+  await writeFile(join(root, '.agents/models.json'), '{"tiers":');
+  try {
+    const problems = await policyProblems(root);
+    assert.equal(problems.length, 1);
+    assert.match(problems[0], /^models\.json: /);
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
