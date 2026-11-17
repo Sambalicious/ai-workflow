@@ -195,3 +195,18 @@ which writes machine-local symlinks and settings the project should git-ignore.
 Load roles from the pinned factory, operate on the target under its rules, and
 write run state and reports to a separate private run directory. Pass absolute
 roots and artifact paths to every worker. Enforce boundaries in the caller.
+
+## Model routing guard
+
+`scripts/agents/delegate-model-guard.mjs` is a Claude Code `PreToolUse` hook for the T3 `delegate_task` tool. It blocks any dispatch that breaks the routing policy: DeepSeek V4.1 Flash (`opencode` / `opencode-go/deepseek-v4.1-flash`) for implementation, tests and exploration; Sonnet as the lead tier; Opus, and rarely Fable, only for the `design`, `review` and `research` roles. Anything else, including DeepSeek V4 Pro, Haiku and a call with no target, exits 2. `EVE_ALLOW_LEAD=1` is a deliberate override that only the user may request. `worker-guard.mjs` covers the native `Agent` tool; this one covers `delegate_task`.
+
+A project opts in by adding this entry to its `.claude/settings.json` `hooks.PreToolUse`:
+
+```json
+{
+  "matcher": "mcp__t3-code__delegate_task",
+  "hooks": [{ "type": "command", "command": "node \"${FACTORY_ROOT:-$HOME/Desktop/codes/ai-team}/scripts/agents/delegate-model-guard.mjs\"" }]
+}
+```
+
+The project's `AGENTS.md` should carry the same routing table so every harness sees the policy.
