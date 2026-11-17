@@ -88,6 +88,13 @@
       "skillPath": "skills/nestjs-professional-software-engineering/SKILL.md",
       "computedHash": "9c6e1e4d88dd46f461d2a1664e227e411189c09b51f690a85fcf22c2839ee173"
     },
+    "owasp-security": {
+      "source": "agamm/claude-code-owasp",
+      "commit": "1ae29cb22518560e3625d77f2ae64f61647d9201",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/owasp-security/SKILL.md",
+      "computedHash": "462278e17593469e65c60a860f724b7d1de94a8e8aed4f2326cffdad5f011ae8"
+    },
     "pick-ui-library": {
       "source": "emilkowalski/skills",
       "sourceType": "github",
