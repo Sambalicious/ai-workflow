@@ -15,7 +15,7 @@ Review files for compliance with Web Interface Guidelines.
 
 1. Read the vendored guidelines in `references/command.md` (pinned, see Guidelines Source)
 2. Read the specified files (or prompt user for files/pattern)
-3. Check against all rules in the fetched guidelines
+3. Check against all rules in `references/command.md`
 4. Output findings in the terse `file:line` format
 
 ## Guidelines Source
