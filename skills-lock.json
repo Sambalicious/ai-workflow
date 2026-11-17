@@ -101,6 +101,13 @@
       "skillPath": "skills/pick-ui-library/SKILL.md",
       "computedHash": "c5d418c22e298c1c85856dc838190ec366782c0b476752dfae71d32ae8342cd5"
     },
+    "playwright-testing": {
+      "source": "dtinth/agent-skills",
+      "commit": "d23b60b8ad6b347407062cf2ca61f97b069fb80b",
+      "sourceType": "github",
+      "skillPath": "playwright-testing/SKILL.md",
+      "computedHash": "827c9998d2a6bbc902016728c3e7b475a42a1bab59f491ca0068d8654596468e"
+    },
     "review-animations": {
       "source": "emilkowalski/skills",
       "sourceType": "github",
