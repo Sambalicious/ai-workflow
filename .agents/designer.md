@@ -85,17 +85,17 @@ When the PRD requires more text than the budget allows, move it down the hierarc
 1. Open each ready screen at 375px and 1280px in the states the mocks provide (primary, empty, loading, error).
 2. Run the same critique as review mode. Mock data is not evidence of backend behavior; judge layout, hierarchy, feedback, copy placement, and responsiveness only.
 3. Return findings to the Frontend session in the review-mode finding format. Frontend fixes them before handoff, so they do not open a repair wave. Spec gaps are `BLOCKER[designer]`; copy gaps are `BLOCKER[copywriter]`.
-4. Save `design-preview.md` with the screens, states, widths, screenshot paths, and findings. Preview is not a gate.
+4. Save `design-preview.md` with the screens, states, widths, screenshot paths under `RUN_ROOT/reports/screenshots/`, and findings. Preview is not a gate.
 
 ## Review mode steps
 
 1. Open each in-scope screen with Playwright MCP at 375px and 1280px, in its primary, empty, loading, and error states. Use worst-case data where a fixture allows it. When a preview ran, review screens and states that changed since `design-preview.md`, states the preview could not show, and every preview finding's fix. Anything else the preview passed needs no second pass unless the candidate changed it.
-2. Run the `impeccable` critique against the blueprint, feedback matrix, copy slots, copy deck, text budget, and `DESIGN.md`. Take screenshots as evidence.
+2. Run the `impeccable` critique against the blueprint, feedback matrix, copy slots, copy deck, text budget, and `DESIGN.md`. Save screenshots under `RUN_ROOT/reports/screenshots/` and name each file in the review; they are evidence and never enter the repository.
 3. Report each finding with its owner:
    - `BLOCKER[frontend-engineer]` when the build diverges from the spec, the copy deck, or `DESIGN.md`.
    - `BLOCKER[copywriter]` when a rendered string is unclear, over budget, or off voice in the deck itself.
    - `BLOCKER[designer]` when the spec itself is weak.
-   Include the screen, state, width, screenshot path, and the exact fix.
+   Include the screen, state, width, screenshot file, and the exact fix.
 4. Done when every in-scope screen and state was viewed at both widths and every finding names its owner and fix.
 
 ## Spec mode output format
@@ -165,7 +165,7 @@ Five bullets or fewer: surfaces, primary actions, notable feedback decisions, op
 Save as `design-review.md` (revisions as `design-review.rN.md`).
 
 ### Screens reviewed
-Table: Screen | States | Widths | Screenshot paths.
+Table: Screen | States | Widths | Screenshot files under `RUN_ROOT/reports/screenshots/`.
 
 ### Findings
 `BLOCKER[owner]: screen, state, width — problem — exact fix — evidence`. Order by severity.

@@ -99,7 +99,7 @@ A table with columns: ID | Acceptance ID | spec case / regression criterion | Te
 - Steps must be specific enough that a new team member can execute them without asking questions
 
 ### Execution evidence
-For each check, record the exact command and working directory, environment and service versions, timestamps, candidate SHA, and content hashes for relevant dirty/untracked source, tests, configuration, and requirement inputs. Include exit code, selected tests, pass/fail/skip counts, observed result, and log/artifact paths. Playwright evidence includes the exercised journey and available report/trace artifacts. Manual evidence includes the executor and exact observations.
+For each check, record the exact command and working directory, environment and service versions, timestamps, candidate SHA, and content hashes for relevant dirty/untracked source, tests, configuration, and requirement inputs. Include exit code, selected tests, pass/fail/skip counts, observed result, and log/artifact paths. Playwright evidence includes the exercised journey and available report/trace artifacts. Write screenshots to `RUN_ROOT/reports/screenshots/` and name the files in the report; they are evidence, never candidate content. Manual evidence includes the executor and exact observations.
 
 Separate verified passes, failures, skipped checks, blocked/unrun checks, stale evidence, and pending manual checks. A zero exit code with no required tests selected is not a pass. Results for committed HEAD do not verify dirty files. Preserve before/after candidate hashes and note every candidate change made while adding tests.
 

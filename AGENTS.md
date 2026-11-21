@@ -473,6 +473,10 @@ routed as usual. Preview does not replace [6b] on the real candidate.
   the task-specific assignment and latest findings. Keep the stable prefix
   byte-identical across retries, rechecks, and repair waves so provider prompt caches
   can reuse it.
+- **Review evidence.** Designer and QA screenshots are written to
+  `RUN_ROOT/reports/screenshots/` and named by file in `design-review.md` or the QA
+  report; the pull request body embeds the key ones. They stay out of the repository,
+  so a review adds no images to the candidate.
 - If any agent flags a **blocker** (a gap, conflict, or unresolved question), tag it with the responsible agent using the format `BLOCKER[agent-name]: description`. Stop that branch and resolve it through the Revision loop before passing downstream. Do not pass a broken handoff.
 
 ## Revision loop

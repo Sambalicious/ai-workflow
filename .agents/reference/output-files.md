@@ -45,3 +45,7 @@ features/
     └── FEAT-0001-water-intake-tracker/
         └── ...                        ← deployed to production
 ```
+
+Review screenshots are not feature artifacts: the Designer and QA write them to
+`RUN_ROOT/reports/screenshots/` and name each file in the review document, so the
+repository holds the review markdown and no images.
