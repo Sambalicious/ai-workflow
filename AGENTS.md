@@ -162,7 +162,9 @@ Four rules bind every run, every client, and the orchestrator itself.
    contract, schema, migration, configuration, dependency, or shared module. Never run
    the same suite twice against an unchanged candidate; a changed candidate invalidates
    the earlier evidence. A docs-only change reruns only the checks that read those
-   docs, never the full suite.
+   docs, never the full suite. `pnpm agents:recheck --base <ref>` prints the specs a
+   project's `.agents/recheck-always.json` maps to the changed paths, which join every
+   recheck that touches them.
 3. **Authored specs before implementation.** Implementation starts only when the `[5e]`
    QA test files for its spec cases exist on disk. A missing `[5e]` is `BLOCKER[qa]` at
    handoff, not a discovery at the gate.
