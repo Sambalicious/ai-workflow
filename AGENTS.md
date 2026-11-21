@@ -67,6 +67,8 @@ first, every run, before any role is dispatched.
 8. A Claude dispatch runs `pnpm agents:preflight <role> --record <run>` first, then
    `pnpm agents:ledger add ...`. The ledger refuses a lead or advisor dispatch without a
    receipt younger than ten minutes, so the sequence cannot be skipped by habit.
+   `<run>` is the run directory itself or the feature id that resolves under
+   `features/active/` (or `RUN_ROOT` in an external run); both commands never create it.
 9. A gate runs only when its inputs exist: `pnpm agents:artifacts --run <feature> --gate
    <qa|design|security|code-review>`. A file that exists is not an input. The design
    spec must carry screen blueprints with a wireframe, a feedback matrix with pattern
