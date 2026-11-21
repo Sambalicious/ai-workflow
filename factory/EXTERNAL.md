@@ -70,6 +70,11 @@ outside version-controlled source, restrict access, and allocate a unique direct
 per project and run. Verify the parent directory before creating the run directory.
 Stop if a root is missing, ambiguous, or overlaps another root.
 
+Name the repository a pull request must target in the target's
+`.agents/remotes.json` as `{ "productRemote": "<remote name>" }`; `preflight.mjs`
+warns when the branch pushes elsewhere, so a fork-side `origin` cannot send the PRs
+to the factory repository twice.
+
 Pass the resolved roots, factory version, target rules, and absolute input/output
 paths to every worker. Resolve shared document references against `FACTORY_ROOT`,
 even when the worker's current directory is `PROJECT_ROOT`. Resolve application

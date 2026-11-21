@@ -69,6 +69,8 @@ first, every run, before any role is dispatched.
    receipt younger than ten minutes, so the sequence cannot be skipped by habit.
    `<run>` is the run directory itself or the feature id that resolves under
    `features/active/` (or `RUN_ROOT` in an external run); both commands never create it.
+   The project names its product remote in `.agents/remotes.json` (`productRemote`), and
+   preflight warns when this branch pushes to a different one.
 9. A gate runs only when its inputs exist: `pnpm agents:artifacts --run <feature> --gate
    <qa|design|security|code-review>`. A file that exists is not an input. The design
    spec must carry screen blueprints with a wireframe, a feedback matrix with pattern

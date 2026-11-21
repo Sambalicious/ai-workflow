@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { exitCodeFor, probe, providerOptions } from './preflight.mjs';
+import { exitCodeFor, probe, productRemote, providerOptions, pushRemote, remoteWarning } from './preflight.mjs';
 
 const SCRIPT = fileURLToPath(new URL('./preflight.mjs', import.meta.url));
 const runIn = (cwd, args) => spawnSync(process.execPath, [SCRIPT, ...args], { encoding: 'utf8', cwd });
@@ -97,5 +97,77 @@ test('a ready probe in this repo still records into an existing directory', asyn
     assert.equal(receipt.role, 'lead');
   } finally {
     await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('the product remote warns only when it is set and the branch pushes elsewhere', () => {
+  assert.equal(remoteWarning({ productRemote: 'product', push: { remote: 'product' } }), null);
+  assert.equal(remoteWarning({ productRemote: null, push: { remote: 'origin' } }), null, 'unset means no warning');
+  assert.equal(remoteWarning({ productRemote: 'product', push: null }), null, 'no upstream means nothing to compare');
+  assert.match(remoteWarning({ productRemote: 'product', push: { remote: 'origin' } }), /pushes to "origin", but the product remote is "product"/);
+});
+
+test('productRemote reads .agents/remotes.json and ignores a missing or malformed file', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'preflight-'));
+  try {
+    assert.equal(await productRemote(dir), null);
+    await mkdir(join(dir, '.agents'), { recursive: true });
+    await writeFile(join(dir, '.agents/remotes.json'), '{ not json');
+    assert.equal(await productRemote(dir), null);
+    await writeFile(join(dir, '.agents/remotes.json'), JSON.stringify({ productRemote: 'product' }));
+    assert.equal(await productRemote(dir), 'product');
+    await writeFile(join(dir, '.agents/remotes.json'), JSON.stringify({ productRemote: '' }));
+    assert.equal(await productRemote(dir), null);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+const gitProject = async (pushRemoteName) => {
+  const dir = await mkdtemp(join(tmpdir(), 'preflight-project-'));
+  await mkdir(join(dir, '.agents'), { recursive: true });
+  spawnSync('git', ['-C', dir, 'init', '-q', '-b', 'main'], { encoding: 'utf8' });
+  spawnSync('git', ['-C', dir, 'config', 'user.email', 'qa@example.com'], { encoding: 'utf8' });
+  spawnSync('git', ['-C', dir, 'config', 'user.name', 'QA'], { encoding: 'utf8' });
+  await writeFile(join(dir, 'file.txt'), 'x\n');
+  spawnSync('git', ['-C', dir, 'add', '-A'], { encoding: 'utf8' });
+  spawnSync('git', ['-C', dir, 'commit', '-q', '-m', 'base'], { encoding: 'utf8' });
+  spawnSync('git', ['-C', dir, 'remote', 'add', pushRemoteName, 'https://example.com/repo.git'], { encoding: 'utf8' });
+  spawnSync('git', ['-C', dir, 'update-ref', `refs/remotes/${pushRemoteName}/main`, 'HEAD'], { encoding: 'utf8' });
+  spawnSync('git', ['-C', dir, 'config', 'branch.main.remote', pushRemoteName], { encoding: 'utf8' });
+  spawnSync('git', ['-C', dir, 'config', 'branch.main.merge', 'refs/heads/main'], { encoding: 'utf8' });
+  return dir;
+};
+
+test('preflight warns when the branch pushes to a remote other than the product remote', async () => {
+  const dir = await gitProject('upstream');
+  try {
+    await writeFile(join(dir, '.agents/remotes.json'), JSON.stringify({ productRemote: 'origin' }));
+    const warned = runIn(dir, ['lead', '--client', 'claude-code', '--json']);
+    assert.equal(warned.status, 0, warned.stderr);
+    assert.match(warned.stderr, /preflight: warning: this branch pushes to "upstream", but the product remote is "origin"/);
+
+    await writeFile(join(dir, '.agents/remotes.json'), JSON.stringify({ productRemote: 'upstream' }));
+    assert.doesNotMatch(runIn(dir, ['lead', '--client', 'claude-code', '--json']).stderr, /warning:/);
+
+    await rm(join(dir, '.agents/remotes.json'));
+    assert.doesNotMatch(runIn(dir, ['lead', '--client', 'claude-code', '--json']).stderr, /warning:/, 'unset means no warning');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('pushRemote reads the branch upstream and degrades quietly outside a repository', async () => {
+  const dir = await gitProject('fork');
+  try {
+    assert.deepEqual(pushRemote(dir), { remote: 'fork' });
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+  const outside = await mkdtemp(join(tmpdir(), 'preflight-'));
+  try {
+    assert.equal(pushRemote(outside), null);
+  } finally {
+    await rm(outside, { recursive: true, force: true });
   }
 });
