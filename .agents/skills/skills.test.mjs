@@ -234,6 +234,16 @@ test('designer owns layout and copy slots, copywriter owns words, and review mod
   assert.match(rule, /\| Designer \(review mode\) \|/);
 });
 
+test('review screenshots are run evidence, not committed artifacts', async () => {
+  const root = new URL('../../', import.meta.url);
+  const read = (path) => readFile(new URL(path, root), 'utf8');
+  assert.match(await read('AGENTS.md'), /RUN_ROOT\/reports\/screenshots\//);
+  for (const role of ['.agents/designer.md', '.agents/qa.md']) {
+    assert.match(await read(role), /RUN_ROOT\/reports\/screenshots\//, `${role} names the evidence directory`);
+  }
+  assert.match(await read('.agents/reference/output-files.md'), /RUN_ROOT\/reports\/screenshots\//);
+});
+
 test('rule 12 makes agents read the policies before dispatching', async () => {
   const root = new URL('../../', import.meta.url);
   const rule = await readFile(new URL('.agents/rules/12-check-policies-first.md', root), 'utf8');

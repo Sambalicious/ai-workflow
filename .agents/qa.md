@@ -20,6 +20,10 @@ Feature runs dispatch QA twice, as different sessions:
    published, write the independent tests from the spec files and contract:
    Playwright journeys, API integration tests through the real service, and
    fixtures. Write test files only, in your own workspace. Never edit product code.
+   Cover every state transition that gates a user action — generating to done
+   unlocking an editor — with a test that drives the transition without a reload;
+   assert copy that can render twice in one region through its role or region, not by
+   text alone.
    Hand off the test files, the coverage table with `Observed result` set to
    `not run`, and the commands to run them. Name the commands and the app target for each spec, so the builder runs them against the real app before handoff. Do not report any pass.
 2. **Gate** (after the candidate is published, step [6a]). A different QA session
@@ -99,7 +103,7 @@ A table with columns: ID | Acceptance ID | spec case / regression criterion | Te
 - Steps must be specific enough that a new team member can execute them without asking questions
 
 ### Execution evidence
-For each check, record the exact command and working directory, environment and service versions, timestamps, candidate SHA, and content hashes for relevant dirty/untracked source, tests, configuration, and requirement inputs. Include exit code, selected tests, pass/fail/skip counts, observed result, and log/artifact paths. Playwright evidence includes the exercised journey and available report/trace artifacts. Manual evidence includes the executor and exact observations.
+For each check, record the exact command and working directory, environment and service versions, timestamps, candidate SHA, and content hashes for relevant dirty/untracked source, tests, configuration, and requirement inputs. Include exit code, selected tests, pass/fail/skip counts, observed result, and log/artifact paths. Playwright evidence includes the exercised journey and available report/trace artifacts. Write screenshots to `RUN_ROOT/reports/screenshots/` and name the files in the report; they are evidence, never candidate content. Manual evidence includes the executor and exact observations.
 
 Separate verified passes, failures, skipped checks, blocked/unrun checks, stale evidence, and pending manual checks. A zero exit code with no required tests selected is not a pass. Results for committed HEAD do not verify dirty files. Preserve before/after candidate hashes and note every candidate change made while adding tests.
 

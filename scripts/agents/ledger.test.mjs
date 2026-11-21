@@ -9,6 +9,7 @@ import { caps, entryProblems, parseLedger } from './ledger.mjs';
 
 const SCRIPT = fileURLToPath(new URL('./ledger.mjs', import.meta.url));
 const run = (args) => spawnSync(process.execPath, [SCRIPT, ...args], { encoding: 'utf8' });
+const runIn = (cwd, args, env = {}) => spawnSync(process.execPath, [SCRIPT, ...args], { encoding: 'utf8', cwd, env: { ...process.env, ...env } });
 
 const entry = (overrides = {}) => ({ round: '1', role: 'spec-writer', tier: 'lead', model: 'anthropic/claude-sonnet-5-5', artifact: 'specs/', state: 'done', ...overrides });
 
@@ -183,4 +184,48 @@ test('done refuses a ledger with a corrupt line and leaves it untouched', async 
     assert.equal(run(['done', '--run', dir, '--role', 'qa']).status, 1);
     assert.equal(await readFile(join(dir, 'dispatch-ledger.jsonl'), 'utf8'), text);
   } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+const project = async () => {
+  const cwd = await mkdtemp(join(tmpdir(), 'ledger-project-'));
+  const runDir = join(cwd, 'features', 'active', 'FEAT-0017-job-added-skills');
+  await mkdir(runDir, { recursive: true });
+  return { cwd, runDir };
+};
+const addArgs = (feature) => ['add', '--run', feature, '--round', '1', '--role', 'worker-impl', '--tier', 'worker', '--model', 'opencode-go/deepseek-v4.1-flash', '--artifact', 'code', '--state', 'done'];
+
+test('a feature id resolves to its features/active folder instead of a new directory at the root', async () => {
+  const { cwd, runDir } = await project();
+  try {
+    const result = runIn(cwd, addArgs('FEAT-0017-job-added-skills'));
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(await readFile(join(runDir, 'dispatch-ledger.jsonl'), 'utf8'), /worker-impl/);
+    assert.deepEqual((await readdir(cwd)).filter((name) => name.startsWith('FEAT-')), [], 'no run directory at the project root');
+  } finally { await rm(cwd, { recursive: true, force: true }); }
+});
+
+test('a feature prefix resolves when it names exactly one folder, and an unknown id fails without creating one', async () => {
+  const { cwd, runDir } = await project();
+  try {
+    assert.equal(runIn(cwd, addArgs('FEAT-0017')).status, 0);
+    assert.ok((await readdir(runDir)).includes('dispatch-ledger.jsonl'));
+    const missing = runIn(cwd, addArgs('FEAT-9999-missing'));
+    assert.equal(missing.status, 1);
+    assert.match(missing.stderr, /matches no existing directory/);
+    assert.ok(!(await readdir(cwd)).includes('FEAT-9999-missing'), 'the run directory is never created');
+    assert.match(runIn(cwd, ['check', '--run', 'FEAT-9999-missing']).stderr, /matches no existing directory/);
+  } finally { await rm(cwd, { recursive: true, force: true }); }
+});
+
+test('RUN_ROOT resolves a feature id in an external run', async () => {
+  const cwd = await mkdtemp(join(tmpdir(), 'ledger-project-'));
+  const RUN_ROOT = join(cwd, 'private-runs', 'run-001');
+  const artifacts = join(RUN_ROOT, 'features', 'FEAT-0017-job-added-skills');
+  await mkdir(artifacts, { recursive: true });
+  try {
+    assert.equal(runIn(cwd, addArgs('FEAT-0017-job-added-skills'), { RUN_ROOT }).status, 0);
+    assert.ok((await readdir(RUN_ROOT)).includes('dispatch-ledger.jsonl'), 'the ledger lives in the run root');
+    assert.deepEqual((await readdir(cwd)).filter((name) => name.startsWith('FEAT-')), [], 'no run directory in the project');
+    assert.equal(runIn(cwd, addArgs('run-001'), { RUN_ROOT }).status, 0, 'the run root itself is named by its basename');
+  } finally { await rm(cwd, { recursive: true, force: true }); }
 });

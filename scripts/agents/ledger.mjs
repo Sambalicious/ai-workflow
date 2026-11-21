@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 // Counts and caps the role dispatches in a run, before the next one starts.
 // Usage:
-//   node scripts/agents/ledger.mjs add --run <dir> --round <n> --role <r> --tier <t> --model <m> --artifact <a> [--state running|done|failed] [--force]
-//     A lead or advisor dispatch needs a preflight receipt under 10 minutes old in <dir>
-//     (preflight.mjs <role> --record <dir>); --force skips that check.
+//   node scripts/agents/ledger.mjs add --run <dir|feature> --round <n> --role <r> --tier <t> --model <m> --artifact <a> [--state running|done|failed] [--force]
+//     A lead or advisor dispatch needs a preflight receipt under 10 minutes old in the run
+//     (preflight.mjs <role> --record <run>); --force skips that check.
+//     <run> is an existing directory, or a feature id that resolves under features/active/
+//     (RUN_ROOT in an external run). It never creates the directory.
 //   node scripts/agents/ledger.mjs check --run <dir> [--max-claude 8] [--max-concurrent 2] [--max-concurrent-advisor 1]
 //   node scripts/agents/ledger.mjs show --run <dir>
 //   node scripts/agents/ledger.mjs done --run <dir> --role <r> [--state done|failed]   closes that role's running entries
@@ -12,6 +14,7 @@ import { realpathSync } from 'node:fs';
 import { appendFile, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { resolveRun } from './run-path.mjs';
 
 export const CLAUDE_TIERS = new Set(['lead', 'advisor']);
 export const FIELDS = ['round', 'role', 'tier', 'model', 'artifact', 'state'];
@@ -99,12 +102,19 @@ if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToP
     args.splice(at, value === undefined ? 1 : 2);
     return value ?? '';
   };
-  const run = flag('--run');
+  const runInput = flag('--run');
   const maxClaude = Number(flag('--max-claude') ?? 8);
   const maxConcurrent = Number(flag('--max-concurrent') ?? 2);
   const maxAdvisorConcurrent = Number(flag('--max-concurrent-advisor') ?? 1);
-  if (!run || !['add', 'check', 'show', 'done'].includes(command)) {
-    process.stderr.write('usage: node scripts/agents/ledger.mjs <add|check|show|done> --run <dir> [flags]\n');
+  if (!runInput || !['add', 'check', 'show', 'done'].includes(command)) {
+    process.stderr.write('usage: node scripts/agents/ledger.mjs <add|check|show|done> --run <dir|feature> [flags]\n');
+    process.exit(1);
+  }
+  let run;
+  try {
+    run = (await resolveRun(runInput)).path;
+  } catch (error) {
+    process.stderr.write(`ledger: ${error.message}\n`);
     process.exit(1);
   }
   let parsed;
