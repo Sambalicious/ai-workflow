@@ -20,6 +20,10 @@ Feature runs dispatch QA twice, as different sessions:
    published, write the independent tests from the spec files and contract:
    Playwright journeys, API integration tests through the real service, and
    fixtures. Write test files only, in your own workspace. Never edit product code.
+   Cover every state transition that gates a user action — generating to done
+   unlocking an editor — with a test that drives the transition without a reload;
+   assert copy that can render twice in one region through its role or region, not by
+   text alone.
    Hand off the test files, the coverage table with `Observed result` set to
    `not run`, and the commands to run them. Name the commands and the app target for each spec, so the builder runs them against the real app before handoff. Do not report any pass.
 2. **Gate** (after the candidate is published, step [6a]). A different QA session
