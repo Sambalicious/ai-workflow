@@ -63,7 +63,8 @@ first, every run, before any role is dispatched.
    against the worker boundary, so a brief that quietly widens scope still fails.
 7. Run `pnpm agents:stale` before the first dispatch. A branch more than 30 commits
    behind `origin/main`, or whose `.agents/models.json` differs from it, runs without
-   the current policy.
+   the current policy. It also warns, without failing, when main's latest completed CI
+   run is not green, and names a job annotation when a job never started.
 8. A Claude dispatch runs `pnpm agents:preflight <role> --record <run>` first, then
    `pnpm agents:ledger add ...`. The ledger refuses a lead or advisor dispatch without a
    receipt younger than ten minutes, so the sequence cannot be skipped by habit.
