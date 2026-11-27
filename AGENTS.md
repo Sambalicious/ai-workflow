@@ -389,7 +389,9 @@ For an explicitly requested implementation or repair run, use
 Route findings at every stage. Keep one persistent run, at most three global repair
 waves, and independent verification. The controller records local attestations; the
 caller owns authorized execution and trustworthy evidence. The controller does not
-launch agents.
+launch agents. Split a large candidate into stacked layer PRs with
+`node scripts/agents/split-layers.mjs`; it applies each layer's merge-base diff to its
+own paths and fails when a layer reverts a file main moved.
 
 Triage uses `.agents/skills/triage/SKILL.md`. Bugs may proceed with an approved bug
 brief plus the existing relevant architecture, design, contracts, and full regression
@@ -424,7 +426,7 @@ Escalate to the full lane when a condition fails, a check fails, or a finding re
 ## Instructions
 
 1. Start with the raw idea. Pass it to the Product Manager first. Do not skip this step — every downstream agent depends on the PRD.
-2. Once the PRD is ready, run steps [2] (Spec Writer), [3a] (Architect), and [3b] (Designer) in parallel. Each takes only the PRD. Apply the fast-lane triggers once [3a] and [3b] are complete. Step [3f] (design consult) runs once [3b] is complete: an advisor-tier session compares the spec's surfaces, states, and copy slots with the PRD's Surfaces table, the orchestrator saves its reply as `design-consult.md`, and a weak spec comes back as `BLOCKER[designer]`. Step [3c] (Copywriter) starts once [2], [3b], and [3f] are complete, because the consult can change copy slots. Step [3d] (SEO crawl pass) starts once [3a] and [3b] are complete, in parallel with Copywriter. Step [3e] (SEO metadata pass) starts once [3c] and [3d] are complete. Steps [3c]–[3e] run in parallel with step [4]. Copy-driven spec changes go through the Revision loop, not direct edits.
+2. Once the PRD is ready, run steps [2] (Spec Writer), [3a] (Architect), and [3b] (Designer) in parallel. Each takes only the PRD. Apply the fast-lane triggers once [3a] and [3b] are complete. Step [3f] (design consult) runs once [3b] is complete: an advisor-tier session compares the spec's surfaces, states, and copy slots with the PRD's Surfaces table, the orchestrator saves its reply as `design-consult.md`, and a weak spec comes back as `BLOCKER[designer]`. Step [3c] (Copywriter) starts once [2], [3b], and [3f] are complete, because the consult can change copy slots. Step [3d] (SEO crawl pass) starts once [3a] and [3b] are complete, in parallel with Copywriter. Step [3e] (SEO metadata pass) starts once [3c] and [3d] are complete. Steps [3c]–[3e] run in parallel with step [4]. Copy-driven spec changes go through the Revision loop, not direct edits. Before [3a] publishes, `node scripts/agents/migration-gate.mjs` checks the planned migration number and every copied function against `origin/main`; a taken number or a newer definition is a blocker.
 3. Step [4] (API contract) cannot start until steps [2], [3a], [3b], and [3f] are complete. The Backend Engineer runs in contract mode: it publishes the complete API contract handoff and the spec responsibility map, and stops before implementation. The contract has one writer; later changes to it are `contract` findings routed through the Revision loop.
 4. Once the contract is complete, start steps [5a]–[5e] in parallel, each in its own isolated workspace:
    - [5a] Backend Engineer implements the contract with tests.
