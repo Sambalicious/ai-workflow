@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Proves a role's tier model can actually answer before an agent is dispatched.
 // Usage: node scripts/agents/preflight.mjs <role|tier> [--client claude-code] [--json] [--record <run dir|feature>]
+// `security` resolves to the security-review role at review's tier, the name a run brief uses.
 // --record writes the receipt into an existing run directory, or into the features/active/
 // folder a feature id names (RUN_ROOT in an external run); it never creates the directory.
 // Exit codes: 0 ready, 1 bad usage, 2 rate window closed (Retry-After), 3 credential
@@ -19,6 +20,12 @@ import { resolveModel } from './which-model.mjs';
 import { resolveRun } from './run-path.mjs';
 
 const ROOT = join(import.meta.dirname, '..', '..');
+
+// The pipeline names the security gate "security", while models.json carries the two roles
+// it splits into. A `security` dispatch resolves to the candidate-review role, at review's
+// tier, so the name the run brief uses cannot fail as an unknown role.
+export const ROLE_ALIASES = { security: 'security-review' };
+export const canonicalRole = (role) => ROLE_ALIASES[role] ?? role;
 
 /** The remote a product pull request must target, or null when the project sets none. */
 export async function productRemote(dir) {
@@ -139,15 +146,16 @@ if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToP
   if (warning) process.stderr.write(`preflight: warning: ${warning}\n`);
   try {
     const models = JSON.parse(await readFile(join(ROOT, '.agents/models.json'), 'utf8'));
-    const resolved = resolveModel(models, question, client);
+    const resolved = resolveModel(models, canonicalRole(question), client);
     const options = await providerOptions(models, resolved.model, client);
     const result = options.baseURL === null ? { kind: 'ready', note: 'no remote provider to probe' } : await probe(options);
     const report = { ...resolved, ...result };
     // A ready probe leaves a receipt in the run, which ledger.mjs checks before a Claude dispatch.
+    // The receipt is keyed by the name the caller used, so `--role security` finds it.
     if (result.kind === 'ready' && record) {
       await writeFile(
-        join(record, `.preflight-${resolved.question}.json`),
-        `${JSON.stringify({ role: resolved.question, tier: resolved.tier, model: resolved.model, at: new Date().toISOString() }, null, 2)}\n`,
+        join(record, `.preflight-${question}.json`),
+        `${JSON.stringify({ role: question, tier: resolved.tier, model: resolved.model, at: new Date().toISOString() }, null, 2)}\n`,
       );
     }
     if (asJson) process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);

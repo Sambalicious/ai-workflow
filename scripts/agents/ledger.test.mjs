@@ -33,7 +33,18 @@ test('the Claude cap counts lead and advisor only', () => {
   const summary = caps(entries, { maxClaude: 2, maxConcurrent: 2 });
   assert.equal(summary.claude, 2);
   assert.deepEqual(summary.problems, []);
-  assert.equal(caps(entries, { maxClaude: 1, maxConcurrent: 2 }).problems.length, 1);
+  assert.deepEqual(summary.warnings, []);
+});
+
+test('the lifetime budget warns instead of refusing, so a busy run keeps its approved plan', () => {
+  const entries = Array.from({ length: 9 }, (_, index) => entry({ role: `role-${index}`, state: 'done' }));
+  const summary = caps(entries, { maxClaude: 8 });
+  assert.equal(summary.claude, 9);
+  assert.deepEqual(summary.problems, [], 'nine dispatches is a warning, not a refusal');
+  assert.equal(summary.warnings.length, 1);
+  assert.match(summary.warnings[0], /exceeds the lifetime budget of 8/);
+  assert.deepEqual(caps(entries).warnings, [], 'the default budget is larger than a normal run');
+  assert.equal(caps([...entries, ...entries], { maxClaude: 8 }).warnings.length, 1, 'a retry of the same role and artifact counts once');
 });
 
 test('the concurrency cap counts running Claude agents only', () => {
@@ -80,7 +91,7 @@ test('the ledger parser reports a broken line without dropping the rest', () => 
   assert.match(problems[0], /line 2: not JSON/);
 });
 
-test('add appends, check enforces the caps, show lists the rows', async () => {
+test('add appends, check warns on the lifetime budget, and the concurrency cap still refuses', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'ledger-'));
   try {
     const receipt = (role) => writeFile(join(dir, `.preflight-${role}.json`), JSON.stringify({ role, at: new Date().toISOString() }));
@@ -89,16 +100,37 @@ test('add appends, check enforces the caps, show lists the rows', async () => {
     await receipt('architect');
     assert.equal(add(['--round', '1', '--role', 'spec-writer', '--tier', 'lead', '--model', 'anthropic/claude-sonnet-5-5', '--artifact', 'specs/', '--state', 'done']).status, 0);
     assert.equal(add(['--round', '1', '--role', 'architect', '--tier', 'lead', '--model', 'anthropic/claude-sonnet-5-5', '--artifact', 'architecture.md', '--state', 'done']).status, 0);
-    assert.equal(run(['check', '--run', dir, '--max-claude', '2']).status, 0);
+    const warned = run(['check', '--run', dir, '--max-claude', '1']);
+    assert.equal(warned.status, 0, 'the lifetime budget warns instead of refusing');
+    assert.match(warned.stderr, /warning: 2 Claude dispatches exceeds the lifetime budget of 1/);
+
     await receipt('designer');
-    const over = run(['add', '--run', dir, '--round', '2', '--role', 'designer', '--tier', 'advisor', '--model', 'anthropic/claude-opus-5-5', '--artifact', 'design.md', '--state', 'running', '--max-claude', '2']);
+    await receipt('qa-gate');
+    assert.equal(add(['--round', '2', '--role', 'designer', '--tier', 'advisor', '--model', 'anthropic/claude-opus-5-5', '--artifact', 'design.md', '--state', 'running']).status, 0);
+    assert.equal(add(['--round', '2', '--role', 'qa-gate', '--tier', 'lead', '--model', 'anthropic/claude-sonnet-5-5', '--artifact', 'qa/', '--state', 'running']).status, 0);
+    const over = add(['--round', '2', '--role', 'architect', '--tier', 'lead', '--model', 'anthropic/claude-sonnet-5-5', '--artifact', 'architecture.r1.md', '--state', 'running']);
     assert.equal(over.status, 1);
-    assert.match(over.stderr, /exceeds the cap of 2/);
+    assert.match(over.stderr, /3 Claude agents running exceeds the cap of 2/);
     const lines = (await readFile(join(dir, 'dispatch-ledger.jsonl'), 'utf8')).trim().split('\n');
-    assert.equal(lines.length, 2, 'a refused dispatch is not written');
+    assert.equal(lines.length, 4, 'a refused dispatch is not written');
     const show = run(['show', '--run', dir]);
     assert.equal(show.status, 0);
     assert.match(show.stdout, /spec-writer \| lead/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('a forced dispatch is recorded as forced, so a bypass stays visible', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'ledger-'));
+  try {
+    const args = ['add', '--run', dir, '--round', '1', '--role', 'spec-writer', '--tier', 'lead', '--model', 'anthropic/claude-sonnet-5-5', '--artifact', 'specs/', '--state', 'done'];
+    assert.equal(run(args).status, 1, 'no receipt yet');
+    assert.equal(run([...args, '--force']).status, 0);
+    const entryLine = JSON.parse((await readFile(join(dir, 'dispatch-ledger.jsonl'), 'utf8')).trim());
+    assert.equal(entryLine.forced, true);
+    assert.equal(run(['check', '--run', dir]).status, 0, 'a forced entry is well formed');
+    assert.match(run(['show', '--run', dir]).stdout, /done \(forced\)/);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
@@ -128,6 +160,42 @@ test('done closes a role\'s running entries so the concurrency cap frees up', as
     assert.match(closed.stdout, /closed 1 security-review entry as done/);
     assert.equal(add('code-review').status, 0);
     assert.match(run(['show', '--run', dir]).stdout, /security-review \| advisor \| opus \| a \| done/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('fail closes a rate-limited entry as failed, records why, and frees the slot', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'ledger-'));
+  try {
+    const add = (role) => run(['add', '--run', dir, '--round', '1', '--role', role, '--tier', 'advisor', '--model', 'opus', '--artifact', 'a', '--state', 'running', '--force']);
+    assert.equal(add('security-review').status, 0);
+    assert.equal(add('code-review').status, 1, 'the advisor cap still holds while the first runs');
+    const failed = run(['fail', '--run', dir, '--role', 'security-review', '--reason', 'rate_limit']);
+    assert.equal(failed.status, 0, failed.stderr);
+    assert.match(failed.stdout, /closed 1 security-review entry as failed \(rate_limit\)/);
+    const [entryLine] = (await readFile(join(dir, 'dispatch-ledger.jsonl'), 'utf8')).trim().split('\n').map((line) => JSON.parse(line));
+    assert.equal(entryLine.state, 'failed');
+    assert.equal(entryLine.reason, 'rate_limit');
+    assert.match(run(['show', '--run', dir]).stdout, /security-review \| advisor \| opus \| a \| failed \(forced\) \(rate_limit\)/);
+    assert.equal(add('code-review').status, 0, 'the same tier is free once the 429 is recorded');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('fail needs a reason and a running entry, so a typo cannot pass as a recorded failure', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'ledger-'));
+  try {
+    assert.equal(run(['add', '--run', dir, '--round', '1', '--role', 'qa-gate', '--tier', 'lead', '--model', 'sonnet', '--artifact', 'qa/', '--state', 'running', '--force']).status, 0);
+    const noReason = run(['fail', '--run', dir, '--role', 'qa-gate']);
+    assert.equal(noReason.status, 1);
+    assert.match(noReason.stderr, /fail --run <dir> --role <r> --reason <reason>/);
+    assert.equal(run(['fail', '--run', dir, '--role', 'qa-gate', '--reason', 'Rate Limit']).status, 1);
+    const wrongRole = run(['fail', '--run', dir, '--role', 'no-such-role', '--reason', 'rate_limit']);
+    assert.equal(wrongRole.status, 1);
+    assert.match(wrongRole.stderr, /no running no-such-role entry to fail/);
+    assert.match(await readFile(join(dir, 'dispatch-ledger.jsonl'), 'utf8'), /qa-gate/);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

@@ -87,6 +87,11 @@ The controller does not launch agents, run tests, authenticate people, or prove
 evidence is true. Actor and adapter fields are local attestations. The caller must
 enforce filesystem access, credentials, and evidence provenance.
 
+A 429 closes that dispatch, not the run: mark its entry failed
+(`pnpm agents:ledger fail --role <role> --reason rate_limit`), then retry on the same
+tier and model once the window reopens. Changing provider or model is the user's
+decision: ask once and record the answer. Never switch tiers silently.
+
 New runs default to `reporting_only`; missing telemetry does not block dispatch or
 completion. Follow `factory/PROTOCOL.md` for nullable usage and reliable source
 references. When a role ran as a Claude Code subagent, submit the `usage` printed by
@@ -190,6 +195,9 @@ A fresh reviewer uses `.agents/skills/code-review/SKILL.md`. Security and, when 
 Release Manager inspect the actual candidate and evidence. Missing, stale, skipped, and
 unrun required checks are not passes. A controller verdict is conditional on the
 caller's attestations, not independent proof of production readiness.
+
+A pull request opens only after `pnpm agents:pr-gate --run <run>` passes on the head
+commit, which needs `reports/code-review-<head>.md` with a `PASS` verdict line.
 
 ## 7. Stop and report
 

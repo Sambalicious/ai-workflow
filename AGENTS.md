@@ -83,6 +83,9 @@ first, every run, before any role is dispatched.
    table names. Only the highest `.rN.md` revision is read. List inherited test
    failures in `docs/ops/known-failures.md` and compare a run's report with
    `pnpm agents:known-failures --report <vitest json>` instead of re-deriving them.
+10. A pull request opens only after `pnpm agents:pr-gate --run <run>` passes: it needs
+   `reports/code-review-<head>.md`, the review of the exact head commit, with a `PASS`
+   verdict line.
 
 ## Role
 
@@ -196,10 +199,11 @@ tier and its output is worthless at the gate. Resolve the model, pass it, and re
    is never a retry loop per agent.
 4. Then add the dispatch to the run's ledger (round, role, tier, model, artifact, state) before the
    agent starts.
-5. Respect the caps: at most two Claude agents running at once, one of them advisor tier,
-   eight distinct Claude dispatches per ticket (one ledger per ticket; a retry of the same role
-   on the same artifact replaces its earlier attempt), four on the cheap tier. A revision is an
-   edit, not a regenerated document.
+5. Respect the caps: at most two Claude agents running at once, one of them advisor tier;
+   the lifetime dispatch budget warns rather than refusing (one ledger per ticket; a retry of
+   the same role on the same artifact replaces its earlier attempt); four on the cheap tier.
+   A revision is an edit, not a regenerated document. A 429 marks the entry failed and keeps
+   its tier and model (`pnpm agents:ledger fail --role <r> --reason rate_limit`).
 
 The setup, the health check for the local provider and the ledger template are in
 [docs/ops/agent-models.md](docs/ops/agent-models.md).
