@@ -9,6 +9,7 @@ features/
 │   │   ├── prd.md
 │   │   └── ...
 │   └── FEAT-0003-habit-streak-app/
+│       ├── CURRENT.md                  # digest read first: position, PRs, decisions, blockers, next step
 │       ├── prd.md
 │       ├── specs/                      # behavioural spec, read by QA and the builders
 │       │   ├── S07-accurate-answers.md
@@ -49,3 +50,7 @@ features/
 Review screenshots are not feature artifacts: the Designer and QA write them to
 `RUN_ROOT/reports/screenshots/` and name each file in the review document, so the
 repository holds the review markdown and no images.
+
+Start `CURRENT.md` from `.agents/templates/CURRENT.md`;
+`node scripts/agents/current-digest.mjs --feature <folder> --run <RUN_ROOT>` checks
+it.
