@@ -40,6 +40,10 @@ rather than in a post-mortem.
 | 2 | security-review | advisor | opus | `security-review.md` | running |
 | 2 | backend-engineer (bulk) | worker | opencode-go/deepseek-v4.1-flash | `outreach.repository.ts` | running |
 
+`pnpm agents:ledger fail --run <dir> --role <role> --reason rate_limit` closes a dispatch a
+429 ended, so its slot frees and the retry keeps the same tier and model. `--force` records
+the row as `forced`, which keeps a bypass visible instead of silent.
+
 ## Local provider setup
 
 Anthropic models are served by the local CLIProxyAPI pool, not by an API key in this repo:
