@@ -3,13 +3,23 @@ import assert from 'node:assert/strict';
 import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { caps, entryProblems, parseLedger } from './ledger.mjs';
 
 const SCRIPT = fileURLToPath(new URL('./ledger.mjs', import.meta.url));
 const run = (args) => spawnSync(process.execPath, [SCRIPT, ...args], { encoding: 'utf8' });
 const runIn = (cwd, args, env = {}) => spawnSync(process.execPath, [SCRIPT, ...args], { encoding: 'utf8', cwd, env: { ...process.env, ...env } });
+// Runs dispatches at the same time, which is how the cap and the close are actually used.
+const inParallel = (calls) =>
+  Promise.all(calls.map((args) => new Promise((resolve) => {
+    const child = spawn(process.execPath, [SCRIPT, ...args], { stdio: ['ignore', 'pipe', 'pipe'] });
+    let stderr = '';
+    let stdout = '';
+    child.stdout.on('data', (chunk) => { stdout += chunk; });
+    child.stderr.on('data', (chunk) => { stderr += chunk; });
+    child.on('close', (code) => resolve({ status: code, stdout, stderr }));
+  })));
 
 const entry = (overrides = {}) => ({ round: '1', role: 'spec-writer', tier: 'lead', model: 'anthropic/claude-sonnet-5-5', artifact: 'specs/', state: 'done', ...overrides });
 
@@ -94,7 +104,8 @@ test('the ledger parser reports a broken line without dropping the rest', () => 
 test('add appends, check warns on the lifetime budget, and the concurrency cap still refuses', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'ledger-'));
   try {
-    const receipt = (role) => writeFile(join(dir, `.preflight-${role}.json`), JSON.stringify({ role, at: new Date().toISOString() }));
+    const receipt = (role, tier = 'lead', model = 'anthropic/claude-sonnet-5-5') =>
+      writeFile(join(dir, `.preflight-${role}.json`), JSON.stringify({ role, tier, model, at: new Date().toISOString() }));
     const add = (extra) => run(['add', '--run', dir, ...extra]);
     await receipt('spec-writer');
     await receipt('architect');
@@ -104,7 +115,7 @@ test('add appends, check warns on the lifetime budget, and the concurrency cap s
     assert.equal(warned.status, 0, 'the lifetime budget warns instead of refusing');
     assert.match(warned.stderr, /warning: 2 Claude dispatches exceeds the lifetime budget of 1/);
 
-    await receipt('designer');
+    await receipt('designer', 'advisor', 'anthropic/claude-opus-5-5');
     await receipt('qa-gate');
     assert.equal(add(['--round', '2', '--role', 'designer', '--tier', 'advisor', '--model', 'anthropic/claude-opus-5-5', '--artifact', 'design.md', '--state', 'running']).status, 0);
     assert.equal(add(['--round', '2', '--role', 'qa-gate', '--tier', 'lead', '--model', 'anthropic/claude-sonnet-5-5', '--artifact', 'qa/', '--state', 'running']).status, 0);
@@ -242,6 +253,7 @@ test('done closes one entry, keeps the other two, and leaves no temp file', asyn
     const lines = (await readFile(join(dir, 'dispatch-ledger.jsonl'), 'utf8')).trim().split('\n').map((l) => JSON.parse(l));
     assert.deepEqual(lines.map((l) => `${l.role}:${l.state}`), ['a:done', 'qa:done', 'b:running']);
     assert.deepEqual((await readdir(dir)).filter((f) => f.endsWith('.tmp')), []);
+    assert.deepEqual((await readdir(dir)).filter((f) => f.endsWith('.lock')), [], 'the ledger lock is released');
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
 
@@ -296,4 +308,105 @@ test('RUN_ROOT resolves a feature id in an external run', async () => {
     assert.deepEqual((await readdir(cwd)).filter((name) => name.startsWith('FEAT-')), [], 'no run directory in the project');
     assert.equal(runIn(cwd, addArgs('run-001'), { RUN_ROOT }).status, 0, 'the run root itself is named by its basename');
   } finally { await rm(cwd, { recursive: true, force: true }); }
+});
+
+const dispatch = (role, extra = []) => ['add', '--run', dir, '--round', '1', '--role', role, '--tier', 'lead', '--model', 'anthropic/claude-sonnet-5-5', '--artifact', role, '--state', 'running', '--force', ...extra];
+
+test('parallel adds cannot pass the concurrency cap together (H1)', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'ledger-'));
+  try {
+    // Six dispatches started at once against an empty run, cap 2. Without the lock each
+    // one read the same pre-add count and all six were written.
+    const results = await inParallel(
+      ['a', 'b', 'c', 'd', 'e', 'f'].map((role) =>
+        ['add', '--run', dir, '--round', '2', '--role', role, '--tier', 'lead', '--model', 'sonnet', '--artifact', role, '--state', 'running', '--force'],
+      ),
+    );
+    const accepted = results.filter((result) => result.status === 0).length;
+    assert.equal(accepted, 2, results.map((result) => result.stderr.trim()).join(' | '));
+    const lines = (await readFile(join(dir, 'dispatch-ledger.jsonl'), 'utf8')).trim().split('\n');
+    assert.equal(lines.length, 2, 'a refused dispatch leaves no entry');
+    assert.equal(run(['check', '--run', dir]).status, 0, 'the ledger never exceeds the cap');
+    assert.match(run(['check', '--run', dir, '--max-concurrent', '1']).stderr, /2 Claude agents running exceeds the cap of 1/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("parallel closes do not drop entries another process appends (H2)", async () => {
+  const dir = await ledgerDir(good('qa', 'running'));
+  try {
+    const closes = Array.from({ length: 20 }, () => ['done', '--run', dir, '--role', 'qa']);
+    const adds = Array.from({ length: 20 }, (_, index) =>
+      ['add', '--run', dir, '--round', '1', '--role', `worker-${index}`, '--tier', 'worker', '--model', 'flash', '--artifact', 'code', '--state', 'done'],
+    );
+    const results = await inParallel([...closes, ...adds]);
+    assert.ok(results.every((result) => result.status === 0), results.find((result) => result.status !== 0)?.stderr);
+    const lines = (await readFile(join(dir, 'dispatch-ledger.jsonl'), 'utf8')).trim().split('\n').map((line) => JSON.parse(line));
+    const workers = lines.filter((entry) => entry.role.startsWith('worker-'));
+    assert.equal(workers.length, 20, 'a rewrite raced the append and lost entries');
+    assert.equal(lines.length, 21, 'the qa entry is closed, not duplicated or dropped');
+    assert.equal(lines.filter((entry) => entry.role === 'qa')[0].state, 'done');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('a non-numeric cap is a usage error, not a disabled check (M4)', async () => {
+  const dir = await ledgerDir(good('a', 'done') + good('b', 'done') + good('c', 'done'));
+  try {
+    const result = run(['check', '--run', dir, '--max-concurrent', 'abc']);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /--max-concurrent takes a whole number, got "abc"/);
+    assert.equal(run(['check', '--run', dir, '--max-concurrent', '-1']).status, 1);
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('a close names one entry, so a 429 cannot free a parallel sibling (M4)', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'ledger-'));
+  try {
+    await writeFile(
+      join(dir, 'dispatch-ledger.jsonl'),
+      [
+        { id: 'aaaa1111', round: '1', role: 'design-consult', tier: 'advisor', model: 'opus', artifact: 'a', state: 'running' },
+        { id: 'bbbb2222', round: '1', role: 'design-consult', tier: 'advisor', model: 'opus', artifact: 'b', state: 'running' },
+      ].map((entry) => `${JSON.stringify(entry)}\n`).join(''),
+    );
+    const ambiguous = run(['fail', '--run', dir, '--role', 'design-consult', '--reason', 'rate_limit']);
+    assert.equal(ambiguous.status, 1, 'one role with two running entries must not close both');
+    assert.match(ambiguous.stderr, /2 running design-consult entries/);
+    assert.match(ambiguous.stderr, /--artifact <a> or --id <id>/);
+    const states = (await readFile(join(dir, 'dispatch-ledger.jsonl'), 'utf8')).trim().split('\n').map((line) => JSON.parse(line).state);
+    assert.deepEqual(states, ['running', 'running']);
+
+    const one = run(['fail', '--run', dir, '--role', 'design-consult', '--reason', 'rate_limit', '--artifact', 'b']);
+    assert.equal(one.status, 0, one.stderr);
+    assert.match(one.stdout, /closed 1 design-consult entry as failed/);
+    const after = (await readFile(join(dir, 'dispatch-ledger.jsonl'), 'utf8')).trim().split('\n').map((line) => JSON.parse(line));
+    assert.deepEqual(after.map((entry) => entry.state), ['running', 'failed']);
+
+    const byId = run(['done', '--run', dir, '--role', 'design-consult', '--id', 'aaaa1111']);
+    assert.equal(byId.status, 0, byId.stderr);
+    const last = (await readFile(join(dir, 'dispatch-ledger.jsonl'), 'utf8')).trim().split('\n').map((line) => JSON.parse(line));
+    assert.deepEqual(last.map((entry) => entry.state), ['done', 'failed']);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('the preflight receipt must cover the dispatch tier and model (M4)', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'ledger-'));
+  try {
+    await writeFile(join(dir, '.preflight-security.json'), JSON.stringify({ role: 'security', tier: 'advisor', model: 'anthropic/claude-opus-5-5', at: new Date().toISOString() }));
+    const args = ['add', '--run', dir, '--round', '1', '--role', 'security', '--tier', 'lead', '--model', 'anthropic/claude-sonnet-5-5', '--artifact', 'threat-model.md', '--state', 'done'];
+    const wrongTier = run(args);
+    assert.equal(wrongTier.status, 1);
+    assert.match(wrongTier.stderr, /receipt for security covers advisor \/ anthropic\/claude-opus-5-5, but this dispatch is lead/);
+    assert.equal(run([...args, '--force']).status, 0, '--force still records an explicit bypass');
+    await rm(join(dir, '.preflight-security.json'));
+    await writeFile(join(dir, '.preflight-security.json'), JSON.stringify({ role: 'security', tier: 'lead', model: 'anthropic/claude-sonnet-5-5', at: new Date().toISOString() }));
+    assert.equal(run(args).status, 0, 'a receipt for the same tier and model passes');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
 });
