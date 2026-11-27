@@ -110,3 +110,79 @@ test('the hook still blocks when the project path goes through a symlink', () =>
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('absolute paths, wrappers and shell grouping do not hide a name kill (H5)', () => {
+  for (const command of [
+    '/usr/bin/pkill node',
+    '/usr/bin/env pkill node',
+    'command -p pkill node',
+    'time -p pkill node',
+    'nice pkill node',
+    'timeout 5 pkill node',
+    'nice -n 5 killall node',
+    'sudo -u root pkill node',
+    'bash -c "pkill node"',
+    'sh -c "killall node"',
+    'bash -lc "pgrep -f vite | xargs kill"',
+    'eval pkill node',
+    '{ pkill node; }',
+    'if pkill node; then :; fi',
+    '! pkill node',
+    '(pkill -f vite)',
+  ]) {
+    assert.ok(check(command), command);
+  }
+});
+
+test('a signal or lookup that targets every process is blocked (H5)', () => {
+  for (const command of [
+    'kill -s 9 -1',
+    'kill -n 9 -1',
+    'kill -s KILL -1',
+    'kill -9 -1 1234',
+    'kill -- -1 1234',
+    'kill $(ps aux | grep node | awk \'{print $2}\')',
+    'kill -9 $(lsof -t -c node)',
+    'pgrep node | xargs -n 1 kill',
+    'pgrep -f vite | xargs -I{} kill {}',
+    'pgrep -f vite | while read p; do kill $p; done',
+    'for p in $(pgrep node); do kill $p; done',
+    'P=$(pgrep node); kill $P',
+    'P=$(pidof node); kill -9 ${P}',
+    'kill -9 $TARGET',
+  ]) {
+    assert.ok(check(command), command);
+  }
+});
+
+test('a literal PID and a port lookup stay allowed, through wrappers too (H5)', () => {
+  for (const command of [
+    'kill 1234',
+    'kill -9 1234',
+    'kill -TERM 1234',
+    'kill -1 1234',
+    'kill -- 1234',
+    'kill $!',
+    'command -p kill 1234',
+    'time -p kill 1234',
+    'bash -c "kill 1234"',
+    'lsof -ti tcp:3000 | xargs kill',
+    'lsof -ti tcp:3000 | xargs -n 1 kill',
+    'PID=$(lsof -ti tcp:3000); kill $PID',
+    'npm start & echo $!',
+    'ps aux | grep node',
+    'bash -c "node server.mjs"',
+    'timeout 5 npm test',
+    'nice -n 5 npm test',
+    'time pnpm -r test',
+  ]) {
+    assert.equal(check(command), null, command);
+  }
+});
+
+test('a bash -c payload is checked as its own command, but a script file is not (H5)', () => {
+  assert.match(check('bash -c "pkill -f vite"'), /every process with that name/);
+  assert.match(check('eval "kill -9 -1"'), /signals every process/);
+  assert.equal(check('bash scripts/dev.sh'), null);
+  assert.equal(check('sh -e scripts/stop.sh'), null);
+});
