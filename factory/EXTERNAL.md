@@ -215,3 +215,16 @@ A project opts in by adding this entry to its `.claude/settings.json` `hooks.Pre
 ```
 
 The project's `AGENTS.md` should carry the same routing table so every harness sees the policy.
+
+## Process guard
+
+`scripts/agents/process-guard.mjs` is a Claude Code `PreToolUse` hook for `Bash`. It blocks `pkill`, `killall`, `kill -9 -1` and `pgrep`/`pidof`/`ps` piped to `xargs kill`, and tells the caller to stop the PID it started (`cmd & echo $!`, or `lsof -ti tcp:3000`). A name-based or blanket kill reaches another session's dev backend; a scoped kill by PID or by this session's own port stays allowed. Bad or non-Bash input never blocks.
+
+A project opts in by adding this entry to its `.claude/settings.json` `hooks.PreToolUse`:
+
+```json
+{
+  "matcher": "Bash",
+  "hooks": [{ "type": "command", "command": "node \"${FACTORY_ROOT:-$HOME/Desktop/codes/ai-team}/scripts/agents/process-guard.mjs\"" }]
+}
+```
