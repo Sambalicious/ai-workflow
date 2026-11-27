@@ -35,8 +35,8 @@ procedure.
    is missing, report it and stop; never fall back silently to native subagents,
    Workflow, or CLIs.
 2. Write the brief: goal, files in scope, acceptance checks with the exact command
-   and expected result, what not to touch, the source sections to follow, and the
-   stop-and-report conditions.
+   and expected result, what not to touch, the source sections to follow, the
+   stop-and-report conditions, and the Results table the worker fills in.
 3. Dispatch with `delegate_task`. Settings belong in `target.options`; never build
    a child checkout in the shell.
 
@@ -62,6 +62,25 @@ procedure.
    the run root and read the summary, never the raw transcript.
 5. Close the task: accept, send one specific rewrite, or escalate one rung. Update
    `metrics.md` in the same step.
+
+## Results table
+
+Every brief ends with a **Results table**: one row per requested item - each file
+group, acceptance check, and gate the brief names - with a status of `done`,
+`failed`, or `skipped` and the evidence (the command, the output file, the commit, or
+`file:line`). The worker's report ends with that table. The lead rejects a report
+that omits it, or leaves a status or evidence cell blank, without reading further:
+a summary paragraph is not a result.
+
+A 429, provider block, tool error, or timeout inside the task makes the report
+`incomplete`, never `completed`. The affected row says `failed` or `skipped`, names
+the error, and the closing line says `incomplete`. Retry the same tier and model once
+the window reopens. A successful retry reports its own rows; the failed attempt is
+never reported as done.
+
+| item | status | evidence |
+|---|---|---|
+| <file group, check, or gate from the brief> | done, failed, or skipped | <command, output path, commit, or file:line> |
 
 ## Escalation ladder
 
@@ -109,4 +128,5 @@ override, and the run brief says why.
 Report the goal or brief ID, the worker task and rewrite count, the diff review
 result, the checks run and their result, the current ladder rung (none, one
 rewrite pending, lead fix, or advisor consult), and the `metrics.md` tally. End
-with `TL;DR`. A disagreement or gap uses `BLOCKER[agent-name]: description`.
+with the filled Results table, then `TL;DR`. A disagreement or gap uses
+`BLOCKER[agent-name]: description`.
