@@ -104,7 +104,8 @@ available usage, and explicit failures.
 
 Refresh the feature's `CURRENT.md` at every hand-off and repair-wave close:
 `node "$FACTORY_ROOT/scripts/agents/current-digest.mjs" --feature <folder> --run <RUN_ROOT>` exits 1
-when a section is missing or a report is newer than the digest. A fresh session then
+when a section is missing, a template value is left, or the newest report is not the one
+the digest names. A fresh session then
 starts from the pipeline position, open pull requests with head SHAs, decisions,
 blockers, next step, and report links instead of re-deriving them.
 

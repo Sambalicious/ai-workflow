@@ -470,7 +470,8 @@ routed as usual. Preview does not replace [6b] on the real candidate.
   before relying on them. Refresh it with a lead-tier task after the PRD,
   architecture, design spec, and API contract land, after each revision round, and at
   every hand-off; `node "$FACTORY_ROOT/scripts/agents/current-digest.mjs" --feature <folder> --run
-  <RUN_ROOT>` exits 1 when a section is missing or a report is newer than the digest.
+  <RUN_ROOT>` exits 1 when a section is missing, a template value is left, or the
+  newest report is not the one it names.
   Older `.rN` files are superseded; open one only when a task names it. Moving or
   deleting revision files is off limits: run records pin their paths.
 - **Whole versus slice.** The API contract and spec files are passed whole to
