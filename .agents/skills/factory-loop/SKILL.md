@@ -102,6 +102,12 @@ repair, and evidence gates. Inspect evidence directly; a success summary is
 insufficient. Finish tasks with versioned artifacts, command results where relevant,
 available usage, and explicit failures.
 
+Refresh the feature's `CURRENT.md` at every hand-off and repair-wave close:
+`node scripts/agents/current-digest.mjs --feature <folder> --run <RUN_ROOT>` exits 1
+when a section is missing or a report is newer than the digest. A fresh session then
+starts from the pipeline position, open pull requests with head SHAs, decisions,
+blockers, next step, and report links instead of re-deriving them.
+
 ## 4. Route findings
 
 Each finding identifies the source task, category, affected acceptance criterion,

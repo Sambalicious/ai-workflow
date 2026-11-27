@@ -462,14 +462,17 @@ routed as usual. Preview does not replace [6b] on the real candidate.
   the `AGENTS.md` sections it needs (usually the role activation and cost reporting
   policies). Do not pass the whole orchestrator or other roles' files. Roles load
   skills when their trigger applies, not up front.
-- **Feature digest.** Each feature folder carries a `CURRENT.md` (about 2.5K tokens): the
-  latest revision of every artifact, key decisions, and a heading index with line
-  numbers. Roles read it first and open only the section a task needs, using
-  offset and limit. Older `.rN` files are superseded; open one only when a task
-  names it. Verify the digest's latest-file paths with `ls` before relying on them.
-  Refresh it with a lead-tier task after the PRD, architecture, design spec, and API
-  contract land and after each revision round. Moving or deleting revision files is
-  off limits: run records pin their paths.
+- **Feature digest.** Each feature folder carries a `CURRENT.md` (about 2.5K tokens):
+  the pipeline position, open pull requests with head SHAs, decisions made, open
+  blockers, next step, and links to reports. Start a new folder's digest from
+  `.agents/templates/CURRENT.md`. Roles read it first and open only the section a task
+  needs, using offset and limit. Verify the digest's latest-file paths with `ls`
+  before relying on them. Refresh it with a lead-tier task after the PRD,
+  architecture, design spec, and API contract land, after each revision round, and at
+  every hand-off; `node scripts/agents/current-digest.mjs --feature <folder> --run
+  <RUN_ROOT>` exits 1 when a section is missing or a report is newer than the digest.
+  Older `.rN` files are superseded; open one only when a task names it. Moving or
+  deleting revision files is off limits: run records pin their paths.
 - **Whole versus slice.** The API contract and spec files are passed whole to
   Backend, Frontend, and QA, as stated above. Security, DevOps, Copywriter, SEO,
   Designer, and fresh code review get the TL;DR plus the digest-indexed sections

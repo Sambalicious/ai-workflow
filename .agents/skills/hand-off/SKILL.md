@@ -13,3 +13,7 @@ Do not duplicate content already captured in other artifacts (PRDs, plans, ADRs,
 Redact any sensitive information, such as API keys, passwords, or personally identifiable information.
 
 If the user passed arguments, treat them as a description of what the next session will focus on and tailor the doc accordingly.
+
+## Update the feature digest
+
+When the session belongs to a feature, refresh its `CURRENT.md` before writing the handoff document: the pipeline position, open PRs with head SHAs, decisions made, open blockers, next step, and links to reports. Copy `.agents/templates/CURRENT.md` into the folder when it has none. Then run `node scripts/agents/current-digest.mjs --feature <feature folder> --run <RUN_ROOT>`; exit 1 names a missing heading or the report that is newer than the digest. The handoff document links the digest instead of repeating it.
