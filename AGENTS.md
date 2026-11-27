@@ -290,7 +290,10 @@ Dispatch with `.agents/skills/dispatch-worker/SKILL.md`. The `worker-guard`
 starts implementation on the lead tier. Set `EVE_ALLOW_LEAD=1` for a deliberate
 override, which downgrades the block to a warning. `pnpm agents:check` runs
 `scripts/agents/policy.mjs`, which fails when the tier policy, this rule or the hook
-wiring drifts.
+wiring drifts. The `process-guard` `PreToolUse` hook
+(`scripts/agents/process-guard.mjs`) blocks a Bash `pkill`, `killall`,
+`kill -9 -1` or `pgrep | xargs kill`, so a session stops only the PIDs it started;
+its settings entry is in `factory/EXTERNAL.md`.
 
 - Each sub-task states goal, files in scope, acceptance check, and what not to
   touch. Pass only that and the relevant paths, not the session history.

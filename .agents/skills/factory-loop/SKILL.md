@@ -193,6 +193,10 @@ separate authorization, baseline-versus-candidate evaluation on held-out cases,
 independent review, and approved promotion for future runs. Keep this run's factory
 version fixed. One repaired bug does not establish factory improvement.
 
+### Pull request
+
+Before opening it, run `node "$FACTORY_ROOT/scripts/agents/copy-gate.mjs" --base <ref> --body <pr-body file>`; it fails on an added `PENDING copywriter` string the body does not list under a `Copy pending approval` heading.
+
 ## TL;DR
 
 State run and candidate, gate results, repair wave, owners, missing evidence,
