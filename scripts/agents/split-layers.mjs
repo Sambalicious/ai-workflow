@@ -9,6 +9,8 @@
 // The checkout must be clean. Every layer branch is created from the previous one, the
 // first from --base, and the original branch is restored afterwards. The run fails when
 // a layer reverts a file the base changed since the merge-base, and prints those files.
+// It also fails when the candidate changes a path no --layer covers, because the stack
+// would silently drop that change, and when two layers cover the same path.
 // Build layers with diffs only: `git checkout <ref> -- <dir>` overwrites files the base
 // moved and silently reverts other work.
 import { execFileSync } from 'node:child_process';
@@ -47,6 +49,38 @@ export function parseLayers(values) {
     seen.add(name);
     return { name, paths };
   });
+}
+
+/** True when one layer pathspec covers a path (`apps/web` covers `apps/web/x`). */
+export function coversPath(pathspec, path) {
+  const clean = pathspec.replace(/\/+$/, '');
+  if (/[*?[]/.test(clean)) {
+    const pattern = new RegExp(`^${clean.replace(/[.+^${}()|\\]/g, '\\$&').replace(/\*/g, '.*').replace(/\?/g, '.')}$`);
+    return pattern.test(path);
+  }
+  return path === clean || path.startsWith(`${clean}/`);
+}
+
+/** The candidate's changed paths that no layer's pathspec covers, in diff order. */
+export function uncoveredPaths({ mergeBase, candidate, layers, cwd }) {
+  const listed = git(['diff', '--name-only', '-z', '--no-renames', mergeBase, candidate], { cwd });
+  const paths = listed.split('\0').filter(Boolean);
+  return paths.filter((path) => !layers.some((layer) => layer.paths.some((pathspec) => coversPath(pathspec, path))));
+}
+
+/** Layer pairs whose pathspecs overlap, so one patch would be applied twice. */
+export function overlappingLayers(layers) {
+  const overlaps = [];
+  for (let first = 0; first < layers.length; first += 1) {
+    for (let second = first + 1; second < layers.length; second += 1) {
+      const a = layers[first];
+      const b = layers[second];
+      if (a.paths.some((one) => b.paths.some((two) => coversPath(one, two.replace(/\/+$/, '')) || coversPath(two, one.replace(/\/+$/, ''))))) {
+        overlaps.push([a.name, b.name]);
+      }
+    }
+  }
+  return overlaps;
 }
 
 // Blob id of a path at a ref, or null when the path is absent there.
@@ -99,6 +133,24 @@ export function main(args) {
   if (!original) throw new Error('HEAD is detached; switch to the branch you want restored first');
   const dirty = git(['status', '--porcelain']).trim();
   if (dirty) throw new Error('working tree is not clean; commit or stash first');
+
+  const overlaps = overlappingLayers(layers);
+  if (overlaps.length > 0) {
+    throw new Error(
+      `layers ${overlaps.map(([a, b]) => `"${a}" and "${b}"`).join(', ')} cover the same path; ` +
+        'each changed file belongs to exactly one layer',
+    );
+  }
+  // Every path the candidate changes must land in exactly one layer. Without this check
+  // the stack merges cleanly while silently dropping the uncovered files.
+  const uncovered = uncoveredPaths({ mergeBase, candidate, layers, cwd: process.cwd() });
+  if (uncovered.length > 0) {
+    throw new Error(
+      `the candidate changes ${uncovered.length} path(s) no --layer covers; the stack would drop them:\n` +
+        uncovered.map((path) => `  ${path}`).join('\n') +
+        '\nAdd each path to a --layer, or split the candidate.',
+    );
+  }
 
   const created = [];
   const branches = [];
