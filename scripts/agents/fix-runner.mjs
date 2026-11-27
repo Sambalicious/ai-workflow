@@ -132,7 +132,7 @@ export async function fixRun({ id, reportPath, packetPath, projectRoot, runRoot,
     const result = sh('claude', claudeArgs({ model, prompt, dirs: [wt, factoryRoot, runRoot], tools: READ_TOOLS, budget }), { cwd: wt });
     const text = result.stdout ?? '';
     await writeFile(artifact, text);
-    must(node('ledger.mjs', ['done', '--run', ledgerRoot, '--role', stage.role, '--state', result.status === 0 ? 'done' : 'failed']), `${stage.role} ledger done`);
+    must(node('ledger.mjs', ['done', '--run', ledgerRoot, '--role', stage.role, '--artifact', artifact, '--state', result.status === 0 ? 'done' : 'failed']), `${stage.role} ledger done`);
     if (result.status !== 0) return { status: 'halted', stage: stage.role, reason: `session exited ${result.status}`, worktree: wt };
     const blocker = text.split('\n').find((line) => /^[\s*_>#-]*BLOCKER\[/.test(line));
     if (blocker) return { status: 'halted', stage: stage.role, reason: blocker.trim().slice(0, 300), worktree: wt, artifact };
@@ -176,7 +176,7 @@ export async function fixRun({ id, reportPath, packetPath, projectRoot, runRoot,
     await writeFile(join(runRoot, 'logs', `${slug}.${gate.role}.log`), `exit ${result.status}\n--- stderr ---\n${result.stderr ?? ''}\n--- stdout ---\n${text}`);
     await writeFile(join(runRoot, artifact), text);
     const verdict = gateVerdict(text, gate);
-    must(node('ledger.mjs', ['done', '--run', ledgerRoot, '--role', gate.role, '--state', result.status === 0 ? 'done' : 'failed']), `${gate.role} ledger done`);
+    must(node('ledger.mjs', ['done', '--run', ledgerRoot, '--role', gate.role, '--artifact', artifact, '--state', result.status === 0 ? 'done' : 'failed']), `${gate.role} ledger done`);
     verdicts.push({ ...gate, artifact, verdict });
     if (result.status !== 0) return { status: 'halted', stage: gate.role, reason: `session exited ${result.status}`, worktree: wt };
     if (!verdict.pass) return { status: 'halted', stage: gate.role, reason: verdict.line || 'no verdict line', worktree: wt, artifact: join(runRoot, artifact) };

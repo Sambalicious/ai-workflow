@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { definedFunctions, findCopyBase, migrationFiles, parseFunctions } from './migration-gate.mjs';
+import { definedFunctions, findCopyBase, migrationFiles, parseFunctions, stripComments } from './migration-gate.mjs';
 
 const SCRIPT = fileURLToPath(new URL('./migration-gate.mjs', import.meta.url));
 const runIn = (cwd, args) => spawnSync(process.execPath, [SCRIPT, ...args], { encoding: 'utf8', cwd });
@@ -165,5 +165,110 @@ test('migrations sort by number and a copy base resolves by number or filename',
     ]);
   } finally {
     await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('procedures, renames, drops and runtime CREATEs are all touches (M3)', () => {
+  const sql = `
+    CREATE OR REPLACE PROCEDURE app_sweep() LANGUAGE plpgsql AS $$ BEGIN END $$;
+    CREATE PROCEDURE archive_rows(limit_n int) LANGUAGE sql AS $$ SELECT 1 $$;
+    ALTER FUNCTION app_old() RENAME TO app_renamed;
+    ALTER FUNCTION public.app_second() RENAME TO public.app_final;
+    DROP FUNCTION app_gone;
+    DO $$
+    BEGIN
+      EXECUTE format('CREATE OR REPLACE FUNCTION %I() RETURNS void AS $body$ BEGIN END $body$ LANGUAGE plpgsql', 'app_runtime');
+    END $$;
+  `;
+  const names = definedFunctions(sql);
+  assert.ok(names.has('app_sweep'), 'a procedure is a function the spec may copy');
+  assert.ok(names.has('archive_rows'));
+  assert.ok(names.has('app_renamed'));
+  assert.ok(names.has('app_final'));
+  assert.ok(names.has('app_gone'), 'a dropped function is a later touch');
+  assert.ok(names.has('app_runtime'), 'a function built by EXECUTE format is named');
+  assert.ok(![...names].some((name) => name.includes('%')), 'a %I placeholder is not a name');
+});
+
+test('a quote or a comment marker inside a body does not hide later definitions (M3)', () => {
+  const sql = `
+    CREATE FUNCTION first_one() RETURNS text AS $$
+    BEGIN
+      RETURN '/* not a comment';
+    END;
+    $$ LANGUAGE plpgsql;
+    -- a line comment
+    CREATE FUNCTION second_one() RETURNS text AS $$ BEGIN RETURN '-- also not a comment'; END; $$ LANGUAGE plpgsql;
+    CREATE FUNCTION third_one() RETURNS void AS $$ BEGIN END; $$ LANGUAGE plpgsql;
+  `;
+  const names = definedFunctions(sql);
+  assert.deepEqual([...names].sort(), ['first_one', 'second_one', 'third_one']);
+  // Real comments are still stripped, and a block comment does not run into a string.
+  assert.deepEqual([...definedFunctions('/* CREATE FUNCTION commented() */\nCREATE FUNCTION live() RETURNS void AS $$ BEGIN END; $$ LANGUAGE plpgsql;')], ['live']);
+  assert.equal(stripComments("SELECT '/*'; -- tail"), "SELECT '/*'; \n", 'a quoted marker is kept, a real comment goes');
+});
+
+test('a planned number below the highest warns instead of failing silently (M3)', async () => {
+  const dir = await repo();
+  try {
+    const result = runIn(dir, ['--ref', 'main', '--number', '119']);
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stderr, /119 is not above the highest migration in main \(121_reviews\.sql\)/);
+    assert.match(result.stdout, /119 is free/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('a ref last committed long ago warns before it is trusted (M3)', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'migration-gate-old-'));
+  try {
+    git(dir, ['init', '-q']);
+    git(dir, ['symbolic-ref', 'HEAD', 'refs/heads/main']);
+    git(dir, ['config', 'user.email', 'qa@example.com']);
+    git(dir, ['config', 'user.name', 'QA']);
+    git(dir, ['config', 'commit.gpgsign', 'false']);
+    await put(dir, 'apps/backend/migrations/120_offers.sql', 'CREATE FUNCTION a() RETURNS void AS $$ BEGIN END; $$ LANGUAGE plpgsql;\n');
+    git(dir, ['add', '-A']);
+    const old = { ...process.env, GIT_AUTHOR_DATE: '2020-01-01T00:00:00Z', GIT_COMMITTER_DATE: '2020-01-01T00:00:00Z' };
+    const committed = spawnSync('git', ['-C', dir, 'commit', '-q', '-m', 'old'], { encoding: 'utf8', env: old });
+    assert.equal(committed.status, 0, committed.stderr);
+
+    const result = runIn(dir, ['--ref', 'main', '--number', '130']);
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stderr, /warning: main was last committed \d+h ago/);
+    assert.match(result.stderr, /fetch before relying on a free number/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('a remote-tracking ref is fetched before the number is judged (M3)', async () => {
+  const dir = await repo();
+  const remote = await mkdtemp(join(tmpdir(), 'migration-gate-remote-'));
+  const other = await mkdtemp(join(tmpdir(), 'migration-gate-other-'));
+  try {
+    assert.equal(spawnSync('git', ['init', '--bare', '-q', remote], { encoding: 'utf8' }).status, 0);
+    git(dir, ['remote', 'add', 'origin', remote]);
+    git(dir, ['push', '-q', 'origin', 'main']);
+    assert.equal(spawnSync('git', ['clone', '-q', remote, other], { encoding: 'utf8' }).status, 0);
+    git(other, ['config', 'user.email', 'qa@example.com']);
+    git(other, ['config', 'user.name', 'QA']);
+    git(other, ['config', 'commit.gpgsign', 'false']);
+
+    // Another feature claims 130 and pushes it after this worktree last fetched.
+    await put(other, 'apps/backend/migrations/130_bank_links.sql', 'CREATE FUNCTION bank() RETURNS void AS $$ BEGIN END; $$ LANGUAGE plpgsql;\n');
+    git(other, ['add', '-A']);
+    const committed = spawnSync('git', ['-C', other, 'commit', '-q', '-m', '130'], { encoding: 'utf8' });
+    assert.equal(committed.status, 0, committed.stderr);
+    assert.equal(spawnSync('git', ['-C', other, 'push', '-q', 'origin', 'HEAD:main'], { encoding: 'utf8' }).status, 0);
+
+    const result = runIn(dir, ['--ref', 'origin/main', '--number', '130']);
+    assert.equal(result.status, 1, 'the fetched ref shows 130 as taken');
+    assert.match(result.stderr, /130 is taken by 130_bank_links\.sql in origin\/main/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+    await rm(remote, { recursive: true, force: true });
+    await rm(other, { recursive: true, force: true });
   }
 });
