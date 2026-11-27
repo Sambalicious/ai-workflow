@@ -17,9 +17,9 @@ import {
 const script = fileURLToPath(new URL('./current-digest.mjs', import.meta.url));
 const templatePath = fileURLToPath(new URL('../../.agents/templates/CURRENT.md', import.meta.url));
 
-const SHA = '0f3c2b1a9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f40';
+const SHA = 'a1b2c3d4e5f60718293a4b5c6d7e8f9012345678';
 
-const digest = (overrides = {}) => {
+const digest = (overrides = {}, { freshness = 'Updated: 2026-11-27T10:00:00Z' } = {}) => {
   const sections = {
     'Pipeline position': '[4] API contract in progress; next [5a]-[5e] in parallel.',
     'Open PRs': `- PR #42 head ${SHA} - contract handoff`,
@@ -32,15 +32,27 @@ const digest = (overrides = {}) => {
   const body = Object.entries(sections)
     .map(([name, text]) => `## ${name}\n\n${text}\n`)
     .join('\n');
-  return `# CURRENT - FEAT-0001-example\n\n${body}`;
+  return `# CURRENT - FEAT-0001-example\n\n${freshness}\n\n${body}`;
 };
 
-test('a complete digest with a fresh mtime passes', () => {
+test('a complete digest whose content names the newest report passes', () => {
   assert.deepEqual(digestProblems(digest()), []);
-  assert.deepEqual(digestReport({ text: digest(), digestMtime: 2000, latestReport: { path: 'r.md', mtime: 1000 } }), {
-    ok: true,
-    problems: [],
-  });
+  assert.deepEqual(
+    digestReport({ text: digest(), latestReport: { path: '/run/reports/qa.md', mtime: Date.parse('2026-11-27T09:00:00Z') } }),
+    { ok: true, problems: [] },
+  );
+});
+
+test('the shipped template is refused, not passed as a digest (M1)', async () => {
+  const template = await readFile(templatePath, 'utf8');
+  for (const name of REQUIRED_SECTIONS) assert.match(template, new RegExp(`^## ${name}$`, 'm'));
+  const problems = digestProblems(template);
+  assert.match(problems.join(' '), /template value FEAT-XXXX/);
+  assert.match(problems.join(' '), /template value <slug>/);
+  assert.match(problems.join(' '), /template value <newest report path>/);
+  assert.match(problems.join(' '), /sample commit 0f3c2b1a/);
+  assert.match(template, /Reports through:/);
+  assert.match(template, /scripts\/agents\/current-digest\.mjs/);
 });
 
 test('a missing heading is named, every one of them', () => {
@@ -86,28 +98,38 @@ test('reports are links or a path, and none is allowed', () => {
   assert.match(problems.join(' '), /links no report/);
 });
 
-test('a digest older than the newest report fails and names both', () => {
-  const problems = freshnessProblems({
-    digestMtime: Date.parse('2026-11-20T09:00:00Z'),
-    latestReport: { path: '/run/reports/qa.md', mtime: Date.parse('2026-11-20T10:00:00Z') },
-  });
+test('an Updated line older than the newest report fails and names both', () => {
+  const text = digest({}, { freshness: 'Updated: 2026-11-20T09:00:00Z' });
+  const problems = freshnessProblems({ text, latestReport: { path: '/run/reports/qa.md', mtime: Date.parse('2026-11-20T10:00:00Z') } });
   assert.equal(problems.length, 1);
   assert.match(problems[0], /older than the latest report .*qa\.md/);
   assert.match(problems[0], /2026-11-20T09:00:00/);
   assert.match(problems[0], /2026-11-20T10:00:00/);
   assert.deepEqual(
-    freshnessProblems({ digestMtime: 1000, latestReport: { path: 'r.md', mtime: 1000 } }),
+    freshnessProblems({ text, latestReport: { path: 'r.md', mtime: Date.parse('2026-11-20T08:00:00Z') } }),
     [],
-    'the same instant is current',
+    'a report written before the stated update is current',
   );
-  assert.deepEqual(freshnessProblems({ digestMtime: 1, latestReport: null }), []);
+  assert.deepEqual(freshnessProblems({ text, latestReport: null }), []);
 });
 
-test('the shipped CURRENT.md template satisfies the check it documents', async () => {
-  const template = await readFile(templatePath, 'utf8');
-  for (const name of REQUIRED_SECTIONS) assert.match(template, new RegExp(`^## ${name}$`, 'm'));
-  assert.deepEqual(digestProblems(template), []);
-  assert.match(template, /scripts\/agents\/current-digest\.mjs/);
+test('a Reports through line must name the newest report, so a touch cannot fake freshness (M1)', () => {
+  const latest = { path: '/run/reports/qa.md', mtime: Date.parse('2026-11-27T09:00:00Z') };
+  const named = digest({}, { freshness: 'Reports through: /run/reports/qa.md' });
+  assert.deepEqual(freshnessProblems({ text: named, latestReport: latest }), []);
+  const relative = digest({}, { freshness: 'Reports through: reports/qa.md' });
+  assert.deepEqual(freshnessProblems({ text: relative, latestReport: latest, reportsDir: '/run/reports' }), []);
+
+  const behind = digest({}, { freshness: 'Reports through: /run/reports/old.md' });
+  const problems = freshnessProblems({ text: behind, latestReport: latest });
+  assert.equal(problems.length, 1);
+  assert.match(problems[0], /but the newest report is \/run\/reports\/qa\.md/);
+
+  const none = digest({}, { freshness: 'Prepared by the lead.' });
+  assert.match(freshnessProblems({ text: none, latestReport: latest })[0], /no "Reports through:" line/);
+
+  const badTime = digest({}, { freshness: 'Updated: last Tuesday' });
+  assert.match(freshnessProblems({ text: badTime, latestReport: latest })[0], /is not an ISO time/);
 });
 
 test('the hand-off skill updates the digest and points at the template', async () => {
@@ -168,7 +190,7 @@ test('the CLI exits 1 when CURRENT.md is missing and names the template', async 
   }
 });
 
-test('the CLI exits 0 when current, and 1 when a report is newer', async () => {
+test('the CLI exits 0 when the digest names the newest report, and 1 when a newer one lands', async () => {
   const root = await mkdtemp(join(tmpdir(), 'digest-cli-'));
   const feature = join(root, 'features', 'active', 'FEAT-0001-example');
   const reports = join(root, 'run', 'reports');
@@ -176,20 +198,43 @@ test('the CLI exits 0 when current, and 1 when a report is newer', async () => {
   await mkdir(reports, { recursive: true });
   const current = join(feature, 'CURRENT.md');
   const report = join(reports, 'qa.md');
-  await writeFile(current, digest());
+  await writeFile(current, digest({}, { freshness: `Reports through: ${report}` }));
   await writeFile(report, '# QA\n');
   try {
-    await utimes(report, 100, 100);
-    await utimes(current, 200, 200);
     const fresh = run(['--feature', 'FEAT-0001', '--run', join(root, 'run')], { cwd: root });
     assert.equal(fresh.status, 0, fresh.stderr);
     assert.match(fresh.stdout, /CURRENT\.md: current/);
 
-    await utimes(report, 300, 300);
+    // A touch or a save cannot make a stale digest current: the content names the report.
+    await utimes(current, 900, 900);
+    await utimes(report, 100, 100);
+    assert.equal(run(['--feature', 'FEAT-0001', '--run', join(root, 'run')], { cwd: root }).status, 0);
+
+    await writeFile(join(reports, 'later.md'), '# Later\n');
+    await utimes(join(reports, 'later.md'), 500, 500);
+    await utimes(current, 1000, 1000);
     const stale = run(['--feature', 'FEAT-0001', '--run', join(root, 'run')], { cwd: root });
-    assert.equal(stale.status, 1);
+    assert.equal(stale.status, 1, 'a touched digest that names an older report is still stale');
     assert.match(stale.stderr, /needs refreshing/);
-    assert.match(stale.stderr, /older than the latest report .*qa\.md/);
+    assert.match(stale.stderr, /but the newest report is .*later\.md/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('the CLI fails on a run or reports path that does not exist (M1)', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'digest-cli-'));
+  const feature = join(root, 'features', 'active', 'FEAT-0001-example');
+  await mkdir(feature, { recursive: true });
+  await writeFile(join(feature, 'CURRENT.md'), digest());
+  try {
+    const wrongRun = run(['--feature', 'FEAT-0001', '--run', join(root, 'runn')], { cwd: root });
+    assert.equal(wrongRun.status, 1);
+    assert.match(wrongRun.stderr, /--run .* is not a directory/);
+
+    const wrongReports = run(['--feature', 'FEAT-0001', '--reports', join(root, 'reportz')], { cwd: root });
+    assert.equal(wrongReports.status, 1);
+    assert.match(wrongReports.stderr, /--reports .* is not a directory/);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
