@@ -38,6 +38,11 @@ A ready feature enters adversarial discovery, then the Product Manager, spec,
 Architect, and Designer flow. Ask only decisions whose prerequisites are settled.
 Confirm material product decisions with the human. Discovery readiness is not
 implementation approval. Reuse existing approved architecture for bug corrections.
+Before the architecture publishes, run `node scripts/agents/migration-gate.mjs
+--number <n> [--function <name>=<copy base>]` against `origin/main` (default
+directory `apps/backend/migrations`, override with `--migrations`). A taken number, or
+a function whose latest definition on the base is newer than the declared copy base,
+is a `BLOCKER[architect]`.
 
 Finish when required inputs and authorization are recorded. Duplicate, declined,
 unclear, and unsafe requests stop with a reason and owner.
@@ -150,6 +155,17 @@ A QA actor who did not author the merge runs the check. Any change to the candid
 own code, tests, or behaviour is a full candidate change. A fresh independent review
 still covers the final head once before it is offered for merge. Without this
 exception, a fast-moving base restarts every gate after each merge.
+
+### Stacked layer PRs
+
+Split a large candidate into stacked layer PRs with
+`node scripts/agents/split-layers.mjs --candidate <ref> --base <ref> --layer
+web=apps/web --layer api=apps/api`. Each branch carries only the candidate's diff
+against the merge-base for its own paths, stacked on the previous branch. The script
+fails when a layer reverts a file the base changed since the merge-base and names those
+files, so review each layer against `origin/main` before the next. Build every layer
+from the candidate's diff: a directory copy such as `git checkout <ref> -- apps/web`
+overwrites the base's newer files, while the diff keeps them.
 
 Publish the actual candidate after work finishes; never invent a future code hash
 to schedule a repair. Controller-generated recheck tasks use the same cost mode
