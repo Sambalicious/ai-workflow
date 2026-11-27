@@ -76,6 +76,21 @@ test('--record writes the receipt into the feature folder a feature id names', a
   }
 });
 
+test('the security role resolves to the review tier and records a receipt under its own name', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'preflight-'));
+  try {
+    const result = runIn(dir, ['security', '--client', 'claude-code', '--record', dir]);
+    assert.equal(result.status, 0, result.stderr);
+    const receipt = JSON.parse(await readFile(join(dir, '.preflight-security.json'), 'utf8'));
+    assert.equal(receipt.role, 'security');
+    assert.equal(receipt.tier, 'advisor', 'the same tier as the code review');
+    const review = runIn(dir, ['security-review', '--client', 'claude-code', '--json']);
+    assert.equal(JSON.parse(review.stdout).model, receipt.model, 'the alias runs at review\'s model');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test('--record fails on an unknown run instead of creating it', async () => {
   const cwd = await mkdtemp(join(tmpdir(), 'preflight-project-'));
   try {
@@ -129,6 +144,7 @@ const gitProject = async (pushRemoteName) => {
   spawnSync('git', ['-C', dir, 'init', '-q', '-b', 'main'], { encoding: 'utf8' });
   spawnSync('git', ['-C', dir, 'config', 'user.email', 'qa@example.com'], { encoding: 'utf8' });
   spawnSync('git', ['-C', dir, 'config', 'user.name', 'QA'], { encoding: 'utf8' });
+  spawnSync('git', ['-C', dir, 'config', 'commit.gpgsign', 'false'], { encoding: 'utf8' });
   await writeFile(join(dir, 'file.txt'), 'x\n');
   spawnSync('git', ['-C', dir, 'add', '-A'], { encoding: 'utf8' });
   spawnSync('git', ['-C', dir, 'commit', '-q', '-m', 'base'], { encoding: 'utf8' });
