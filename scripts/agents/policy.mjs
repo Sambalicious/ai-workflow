@@ -109,8 +109,12 @@ export async function policyProblems(root = ROOT) {
   }
 
   // Authoring is worker tier: the rule must be present, and the gates must not be.
+  // AGENTS.md is auto-loaded, so the section lives in whichever reference file it routes
+  // to; check the router and everything it references as one policy corpus.
   const agents = await readText(join(root, 'AGENTS.md'));
-  if (!agents.includes('### Authoring is worker tier')) problems.push('AGENTS.md has no "Authoring is worker tier" section');
+  const policyRefs = [...new Set(agents.match(/\.agents\/reference\/[\w.-]+\.md/g) ?? [])];
+  const policy = [agents, ...(await Promise.all(policyRefs.map((ref) => readText(join(root, ref)))))].join('\n');
+  if (!policy.includes('Authoring is worker tier')) problems.push('no "Authoring is worker tier" section');
   for (const role of REQUIRED_ROLES) {
     if (!roles[role]) problems.push(`role "${role}" is named by the pipeline but missing from .agents/models.json`);
   }

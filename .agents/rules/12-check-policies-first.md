@@ -10,10 +10,10 @@ Read the sections of `AGENTS.md` that govern the decision. List headings first, 
 
 | You are about to | Check first |
 |---|---|
-| Dispatch a role or subagent | Role activation policy, Role model policy, `.agents/models.json` |
+| Dispatch a role or subagent | Role activation policy, Role model policy (`.agents/reference/role-model-policy.md`), `.agents/models.json` |
 | Choose a model, tier, or provider for any task | Role model policy and `.agents/models.json` for your client. Never type a model name from memory |
 | Hand bulk, scoped work to a worker | Worker routing and metrics, then `orchestrator_capabilities` where the client has it |
-| Decide a lane (fast or full) | Fast lane for small fixes |
+| Decide a lane (fast or full) | Fast lane for small fixes, in `.agents/reference/pipeline-runs.md` |
 | Enable or skip Copywriter, SEO, or any opt-in role | Role activation policy |
 | Quote a cost, estimate, or actual | Cost reporting policy |
 | Skip, merge, or reuse a gate | Revision loop, factory-loop skill, rule 02 |

@@ -1,0 +1,9 @@
+node_modules/
+.DS_Store
+
+# Run artifacts. Keep the spec, the contract and the numbered revisions; drop
+# regenerable derivations and evidence, which belong under RUN_ROOT.
+features/**/test-plan-derivation*.md
+features/**/reports/
+features/**/screenshots/
+features/**/*.playwright-report/
