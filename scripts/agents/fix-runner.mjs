@@ -202,7 +202,6 @@ export async function fixRun({ id, reportPath, packetPath, projectRoot, runRoot,
     ...verdicts.map((v) => `- ${v.label}: ${v.verdict.line} (${join(runRoot, v.artifact)})`), '',
     p.brief, '',
     'Not verified by the runner: anything the project\'s checks do not cover. Merge and deploy are left to a human.', '',
-    '🤖 Generated with [Claude Code](https://claude.com/claude-code)', '',
   ].join('\n');
   const bodyFile = join(reports, `${slug}.pr-body.md`);
   await writeFile(bodyFile, body);
