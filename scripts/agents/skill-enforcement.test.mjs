@@ -75,15 +75,29 @@ test('common report formatting counts, and a list that disclaims reading does no
     'Skills read: tdd, clean-code.',
     'Skills read: tdd,\nclean-code',
     '**Skills read:**\n\n1. tdd\n2. clean-code',
+    'Skills read:\n/f/tdd/SKILL.md\n/f/clean-code/SKILL.md',
+    'Skills read:\n```\n/f/tdd/SKILL.md\n/f/clean-code/SKILL.md\n```',
+    'Skills read:\n\n- tdd\n\n- clean-code',
+    'Skills read:\n1) tdd\n• clean-code',
+    'Skills read: /f/skills/tdd and /f/skills/clean-code/SKILL.md.',
+    'Skills read: /My Code/f/tdd/SKILL.md, /My Code/f/clean-code/SKILL.md',
   ]) assert.deepEqual(unreadSkills(line, need), [], line);
   for (const line of [
     'Skills read: none (tdd/SKILL.md and clean-code/SKILL.md did not apply)',
     'Skills read:\n- none: tdd, clean-code did not apply',
+    'Skills read: none\n- tdd\n- clean-code',
+    // A list that mixes a denial into its entries counts for nothing.
+    'Skills read: /f/tdd/SKILL.md, skipped clean-code',
   ]) assert.deepEqual(unreadSkills(line, need), need, line);
   for (const line of [
     'Skills read: /f/tdd/SKILL.md\n\nNot read: /f/clean-code/SKILL.md',
     'Skills read:\n- /f/tdd/SKILL.md\n\nSkipped: clean-code',
     'Skills read: /f/tdd/SKILL.md, clean-code-principles, /f/clean-code/reference.md',
+    'Skills read: /f/tdd/SKILL.md (docs change, so clean-code did not apply)',
+    'Skills read: /f/tdd/SKILL.md; clean-code: not applicable',
+    'Skills read: /f/tdd/SKILL.md, /proj/docs/clean-code.md',
+    'Skills read: /f/tdd/SKILL.md\nSkipped\n- clean-code',
+    'Skills read:\n- /f/tdd/SKILL.md\n- /f/clean-code/SKILL.md was not needed',
   ]) assert.deepEqual(unreadSkills(line, need), ['clean-code/SKILL.md'], line);
   assert.deepEqual(unreadSkills('Skills read: impeccable', ['impeccable/reference/audit.md']), ['impeccable/reference/audit.md']);
 });
@@ -124,6 +138,7 @@ test('a gate follow-up is recorded, keeps the first report and cannot rerun the 
   const [first, second] = f.of('claude');
   assert.ok(first.includes('Bash(pnpm:*)'));
   assert.ok(!second.includes('Bash(pnpm:*)'));
+  assert.equal(f.of('node').filter((args) => args[0].endsWith('preflight.mjs') && args[1] === 'qa-gate').length, 2);
   const attempt = join(dir, 'reports', 'o_r_7.qa-gate.attempt1.md');
   assert.ok(second[1].includes(attempt));
   assert.match(second[1], /do not run the project's checks again/);

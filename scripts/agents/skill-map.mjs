@@ -143,36 +143,49 @@ export function requiredSkills(roles, only = null) {
   return [...new Set(files)];
 }
 
-const BULLET = /^\s*(?:[-*+]|\d+\.)\s/;
-const blank = (line) => !/[^\s*_`]/.test(line);
+const BULLET = /^\s*(?:[-*+•]|\d+[.)])\s+/;
+// A bare word, or an absolute path to a markdown file that may contain spaces.
+const isReference = (item) => !/\s/.test(item) || (item.startsWith('/') && item.endsWith('.md') && !/\s\//.test(item));
 
-// What the report's last "Skills read" statement lists: the rest of that line, with
-// comma-continued lines, or the bullet list under it. "none (...)" lists nothing.
-function skillsListed(report) {
-  const last = [...report.matchAll(/skills read[*_`]*(?:\s*\([^)\n]*\))?[*_`]*\s*:/gi)].pop();
-  if (!last) return '';
-  const lines = report.slice(last.index + last[0].length).split('\n');
-  let start = 0;
-  while (start < lines.length - 1 && blank(lines[start])) start += 1;
-  const bulleted = start > 0 && BULLET.test(lines[start]);
-  let end = start + 1;
-  while (end < lines.length && (bulleted ? BULLET.test(lines[end]) : lines[end - 1].trimEnd().endsWith(','))) end += 1;
-  const listed = lines.slice(start, end).join('\n');
-  return /^[\s*_`"'-]*none\b/i.test(listed) ? '' : listed;
+// The file references on one line of a list. A ";"-separated part that says anything
+// else ("skipped tdd", "tdd: not applicable") contributes nothing.
+function references(line) {
+  const text = line.replace(BULLET, '').replace(/\([^()]*\)/g, '').replace(/[*`"'[\]]|__/g, '');
+  return text.split(';').flatMap((part) => {
+    const items = part.split(/,|\s+and\s+/).map((item) => item.trim().replace(/^and\s+/, '').replace(/\.$/, '')).filter(Boolean);
+    return items.every(isReference) ? items : [];
+  });
 }
 
-// A SKILL.md also counts when only the skill's name is given.
-function names(listed, file) {
+// A SKILL.md also counts when only the skill's name or folder is given.
+function names(reference, file) {
+  if (reference === file || reference.endsWith(`/${file}`)) return true;
   const [skill, ...rest] = file.split('/');
-  const path = rest.join('/').replaceAll('.', '\\.');
-  const tail = rest.join('/') === 'SKILL.md' ? `(?:/${path}(?![\\w-])|(?![\\w/-]))` : `/${path}(?![\\w-])`;
-  return new RegExp(`(?<![\\w-])${skill}${tail}`).test(listed);
+  return rest.join('/') === 'SKILL.md' && (reference === skill || reference.endsWith(`/skills/${skill}`));
+}
+
+// What the report's last "Skills read" statement lists: that line, then each following
+// bullet or line of file references, up to the first line that is something else.
+function skillsListed(report, required) {
+  const last = [...report.matchAll(/skills read[*_`]*(?:\s*\([^)\n]*\))?[*_`]*\s*:/gi)].pop();
+  if (!last) return [];
+  const [head, ...below] = report.slice(last.index + last[0].length).split('\n');
+  const listed = references(head);
+  if (listed[0]?.toLowerCase() === 'none') return [];
+  for (const line of below) {
+    if (/^\s*(?:```\w*|[*_]*)\s*$/.test(line)) continue;
+    const found = references(line);
+    const isList = found.length && found.every((ref) => ref.includes('/') || required.some((file) => names(ref, file)));
+    if (!BULLET.test(line) && !isList) break;
+    listed.push(...found);
+  }
+  return listed;
 }
 
 // Required files missing from the report's last "Skills read" statement.
 export function unreadSkills(report, required) {
-  const listed = skillsListed(report ?? '');
-  return required.filter((file) => !names(listed, file));
+  const listed = skillsListed(report ?? '', required);
+  return required.filter((file) => !listed.some((reference) => names(reference, file)));
 }
 
 export function skillBlock(roles, factoryRoot = FACTORY_ROOT, only = null) {

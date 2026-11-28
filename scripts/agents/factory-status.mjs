@@ -27,7 +27,7 @@ export async function collect(runRoot) {
   } catch (error) {
     throw new Error(`no reports directory at ${reports} (${error?.code ?? error?.message})`);
   }
-  const slugs = [...new Set(names.filter((n) => /\.md$/.test(n) && !/\.(qa-gate|security-review|code-review|pr-body|implementation|tests)\.md$/.test(n)).map((n) => n.replace(/\.(fix|feature)\.md$|\.md$/, '')))];
+  const slugs = [...new Set(names.filter((n) => /\.md$/.test(n) && !/\.(qa-gate|security-review|code-review|pr-body|implementation|tests|attempt1)\.md$/.test(n)).map((n) => n.replace(/\.(fix|feature)\.md$|\.md$/, '')))];
   const tickets = [];
   for (const slug of slugs) {
     const triage = await read(join(reports, `${slug}.md`));
