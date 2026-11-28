@@ -46,6 +46,17 @@ for (const [name, verdicts] of Object.entries(skills)) {
   });
 }
 
+test('role files never point at a vendored skill monolith', async () => {
+  // Vendored skills ship a concatenated AGENTS.md for clients that read that name.
+  // Loading it wholesale costs tens of thousands of tokens; a role must point at
+  // SKILL.md or a section of it instead.
+  const agentsDir = new URL('../', import.meta.url);
+  for (const file of (await readdir(agentsDir)).filter((f) => f.endsWith('.md'))) {
+    const text = await readFile(new URL(`../${file}`, import.meta.url), 'utf8');
+    assert.doesNotMatch(text, /skills\/[\w.-]+\/AGENTS\.md/, `${file} loads a vendored skill monolith`);
+  }
+});
+
 test('usage links and package rules include the shared skills', factoryOnly, async () => {
   const root = new URL('../../', import.meta.url);
   const readme = await readFile(new URL('README.md', root), 'utf8');
@@ -62,8 +73,10 @@ test('factory integration references executable roles and controller', factoryOn
   assert.ok(packageJson.files.includes('factory/'));
   assert.ok(packageJson.files.includes('AGENTS.md'));
   const orchestrator = await readFile(new URL('AGENTS.md', root), 'utf8');
-  assert.match(orchestrator, /\.agents\/skills\/factory-loop\/SKILL\.md/);
-  assert.match(orchestrator, /dispatch a fresh independent reviewer/);
+  const pipelineRuns = await readFile(new URL('.agents/reference/pipeline-runs.md', root), 'utf8');
+  const instructions = await readFile(new URL('.agents/reference/instructions.md', root), 'utf8');
+  assert.match(pipelineRuns, /\.agents\/skills\/factory-loop\/SKILL\.md/);
+  assert.match(instructions, /dispatch a fresh independent reviewer/);
   const protocol = await readFile(new URL('factory/PROTOCOL.md', root), 'utf8');
   assert.match(protocol, /local attestations/);
   assert.match(protocol, /publish/);
@@ -94,14 +107,14 @@ test('factory policy keeps assessments opt-in without weakening verification or 
     const source = await readFile(new URL(path, root), 'utf8');
     assert.match(source, /role activation policy/, `${path} must reference the policy`);
   }
-  const prompt = orchestrator.split('## Invoking the full pipeline')[1].split('```')[1];
+  const prompt = (await readFile(new URL('.agents/reference/invoking-pipeline.md', root), 'utf8')).split('```')[1];
   assert.match(prompt, /Use AGENTS.md role defaults/);
   assert.doesNotMatch(prompt, /Invoke.*(?:Growth|Data Analyst|Pentester|Release Manager)/);
   assert.match(policy, /`copywriter` and `seo` are default pipeline roles/);
   assert.match(policy, /fast lane/);
   assert.match(policy, /When in doubt, run the role/);
-  assert.match(orchestrator, /## Role model policy/);
-  const roleModel = orchestrator.split('## Role model policy\n')[1].split('\n## ')[0];
+  assert.match(orchestrator, /role-model-policy\.md/);
+  const roleModel = await readFile(new URL('.agents/reference/role-model-policy.md', root), 'utf8');
   assert.match(roleModel, /Designer review and the QA gate\s+run on the lead tier/);
   assert.match(roleModel, /design-spec consult/);
   assert.match(roleModel, /Security candidate review/);
@@ -228,8 +241,9 @@ test('designer owns layout and copy slots, copywriter owns words, and review mod
   assert.match(frontend, /raise `BLOCKER\[designer\]`/);
   assert.match(frontend, /raise `BLOCKER\[copywriter\]`/);
   const orchestrator = await read('AGENTS.md');
+  assert.match(orchestrator, /instructions\.md/);
   assert.match(await read('.agents/reference/pipeline.md'), /\[6b\] Designer review/);
-  assert.match(orchestrator, /design-review\.md/);
+  assert.match(await read('.agents/reference/instructions.md'), /design-review\.md/);
   const rule = await read('.agents/rules/02-no-pipeline-jump.md');
   assert.match(rule, /\| Designer \(review mode\) \|/);
 });
@@ -237,7 +251,7 @@ test('designer owns layout and copy slots, copywriter owns words, and review mod
 test('review screenshots are run evidence, not committed artifacts', async () => {
   const root = new URL('../../', import.meta.url);
   const read = (path) => readFile(new URL(path, root), 'utf8');
-  assert.match(await read('AGENTS.md'), /RUN_ROOT\/reports\/screenshots\//);
+  assert.match(await read('AGENTS.md'), /output-files\.md/);
   for (const role of ['.agents/designer.md', '.agents/qa.md']) {
     assert.match(await read(role), /RUN_ROOT\/reports\/screenshots\//, `${role} names the evidence directory`);
   }

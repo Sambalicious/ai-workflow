@@ -37,12 +37,15 @@ Read each before the step that uses it.
 | `.agents/skills/impeccable/reference/clarify.md` | Every copy slot: one fact, one next action |
 | `.agents/skills/impeccable/reference/distill.md` | Cutting each screen to its primary goal |
 | `.agents/skills/impeccable/reference/harden.md` and `onboard.md` | Empty, loading, error, and first-run states |
-| `.agents/skills/emil-design-eng/SKILL.md` | Deciding which interactions deserve motion and how they should feel |
-| `.agents/skills/break-ui/SKILL.md` | Stating how each data component handles worst-case data |
+| `.agents/skills/emil-design-eng/SKILL.md`, sections **The Animation Decision Framework** (lines 62-146) and **Spring Animations** (147-196) | Deciding which interactions deserve motion and how they should feel. Jump to those headings and stop at the next `##`; the rest of the file is implementation detail for the Frontend Engineer |
+| `.agents/skills/break-ui/SKILL.md`, sections **Hard Rules** (29-37) and **Workflow** (38-138) | Stating how each data component handles worst-case data |
 | `.agents/skills/impeccable/reference/critique.md` | Preview and review modes only |
 | `.agents/skills/unslop/SKILL.md` | Slot intents and the TL;DR |
 
-Use `apple-design` when the surface has gestures, sheets, or drag interactions. When Mobbin MCP is unavailable, record that under References and cite the public products you drew from instead.
+Use `apple-design` when the surface has gestures, sheets, or drag interactions: read
+principles 3-6, 9 and 14 plus **Quick Reference** (lines 61-207 and 267-273) and no
+more. When Mobbin MCP is unavailable, record that under References and cite the public
+products you drew from instead.
 
 ## Spec mode steps
 

@@ -53,11 +53,26 @@ export async function plan(root = ROOT) {
   const outputs = new Map();
   const agents = await readOr(join(root, 'AGENTS.md'), null);
   if (agents !== null) {
-    if (!TIER_TABLE.test(agents)) throw new Error('AGENTS.md: missing tier-table markers');
-    for (const ref of new Set(agents.match(/\.agents\/reference\/[\w.-]+\.md/g) ?? [])) {
+    const refs = [...new Set(agents.match(/\.agents\/reference\/[\w.-]+\.md/g) ?? [])];
+    for (const ref of refs) {
       if ((await readOr(join(root, ref), null)) === null) throw new Error(`AGENTS.md references missing ${ref}`);
     }
-    outputs.set('AGENTS.md', agents.replace(TIER_TABLE, (_, start, end) => `${start}${renderTierTable(models)}${end}`));
+    // AGENTS.md is auto-loaded by every session, so the tier table may live in a
+    // reference file it links rather than in the file itself. Exactly one copy owns
+    // the markers; zero copies means the table could silently go stale.
+    const owners = [];
+    for (const rel of ['AGENTS.md', ...refs]) {
+      const text = rel === 'AGENTS.md' ? agents : await readOr(join(root, rel), null);
+      if (TIER_TABLE.test(text)) owners.push([rel, text]);
+    }
+    if (owners.length !== 1) {
+      throw new Error(
+        `missing tier-table markers: expected exactly one copy in AGENTS.md or a file it references, found ${owners.length}`,
+      );
+    }
+    for (const [rel, text] of owners) {
+      outputs.set(rel, text.replace(TIER_TABLE, (_, start, end) => `${start}${renderTierTable(models)}${end}`));
+    }
   }
   return outputs;
 }

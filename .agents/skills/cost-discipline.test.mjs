@@ -32,11 +32,7 @@ test('no client tier runs on Haiku', async () => {
 // One source of truth: .agents/models.json, rendered into the table by
 // scripts/agents/sync.mjs. A model named again in prose is the copy that goes stale
 // (an installed AGENTS.md once had swarm = haiku in prose while models.json said Flash).
-test('AGENTS.md names no model outside the generated tier table', async () => {
-  const orchestrator = await readFile(new URL('AGENTS.md', root), 'utf8');
-  const table = orchestrator.match(/<!-- tier-table:start[\s\S]*?<!-- tier-table:end -->/);
-  assert.ok(table, 'AGENTS.md needs the generated tier table');
-  const prose = orchestrator.replace(table[0], '');
+test('no policy file names a model outside the generated tier table', async () => {
   const models = JSON.parse(await readFile(new URL('.agents/models.json', root), 'utf8'));
   const families = new Set(['haiku']);
   for (const tiers of Object.values(models.clients)) {
@@ -44,7 +40,19 @@ test('AGENTS.md names no model outside the generated tier table', async () => {
       families.add(model.split('/').pop().split('-')[0]);
     }
   }
-  for (const family of families) {
-    assert.doesNotMatch(prose, new RegExp(`\\b${family}\\b`, 'i'), `AGENTS.md names "${family}" outside the tier table; resolve it with pnpm agents:model`);
+  let table;
+  for (const file of ['AGENTS.md', '.agents/reference/role-model-policy.md']) {
+    const text = await readFile(new URL(file, root), 'utf8');
+    const match = text.match(/<!-- tier-table:start[\s\S]*?<!-- tier-table:end -->/);
+    if (match) table = match[0];
+    const prose = match ? text.replace(match[0], '') : text;
+    for (const family of families) {
+      assert.doesNotMatch(
+        prose,
+        new RegExp(`\\b${family}\\b`, 'i'),
+        `${file} names "${family}" outside the tier table; resolve it with pnpm agents:model`,
+      );
+    }
   }
+  assert.ok(table, 'a policy file needs the generated tier table');
 });

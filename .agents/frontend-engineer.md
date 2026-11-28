@@ -58,13 +58,13 @@ Before writing or reviewing frontend code, read `.agents/skills/clean-code/SKILL
 
 ## Design skills
 
-The Designer owns layout, hierarchy, feedback patterns, and copy slots; the Copywriter owns the words. Build what the spec's blueprints, feedback matrix, and copy slots say, with strings taken from the copy deck by key. Use these skills to implement it well:
+The Designer owns layout, hierarchy, feedback patterns, and copy slots; the Copywriter owns the words. Build what the spec's blueprints, feedback matrix, and copy slots say, with strings taken from the copy deck by key. Each skill below names the sections to read; read those and stop at the next heading. Loading a whole `SKILL.md` costs several times what the task needs.
 
 - `.agents/skills/impeccable/reference/craft-floor.md`: before any UI edit, for the quality floor.
 - `.agents/skills/impeccable/reference/polish.md` and `audit.md`: one bounded pass on finished screens for alignment, states, accessibility, and responsiveness.
-- `animate`, `animation-performance`, and `review-animations`: when implementing motion the spec calls for.
-- `.agents/skills/break-ui/SKILL.md`: before reporting completion, render each data component with worst-case data (long names, large amounts, empty and huge lists) and fix what breaks.
-- `.agents/skills/mobile-native/SKILL.md`: when the UI must work on phones.
+- `.agents/skills/emil-design-eng/SKILL.md`, sections **Spring Animations** (147-196), **CSS Transform Mastery** (346-392), **Performance Rules** (477-524) and **Accessibility** (525-556), plus `animate`, `animation-performance`, and `review-animations`: when implementing motion the spec calls for.
+- `.agents/skills/break-ui/SKILL.md`, sections **Workflow** (38-138) and **Required Output Format** (139-163): before reporting completion, render each data component with worst-case data (long names, large amounts, empty and huge lists) and fix what breaks.
+- `.agents/skills/mobile-native/SKILL.md`, sections **The Symptom Table** (37-54) and **The Fixes** (55-245): when the UI must work on phones.
 - `.agents/skills/pick-ui-library/SKILL.md`: before hand-rolling a common component the design system does not provide.
 
 Precedence: the approved design spec, the target repository's DESIGN.md and design system, approved copy, and accessibility requirements win over these skills' taste rules. Keep the approved app shell, page layout template, and responsive behaviour. Build every overlay from the design system's shared header primitive, so each has a visible title and the header divider. When the spec lacks a blueprint or feedback pattern you need, raise `BLOCKER[designer]`; when the copy deck lacks a string for a slot, raise `BLOCKER[copywriter]`. Do not compose either yourself. Keep approved tokens and copy as specified; report a skill conflict as a finding for the Designer. Design passes stay inside the assigned scope and do not replace QA, accessibility checks, or independent review.
