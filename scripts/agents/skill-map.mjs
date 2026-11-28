@@ -118,16 +118,51 @@ export const ROLE_SKILLS = {
   ],
 };
 
+// Skills whose trigger applies to every session of the role. Runners halt a run whose
+// report does not list them.
+const BUILDER_REQUIRED = ['tdd', 'clean-code', 'principle-prove-it-works', 'unslop'];
+export const REQUIRED = {
+  'backend-engineer': BUILDER_REQUIRED,
+  'frontend-engineer': BUILDER_REQUIRED,
+  qa: ['principle-prove-it-works', 'unslop'],
+  security: ['owasp-security'],
+  'code-reviewer': ['code-review'],
+};
+
+const entriesFor = (role, only) => {
+  if (!ROLE_SKILLS[role]) throw new Error(`no skills are mapped to role "${role}"`);
+  return ROLE_SKILLS[role].filter(([skill]) => !only || only.includes(skill));
+};
+const isRequired = (role, skill) => (REQUIRED[role] ?? []).includes(skill);
+
+// "<skill>/<file>" for each file the session must read, without duplicates across roles.
+export function requiredSkills(roles, only = null) {
+  const files = roles.flatMap((role) => entriesFor(role, only)
+    .filter(([skill]) => isRequired(role, skill))
+    .map(([skill, , file = 'SKILL.md']) => `${skill}/${file}`));
+  return [...new Set(files)];
+}
+
+// Required files missing from the report's last "Skills read" statement.
+export function unreadSkills(report, required) {
+  const last = [...(report ?? '').matchAll(/skills read[*_`]*\s*:/gi)].pop();
+  const listed = last ? report.slice(last.index) : '';
+  return required.filter((file) => !new RegExp(`(^|[\\s/\`(,])${file.replace(/[.]/g, '\\.')}`).test(listed));
+}
+
 export function skillBlock(roles, factoryRoot = FACTORY_ROOT, only = null) {
-  const sections = roles.map((role) => {
-    if (!ROLE_SKILLS[role]) throw new Error(`no skills are mapped to role "${role}"`);
-    const lines = ROLE_SKILLS[role]
-      .filter(([skill]) => !only || only.includes(skill))
-      .map(([skill, when, file = 'SKILL.md']) => `- ${when}: ${join(factoryRoot, '.agents/skills', skill, file)}`);
-    return `${role}:\n${lines.join('\n')}`;
+  const path = (file) => join(factoryRoot, '.agents/skills', file);
+  const required = requiredSkills(roles, only);
+  const first = required.length ? `\nRequired in every session. Read these before you start:\n${required.map((file) => `- ${path(file)}`).join('\n')}` : '';
+  const sections = roles.flatMap((role) => {
+    const lines = entriesFor(role, only)
+      .filter(([skill]) => !isRequired(role, skill))
+      .map(([skill, when, file = 'SKILL.md']) => `- ${when}: ${path(`${skill}/${file}`)}`);
+    return lines.length ? [`${role}:\n${lines.join('\n')}`] : [];
   });
   const choose = roles.length > 1 ? ' Use only the lists for the code you change.' : '';
-  return `Skills. Each line is a trigger, then a file. When a trigger applies, read the file before that step; skip the rest.${choose} The project's own rules and the approved documents win over a skill.\n${sections.join('\n')}`;
+  const rest = sections.length ? `\nRead when the trigger applies, before that step; skip the rest.${choose}\n${sections.join('\n')}` : '';
+  return `Skills. The project's own rules and the approved documents win over a skill.${first}${rest}`;
 }
 
 // Runners append this so a skipped skill shows up in the report instead of passing silently.

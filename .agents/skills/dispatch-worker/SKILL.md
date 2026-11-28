@@ -100,8 +100,10 @@ that omits it, or leaves a status or evidence cell blank, without reading furthe
 a summary paragraph is not a result.
 
 One row is always `skills read`: the evidence lists the skill files the worker
-opened, or says why no trigger applied. Send a rewrite when a trigger plainly
-applied and its file is missing from that row.
+opened, or says why no trigger applied. When a file the brief marks required is
+missing from that row, send one follow-up to the same task naming it. If it is
+still missing, report `BLOCKER[lead]: required skill not read` and stop. Send a
+rewrite when another trigger plainly applied and its file is missing.
 
 A 429, provider block, tool error, or timeout inside the task makes the report
 `incomplete`, never `completed`. The affected row says `failed` or `skipped`, names

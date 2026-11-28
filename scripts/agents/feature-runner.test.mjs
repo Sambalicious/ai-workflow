@@ -16,17 +16,20 @@ async function setup(verdict = 'READY_FEATURE') {
   return { dir, reportPath, prdPath };
 }
 
+// A well-behaved session lists the skill files its prompt names.
+const reads = (prompt) => (prompt.includes('Skills read') ? `\nSkills read: ${prompt.match(/\S+\/\.agents\/skills\/\S+\.md/g)?.join(', ')}` : '');
+
 function fake({ blockOn, blockText = 'BLOCKER[product-manager]: which currency?\n', gates = {}, ahead = '1' } = {}) {
   const calls = [];
   const run = (bin, args, opts = {}) => {
     calls.push([bin, args, opts.cwd]);
-    if (bin === 'opencode') return { status: 0, stdout: 'done', stderr: '' };
+    if (bin === 'opencode') return { status: 0, stdout: `done${reads(args.at(-1))}`, stderr: '' };
     if (bin === 'claude') {
       const prompt = args[1];
       const gate = ['QA', 'Security', 'Code review'].find((g) => prompt.includes(`independent ${g} reviewer`));
-      if (gate) return { status: 0, stdout: gates[gate] ?? `${gate === 'QA' ? 'QA' : gate === 'Security' ? 'SECURITY' : 'REVIEW'} PASS\nok` };
+      if (gate) return { status: 0, stdout: `${gates[gate] ?? `${gate === 'QA' ? 'QA' : gate === 'Security' ? 'SECURITY' : 'REVIEW'} PASS\nok`}${reads(prompt)}` };
       if (blockOn && prompt.includes(blockOn)) return { status: 0, stdout: blockText };
-      return { status: 0, stdout: `doc for ${args[args.indexOf('--model') + 1]}` };
+      return { status: 0, stdout: `doc for ${args[args.indexOf('--model') + 1]}${reads(prompt)}` };
     }
     if (bin === 'git' && args.includes('rev-list')) return { status: 0, stdout: ahead };
     if (bin === 'gh') return { status: 0, stdout: 'https://github.com/o/r/pull/12\n' };

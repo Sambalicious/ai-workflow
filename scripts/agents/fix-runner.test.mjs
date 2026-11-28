@@ -13,15 +13,18 @@ async function setup(verdict = 'READY_BUG') {
   return { dir, reportPath };
 }
 
+// A well-behaved session lists the skill files its prompt names.
+const reads = (prompt) => (prompt.includes('Skills read') ? `\nSkills read: ${prompt.match(/\S+\/\.agents\/skills\/\S+\.md/g)?.join(', ')}` : '');
+
 // A fake process runner that records calls and answers by command.
 function fake({ gates = {}, workerStatus = 0, ahead = '1' } = {}) {
   const calls = [];
   const run = (bin, args, opts = {}) => {
     calls.push([bin, args, opts.cwd]);
-    if (bin === 'opencode') return { status: workerStatus, stdout: 'done', stderr: '' };
+    if (bin === 'opencode') return { status: workerStatus, stdout: `done${reads(args.at(-1))}`, stderr: '' };
     if (bin === 'claude') {
       const role = ['QA', 'Security', 'code'].find((r) => args[1].includes(`independent ${r === 'code' ? 'Code review' : r}`));
-      return { status: 0, stdout: gates[role] ?? { QA: 'QA PASS\nok', Security: 'SECURITY PASS\nok', code: 'REVIEW PASS\nok' }[role] };
+      return { status: 0, stdout: `${gates[role] ?? { QA: 'QA PASS\nok', Security: 'SECURITY PASS\nok', code: 'REVIEW PASS\nok' }[role]}${reads(args[1])}` };
     }
     if (bin === 'git' && args.includes('rev-list')) return { status: 0, stdout: ahead };
     if (bin === 'gh') return { status: 0, stdout: 'https://github.com/o/r/pull/9\n' };
