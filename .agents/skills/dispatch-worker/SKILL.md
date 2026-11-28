@@ -36,7 +36,8 @@ procedure.
    Workflow, or CLIs.
 2. Write the brief: goal, files in scope, acceptance checks with the exact command
    and expected result, what not to touch, the source sections to follow, the
-   stop-and-report conditions, and the Results table the worker fills in.
+   stop-and-report conditions, the context budget below, and the Results table
+   the worker fills in.
 3. Dispatch with `delegate_task`. Settings belong in `target.options`; never build
    a child checkout in the shell.
 
@@ -62,6 +63,26 @@ procedure.
    the run root and read the summary, never the raw transcript.
 5. Close the task: accept, send one specific rewrite, or escalate one rung. Update
    `metrics.md` in the same step.
+
+## Sizing and context budget
+
+Every call re-reads the whole session, so cost grows with calls times context. One
+long session costs far more than two half-length ones, and a fresh context also
+reasons better.
+
+- One worker, one slice: a screen, an endpoint, or one feature's checks. Split a job
+  that would run past a few hundred calls (an app-wide test pass, a multi-screen
+  build) into one fresh worker per slice. Brief each with paths and the previous
+  slice's PR, never the session history.
+- Every brief repeats these context rules:
+  - Never open a screenshot or other image with the read tool. Pass the file path
+    to whatever publishes it, and check a screen with `agent-browser snapshot -i`.
+  - Find with `grep -n`, then read only that range. Never read a large contract or
+    spec whole; read the section the brief names.
+  - Run tests and checks quietly and show failures, not the full pass log.
+- The worker's OpenCode config compacts early: `"compaction": { "auto": true,
+  "keep": { "tokens": 40000 }, "buffer": "70%" }` in `~/.config/opencode/opencode.json`.
+  With opencode's default of 15%, sessions grow to about 850k tokens before compacting.
 
 ## Results table
 

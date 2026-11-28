@@ -51,6 +51,9 @@ Anthropic models are served by the local CLIProxyAPI pool, not by an API key in 
 - proxy: `http://127.0.0.1:8317`, config `/opt/homebrew/etc/cliproxyapi.conf`
 - provider block: `~/.config/opencode/opencode.json`, key `provider.anthropic`, `baseURL`
   `http://127.0.0.1:8317/v1`
+- compaction: the same file sets `"compaction": { "auto": true, "keep": { "tokens": 40000 },
+  "buffer": "70%" }`, so a worker compacts at about 300k tokens. With opencode's default 15%
+  buffer, sessions reached about 850k and every call re-read all of it.
 - health check: a one-token `POST /v1/messages` with `x-api-key` from the proxy config and
   `anthropic-version: 2023-06-01`, expecting a reply, not a 401 or a spend-limit error
 
