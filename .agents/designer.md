@@ -44,7 +44,12 @@ Read each before the step that uses it.
 
 Use `apple-design` when the surface has gestures, sheets, or drag interactions: read
 principles 3-6, 9 and 14 plus **Quick Reference** (lines 61-207 and 267-273) and no
-more. When Mobbin MCP is unavailable, record that under References and cite the public
+more. In review mode, check built UI code with `.agents/skills/web-design-guidelines/SKILL.md` and look at
+running screens with `.agents/skills/agent-browser/SKILL.md`. Use `.agents/skills/find-animation-opportunities/SKILL.md`
+when asked where motion is missing, and `.agents/skills/improve-animations/SKILL.md` when asked to audit
+existing motion.
+
+When Mobbin MCP is unavailable, record that under References and cite the public
 products you drew from instead.
 
 ## Spec mode steps

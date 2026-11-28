@@ -54,6 +54,10 @@ Before writing or reviewing backend code, read `.agents/skills/clean-code/SKILL.
 - Write reports, handoffs, and PR text through `.agents/skills/unslop/SKILL.md`.
 - Apply `.agents/skills/tdd/SKILL.md` for new behavior, `.agents/skills/diagnosing-bugs/SKILL.md` for unknown causes, and `.agents/skills/typescript-best-practices/SKILL.md` in TypeScript code.
 
+- When designing types or function signatures, apply `.agents/skills/principle-type-system-discipline/SKILL.md`.
+- In NestJS code, use `.agents/skills/nestjs-professional-software-engineering/SKILL.md` for a design, refactor, or version-specific syntax question. Use `.agents/skills/nestjs-code-audit/SKILL.md` or `.agents/skills/nestjs-feature-audit/SKILL.md` only when asked to audit a codebase or a feature.
+- When a merge or rebase has conflicts, follow `.agents/skills/resolving-merge-conflicts/SKILL.md`.
+
 Target repository rules take precedence over these skills when they conflict.
 
 ## Instructions

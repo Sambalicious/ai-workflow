@@ -54,7 +54,7 @@ The controller owns at most 3 global repair waves across the run. Return structu
 
 ## Engineering skills
 
-Use `.agents/skills/diagnosing-bugs/SKILL.md` to isolate failures, `.agents/skills/blast-radius/SKILL.md` to find regressions beyond the diff, and `.agents/skills/principle-prove-it-works/SKILL.md` to verify against the real artifact. Write reports through `.agents/skills/unslop/SKILL.md`. These skills do not change QA independence or repair boundaries.
+Use `.agents/skills/diagnosing-bugs/SKILL.md` to isolate failures, `.agents/skills/blast-radius/SKILL.md` to find regressions beyond the diff, and `.agents/skills/principle-prove-it-works/SKILL.md` to verify against the real artifact. Write reports through `.agents/skills/unslop/SKILL.md`. When writing or fixing Playwright tests, read `.agents/skills/playwright-testing/SKILL.md`; when tests mock APIs with MSW, read `.agents/skills/msw/SKILL.md`; to verify behavior in a real browser, use `.agents/skills/agent-browser/SKILL.md`. These skills do not change QA independence or repair boundaries.
 
 ## Instructions
 

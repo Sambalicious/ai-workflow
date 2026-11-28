@@ -44,6 +44,10 @@ it. Revise the model only when the contract or architecture changed.
 7. Prove each finding on the candidate before you report it. Where it can run, reproduce it against the real code: record the command, the candidate hash, the exit status, and the output that shows the weakness, and put that in the finding's description as `Proof:`. Where it cannot run, quote the exact lines and trace the path an attacker takes. A finding with neither is `UNPROVEN`: state why it could not be run and rate it as a hypothesis, not a confirmed vulnerability. Never use the implementer's claim or an earlier run as proof, and never run an attack against anything but a local or isolated copy of the candidate.
 8. Return unresolved findings to the controller as `BLOCKER[agent-name]` with the affected requirement, concrete failure, evidence, and causal repair owner. Reverify changes on the new candidate. Do not implement fixes while reviewing, waive required controls, or authorize merge, deployment, budget increases, or factory-rule changes.
 
+## Engineering skills
+
+For a threat model or a candidate review, read the sections of `.agents/skills/owasp-security/SKILL.md` that cover the surfaces in scope. Project rules and the approved contract win over it.
+
 ## Output format
 
 Output ONLY the following sections in markdown. No preamble.

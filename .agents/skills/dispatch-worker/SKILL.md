@@ -36,8 +36,14 @@ procedure.
    Workflow, or CLIs.
 2. Write the brief: goal, files in scope, acceptance checks with the exact command
    and expected result, what not to touch, the source sections to follow, the
-   stop-and-report conditions, the context budget below, and the Results table
-   the worker fills in.
+   stop-and-report conditions, the context budget below, the skills block, and the
+   Results table the worker fills in. Get the skills block from the command below,
+   naming each role the task covers (`backend-engineer`, `frontend-engineer`, `qa`),
+   and paste its output into the brief unchanged:
+
+   ```sh
+   node "$FACTORY_ROOT/scripts/agents/skill-map.mjs" backend-engineer
+   ```
 3. Dispatch with `delegate_task`. Settings belong in `target.options`; never build
    a child checkout in the shell.
 
@@ -93,6 +99,10 @@ group, acceptance check, and gate the brief names - with a status of `done`,
 that omits it, or leaves a status or evidence cell blank, without reading further:
 a summary paragraph is not a result.
 
+One row is always `skills read`: the evidence lists the skill files the worker
+opened, or says why no trigger applied. Send a rewrite when a trigger plainly
+applied and its file is missing from that row.
+
 A 429, provider block, tool error, or timeout inside the task makes the report
 `incomplete`, never `completed`. The affected row says `failed` or `skipped`, names
 the error, and the closing line says `incomplete`. Retry the same tier and model once
@@ -102,6 +112,7 @@ never reported as done.
 | item | status | evidence |
 |---|---|---|
 | <file group, check, or gate from the brief> | done, failed, or skipped | <command, output path, commit, or file:line> |
+| skills read | done or skipped | <skill file paths, or why no trigger applied> |
 
 ## Escalation ladder
 
