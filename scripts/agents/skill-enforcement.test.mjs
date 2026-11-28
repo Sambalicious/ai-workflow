@@ -66,6 +66,32 @@ test('only the last "Skills read" statement counts, and a similar name does not'
   assert.deepEqual(unreadSkills('done', []), []);
 });
 
+test('common report formatting counts, and a list that disclaims reading does not', () => {
+  const need = ['tdd/SKILL.md', 'clean-code/SKILL.md'];
+  for (const line of [
+    'Skills read: **tdd/SKILL.md**, **clean-code/SKILL.md**',
+    'Skills read: "tdd/SKILL.md", [clean-code](/f/skills/clean-code/SKILL.md)',
+    'Skills read (2): /f/tdd/SKILL.md, /f/clean-code/SKILL.md',
+    'Skills read: tdd, clean-code.',
+    'Skills read: tdd,\nclean-code',
+    '**Skills read:**\n\n1. tdd\n2. clean-code',
+  ]) assert.deepEqual(unreadSkills(line, need), [], line);
+  for (const line of [
+    'Skills read: none (tdd/SKILL.md and clean-code/SKILL.md did not apply)',
+    'Skills read:\n- none: tdd, clean-code did not apply',
+  ]) assert.deepEqual(unreadSkills(line, need), need, line);
+  for (const line of [
+    'Skills read: /f/tdd/SKILL.md\n\nNot read: /f/clean-code/SKILL.md',
+    'Skills read:\n- /f/tdd/SKILL.md\n\nSkipped: clean-code',
+    'Skills read: /f/tdd/SKILL.md, clean-code-principles, /f/clean-code/reference.md',
+  ]) assert.deepEqual(unreadSkills(line, need), ['clean-code/SKILL.md'], line);
+  assert.deepEqual(unreadSkills('Skills read: impeccable', ['impeccable/reference/audit.md']), ['impeccable/reference/audit.md']);
+});
+
+test('a required file keeps the limit on how much of it to read', () => {
+  assert.match(skillBlock(['security'], '/f'), /owasp-security\/SKILL\.md \(read only the sections for the surfaces in scope\)/);
+});
+
 test('a worker that skips a required skill gets one follow-up in the same session', () => inRun(async ({ dir, options }) => {
   const f = harness(({ kind, n, prompt }) => (kind === 'worker' && n === 1 ? everything(prompt).replace(/, \S+unslop\/SKILL\.md/, '') : kind === 'worker' ? 'Skills read: /factory/.agents/skills/unslop/SKILL.md' : null));
   const result = await fixRun({ ...options, run: f.run });
@@ -89,6 +115,22 @@ test('a worker that still skips it halts before any gate or push', () => inRun(a
   assert.equal(f.of('gh').length, 0);
 }));
 
+const ledgerCalls = (f) => f.of('node').filter((args) => args[0].endsWith('ledger.mjs')).map((args) => `${args[1]} ${args[args.indexOf('--role') + 1]}`);
+
+test('a gate follow-up is recorded, keeps the first report and cannot rerun the checks', () => inRun(async ({ dir, options }) => {
+  const f = harness(({ kind, n }) => (kind === 'QA' && n === 1 ? 'first evidence\nSkills read: none' : null));
+  assert.equal((await fixRun({ ...options, run: f.run, qaTools: ['Bash(pnpm:*)'] })).status, 'pr');
+  assert.deepEqual(ledgerCalls(f).filter((call) => call.endsWith('qa-gate')), ['add qa-gate', 'fail qa-gate', 'add qa-gate', 'done qa-gate']);
+  const [first, second] = f.of('claude');
+  assert.ok(first.includes('Bash(pnpm:*)'));
+  assert.ok(!second.includes('Bash(pnpm:*)'));
+  const attempt = join(dir, 'reports', 'o_r_7.qa-gate.attempt1.md');
+  assert.ok(second[1].includes(attempt));
+  assert.match(second[1], /do not run the project's checks again/);
+  assert.match(await readFile(attempt, 'utf8'), /first evidence/);
+  assert.match(await readFile(join(dir, 'logs', 'o_r_7.qa-gate.log'), 'utf8'), /first evidence[\s\S]*--- follow-up ---/);
+}));
+
 test('a passing gate without its required skill is rerun once, then halts', () => inRun(async ({ options }) => {
   const f = harness(({ kind }) => (kind === 'Security' ? 'Skills read: none' : null));
   const result = await fixRun({ ...options, run: f.run });
@@ -109,7 +151,10 @@ test('a document stage that skips its required skill halts after one follow-up',
   const prdPath = join(dir, 'report.md');
   const result = await fixRun({ ...options, run: f.run, plan: (ctx) => featurePlan({ ...ctx, prdPath }) });
   assert.deepEqual([result.status, result.stage], ['halted', 'api-contract']);
+  const [, again] = f.of('claude').filter((args) => args[1].includes('contract mode'));
   assert.equal(f.of('claude').filter((args) => args[1].includes('contract mode')).length, 2);
+  assert.match(again[1], /api-contract\.attempt1\.md[\s\S]*complete corrected document/);
+  assert.deepEqual(ledgerCalls(f).filter((call) => call.endsWith('api-contract')), ['add api-contract', 'fail api-contract', 'add api-contract', 'done api-contract']);
   assert.equal(f.of('opencode').length, 0);
 }));
 

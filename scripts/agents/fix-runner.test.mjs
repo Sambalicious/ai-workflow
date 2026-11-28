@@ -162,6 +162,22 @@ test('a repair wave runs one worker and the gates again, then pushes without a n
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
 
+test('after a repair fails, --resume runs every gate again before anything is pushed', async () => {
+  const { dir, reportPath } = await setup();
+  try {
+    assert.equal((await fixRun(base(dir, reportPath, fake().run))).status, 'pr');
+    await mkdir(join(dir, 'worktrees', 'o_r_7'), { recursive: true });
+    await writeFile(join(dir, 'feedback.md'), '# Feedback');
+    const failed = await fixRun({ ...base(dir, reportPath, fake({ workerStatus: 1 }).run), repair: { feedbackPath: join(dir, 'feedback.md'), wave: 1 } });
+    assert.deepEqual([failed.status, failed.stage], ['halted', 'repair-1']);
+    const next = fake({ gates: { Security: 'SECURITY FINDINGS\n1 high' } });
+    const resumed = await fixRun({ ...base(dir, reportPath, next.run), resume: true });
+    assert.deepEqual([resumed.status, resumed.stage], ['halted', 'security-review']);
+    assert.equal(next.calls.filter(([bin]) => bin === 'claude').length, 2);
+    assert.ok(!next.calls.some(([bin, args]) => bin === 'gh' || (bin === 'git' && args.includes('push'))));
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
 test('the ledger lives in a per-ticket folder', async () => {
   const { dir, reportPath } = await setup();
   const f = fake();

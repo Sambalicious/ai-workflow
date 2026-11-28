@@ -143,17 +143,47 @@ export function requiredSkills(roles, only = null) {
   return [...new Set(files)];
 }
 
+const BULLET = /^\s*(?:[-*+]|\d+\.)\s/;
+const blank = (line) => !/[^\s*_`]/.test(line);
+
+// What the report's last "Skills read" statement lists: the rest of that line, with
+// comma-continued lines, or the bullet list under it. "none (...)" lists nothing.
+function skillsListed(report) {
+  const last = [...report.matchAll(/skills read[*_`]*(?:\s*\([^)\n]*\))?[*_`]*\s*:/gi)].pop();
+  if (!last) return '';
+  const lines = report.slice(last.index + last[0].length).split('\n');
+  let start = 0;
+  while (start < lines.length - 1 && blank(lines[start])) start += 1;
+  const bulleted = start > 0 && BULLET.test(lines[start]);
+  let end = start + 1;
+  while (end < lines.length && (bulleted ? BULLET.test(lines[end]) : lines[end - 1].trimEnd().endsWith(','))) end += 1;
+  const listed = lines.slice(start, end).join('\n');
+  return /^[\s*_`"'-]*none\b/i.test(listed) ? '' : listed;
+}
+
+// A SKILL.md also counts when only the skill's name is given.
+function names(listed, file) {
+  const [skill, ...rest] = file.split('/');
+  const path = rest.join('/').replaceAll('.', '\\.');
+  const tail = rest.join('/') === 'SKILL.md' ? `(?:/${path}(?![\\w-])|(?![\\w/-]))` : `/${path}(?![\\w-])`;
+  return new RegExp(`(?<![\\w-])${skill}${tail}`).test(listed);
+}
+
 // Required files missing from the report's last "Skills read" statement.
 export function unreadSkills(report, required) {
-  const last = [...(report ?? '').matchAll(/skills read[*_`]*\s*:/gi)].pop();
-  const listed = last ? report.slice(last.index) : '';
-  return required.filter((file) => !new RegExp(`(^|[\\s/\`(,])${file.replace(/[.]/g, '\\.')}`).test(listed));
+  const listed = skillsListed(report ?? '');
+  return required.filter((file) => !names(listed, file));
 }
 
 export function skillBlock(roles, factoryRoot = FACTORY_ROOT, only = null) {
   const path = (file) => join(factoryRoot, '.agents/skills', file);
   const required = requiredSkills(roles, only);
-  const first = required.length ? `\nRequired in every session. Read these before you start:\n${required.map((file) => `- ${path(file)}`).join('\n')}` : '';
+  // A trigger's "read only ..." limit still applies to a required file.
+  const limits = new Map(roles.flatMap((role) => entriesFor(role, only).flatMap(([skill, when, file = 'SKILL.md']) => {
+    const limit = when.split('; ').find((part) => part.startsWith('read only'));
+    return limit ? [[`${skill}/${file}`, ` (${limit})`]] : [];
+  })));
+  const first = required.length ? `\nRequired in every session. Read these before you start:\n${required.map((file) => `- ${path(file)}${limits.get(file) ?? ''}`).join('\n')}` : '';
   const sections = roles.flatMap((role) => {
     const lines = entriesFor(role, only)
       .filter(([skill]) => !isRequired(role, skill))
