@@ -32,6 +32,13 @@ Copywriter and SEO never load them, even when the task looks visual. No session 
 a skill "just in case": a 20KB skill read for a task that needed 2KB is the single
 largest avoidable context cost in a run.
 
+`scripts/agents/skill-map.mjs` assigns every skill to a role with its trigger. Role
+files name their own. The lead's: `dispatch-worker`, `factory-loop`, `triage`,
+`retro`, `hand-off`, `writing-for-agents`, `company-brain`, `show-me-your-work`,
+`technical-writing`, `wizard`, `resolving-merge-conflicts`, `unslop`,
+`principle-guard-the-context-window`, `principle-sequence-verifiable-units` and
+`principle-build-the-lever`.
+
 ## Shared-checkout paths
 
 For an external project, read `factory/EXTERNAL.md` from this factory checkout

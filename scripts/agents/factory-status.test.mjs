@@ -15,6 +15,7 @@ test('status joins triage, run reports, progress and the ledger by ticket', asyn
     await writeFile(join(dir, 'reports', 'o_r_1.md'), 'Verdict: READY_BUG');
     await writeFile(join(dir, 'reports', 'o_r_1.fix.md'), 'Status: pr\nurl: https://github.com/o/r/pull/9\n');
     await writeFile(join(dir, 'reports', 'o_r_1.qa-gate.md'), 'QA PASS');
+    await writeFile(join(dir, 'reports', 'o_r_1.qa-gate.attempt1.md'), 'QA PASS');
     await writeFile(join(dir, 'reports', 'o_r_2.md'), 'Verdict: READY_BUG');
     await writeFile(join(dir, 'reports', 'o_r_2.fix.md'), 'Status: halted\nstage: security-review\nreason: SECURITY FINDINGS\n');
     await writeFile(join(dir, 'state', 'runs', 'o_r_2.json'), '{"done":["worker:implementation","gate:qa-gate"]}');

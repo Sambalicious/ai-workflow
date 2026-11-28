@@ -13,15 +13,18 @@ async function setup(verdict = 'READY_BUG') {
   return { dir, reportPath };
 }
 
+// A well-behaved session lists the skill files its prompt names.
+const reads = (prompt) => (prompt.includes('Skills read') ? `\nSkills read: ${prompt.match(/\S+\/\.agents\/skills\/\S+\.md/g)?.join(', ')}` : '');
+
 // A fake process runner that records calls and answers by command.
 function fake({ gates = {}, workerStatus = 0, ahead = '1' } = {}) {
   const calls = [];
   const run = (bin, args, opts = {}) => {
     calls.push([bin, args, opts.cwd]);
-    if (bin === 'opencode') return { status: workerStatus, stdout: 'done', stderr: '' };
+    if (bin === 'opencode') return { status: workerStatus, stdout: `done${reads(args.at(-1))}`, stderr: '' };
     if (bin === 'claude') {
       const role = ['QA', 'Security', 'code'].find((r) => args[1].includes(`independent ${r === 'code' ? 'Code review' : r}`));
-      return { status: 0, stdout: gates[role] ?? { QA: 'QA PASS\nok', Security: 'SECURITY PASS\nok', code: 'REVIEW PASS\nok' }[role] };
+      return { status: 0, stdout: `${gates[role] ?? { QA: 'QA PASS\nok', Security: 'SECURITY PASS\nok', code: 'REVIEW PASS\nok' }[role]}${reads(args[1])}` };
     }
     if (bin === 'git' && args.includes('rev-list')) return { status: 0, stdout: ahead };
     if (bin === 'gh') return { status: 0, stdout: 'https://github.com/o/r/pull/9\n' };
@@ -156,6 +159,22 @@ test('a repair wave runs one worker and the gates again, then pushes without a n
     assert.equal(calls.filter((c) => c[0] === 'gh').length, 0);
     const none = await fixRun({ ...base(dir, reportPath, fake().run), repair: { feedbackPath: '/x', wave: 1 }, id: 'o/r#8' });
     assert.equal(none.stage, 'repair');
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('after a repair fails, --resume runs every gate again before anything is pushed', async () => {
+  const { dir, reportPath } = await setup();
+  try {
+    assert.equal((await fixRun(base(dir, reportPath, fake().run))).status, 'pr');
+    await mkdir(join(dir, 'worktrees', 'o_r_7'), { recursive: true });
+    await writeFile(join(dir, 'feedback.md'), '# Feedback');
+    const failed = await fixRun({ ...base(dir, reportPath, fake({ workerStatus: 1 }).run), repair: { feedbackPath: join(dir, 'feedback.md'), wave: 1 } });
+    assert.deepEqual([failed.status, failed.stage], ['halted', 'repair-1']);
+    const next = fake({ gates: { Security: 'SECURITY FINDINGS\n1 high' } });
+    const resumed = await fixRun({ ...base(dir, reportPath, next.run), resume: true });
+    assert.deepEqual([resumed.status, resumed.stage], ['halted', 'security-review']);
+    assert.equal(next.calls.filter(([bin]) => bin === 'claude').length, 2);
+    assert.ok(!next.calls.some(([bin, args]) => bin === 'gh' || (bin === 'git' && args.includes('push'))));
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
 

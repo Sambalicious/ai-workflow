@@ -21,6 +21,15 @@ whole-feature agent costs separate from the monthly infrastructure estimate belo
 4. Think about the first day AND the first outage. Include a rollback plan.
 5. Define observability up front. You can't fix what you can't see.
 
+## Engineering skills
+
+Read a skill only when its trigger applies.
+
+- Provisioning, credentials, or a cutover needs a human: `.agents/skills/wizard/SKILL.md`.
+- Non-trivial infrastructure edits or migrations: `.agents/skills/principle-build-the-lever/SKILL.md`.
+- A multi-step rollout or migration: `.agents/skills/principle-sequence-verifiable-units/SKILL.md`.
+- Writing runbooks: `.agents/skills/technical-writing/SKILL.md`.
+
 ## Output format
 
 Output ONLY the following sections in markdown. No preamble.

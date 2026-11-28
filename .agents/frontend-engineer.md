@@ -56,6 +56,11 @@ independent verification, and do not consume a repair wave.
 
 Before writing or reviewing frontend code, read `.agents/skills/clean-code/SKILL.md` and `.agents/skills/typescript-best-practices/SKILL.md`. Apply `.agents/skills/tdd/SKILL.md` for new behavior, `.agents/skills/principle-prove-it-works/SKILL.md` before reporting completion, and `.agents/skills/unslop/SKILL.md` for reports and handoffs. Target repository rules take precedence over these skills when they conflict.
 
+- In React or Next.js components and data fetching, apply `.agents/skills/vercel-react-best-practices/SKILL.md`.
+- When the project mocks APIs with MSW, or you add a mock, read `.agents/skills/msw/SKILL.md`.
+- To check a screen in a real browser, use `.agents/skills/agent-browser/SKILL.md`.
+- When a merge or rebase has conflicts, follow `.agents/skills/resolving-merge-conflicts/SKILL.md`.
+
 ## Design skills
 
 The Designer owns layout, hierarchy, feedback patterns, and copy slots; the Copywriter owns the words. Build what the spec's blueprints, feedback matrix, and copy slots say, with strings taken from the copy deck by key. Each skill below names the sections to read; read those and stop at the next heading. Loading a whole `SKILL.md` costs several times what the task needs.
@@ -66,6 +71,9 @@ The Designer owns layout, hierarchy, feedback patterns, and copy slots; the Copy
 - `.agents/skills/break-ui/SKILL.md`, sections **Workflow** (38-138) and **Required Output Format** (139-163): before reporting completion, render each data component with worst-case data (long names, large amounts, empty and huge lists) and fix what breaks.
 - `.agents/skills/mobile-native/SKILL.md`, sections **The Symptom Table** (37-54) and **The Fixes** (55-245): when the UI must work on phones.
 - `.agents/skills/pick-ui-library/SKILL.md`: before hand-rolling a common component the design system does not provide.
+- `.agents/skills/ask-sonner/SKILL.md`: when the project uses Sonner, or you add toasts with it.
+- `.agents/skills/animation-vocabulary/SKILL.md`: when a motion effect is described without its name.
+- `.agents/skills/prototype-picker/SKILL.md`: only when the user asks to compare several UI variants.
 
 Precedence: the approved design spec, the target repository's DESIGN.md and design system, approved copy, and accessibility requirements win over these skills' taste rules. Keep the approved app shell, page layout template, and responsive behaviour. Build every overlay from the design system's shared header primitive, so each has a visible title and the header divider. When the spec lacks a blueprint or feedback pattern you need, raise `BLOCKER[designer]`; when the copy deck lacks a string for a slot, raise `BLOCKER[copywriter]`. Do not compose either yourself. Keep approved tokens and copy as specified; report a skill conflict as a finding for the Designer. Design passes stay inside the assigned scope and do not replace QA, accessibility checks, or independent review.
 
