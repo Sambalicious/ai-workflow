@@ -5,10 +5,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { exitCodeFor, probe, productRemote, providerOptions, pushRemote, remoteWarning } from './preflight.mjs';
+import { compactionWarning, exitCodeFor, probe, productRemote, providerOptions, pushRemote, readOpencodeConfig, remoteWarning } from './preflight.mjs';
 
 const SCRIPT = fileURLToPath(new URL('./preflight.mjs', import.meta.url));
-const runIn = (cwd, args) => spawnSync(process.execPath, [SCRIPT, ...args], { encoding: 'utf8', cwd });
+const runIn = (cwd, args, env) => spawnSync(process.execPath, [SCRIPT, ...args], { encoding: 'utf8', cwd, env: env ? { ...process.env, ...env } : process.env });
 
 const response = (status, headers = {}) => ({ ok: status >= 200 && status < 300, status, headers: { get: (name) => headers[name.toLowerCase()] ?? null }, text: async () => 'body' });
 
@@ -185,5 +185,65 @@ test('pushRemote reads the branch upstream and degrades quietly outside a reposi
     assert.equal(pushRemote(outside), null);
   } finally {
     await rm(outside, { recursive: true, force: true });
+  }
+});
+
+const COMPACTION_FIX =
+  'set "compaction": { "auto": true, "keep": { "tokens": 40000 }, "buffer": "70%" } in ~/.config/opencode/opencode.json';
+
+test('compaction warns when a session would grow too large before compacting', () => {
+  assert.equal(compactionWarning(null), null, 'no config file means nothing to check');
+  assert.equal(compactionWarning('text'), null, 'a non-object config is nothing to check');
+  assert.equal(compactionWarning(undefined), null);
+
+  const unset = compactionWarning({});
+  assert.match(unset, /default buffer of 15%/);
+  assert.ok(unset.endsWith(COMPACTION_FIX), 'the warning carries the fix');
+  assert.match(compactionWarning({ compaction: { auto: true } }), /default buffer of 15%/);
+
+  const off = compactionWarning({ compaction: { auto: false, buffer: '70%' } });
+  assert.match(off, /auto compaction is off/);
+  assert.ok(off.endsWith(COMPACTION_FIX));
+
+  assert.match(compactionWarning({ compaction: { buffer: '15%' } }), /15%/);
+  assert.match(compactionWarning({ compaction: { buffer: '40%' } }), /40%/);
+  assert.equal(compactionWarning({ compaction: { buffer: '50%' } }), null, '50% is the floor, not a warning');
+  assert.equal(compactionWarning({ compaction: { buffer: '70%' } }), null);
+
+  assert.match(compactionWarning({ compaction: { buffer: 20000 } }), /20000 tokens/);
+  assert.equal(compactionWarning({ compaction: { buffer: 500000 } }), null, 'half a million tokens is the floor');
+  assert.equal(compactionWarning({ compaction: { buffer: 600000 } }), null);
+});
+
+test('readOpencodeConfig reads the user config and survives a missing or malformed file', async () => {
+  const home = await mkdtemp(join(tmpdir(), 'preflight-home-'));
+  try {
+    assert.equal(await readOpencodeConfig(home), null, 'missing file');
+    await mkdir(join(home, '.config/opencode'), { recursive: true });
+    await writeFile(join(home, '.config/opencode/opencode.json'), '{ not json');
+    assert.equal(await readOpencodeConfig(home), null, 'malformed file');
+    await writeFile(join(home, '.config/opencode/opencode.json'), JSON.stringify({ compaction: { auto: true, buffer: '70%' } }));
+    assert.deepEqual(await readOpencodeConfig(home), { compaction: { auto: true, buffer: '70%' } });
+  } finally {
+    await rm(home, { recursive: true, force: true });
+  }
+});
+
+test('preflight warns about a missing compaction block without changing its exit status', async () => {
+  const home = await mkdtemp(join(tmpdir(), 'preflight-home-'));
+  const cwd = await mkdtemp(join(tmpdir(), 'preflight-project-'));
+  try {
+    await mkdir(join(home, '.config/opencode'), { recursive: true });
+    await writeFile(join(home, '.config/opencode/opencode.json'), JSON.stringify({ provider: {} }));
+    const warned = runIn(cwd, ['lead', '--client', 'claude-code'], { HOME: home });
+    assert.equal(warned.status, 0, warned.stderr);
+    assert.match(warned.stderr, /preflight: warning: .*compaction/);
+    assert.match(warned.stdout, /^ready: /, 'stdout is still the usual ready line');
+
+    await writeFile(join(home, '.config/opencode/opencode.json'), JSON.stringify({ compaction: { auto: true, buffer: '70%' } }));
+    assert.doesNotMatch(runIn(cwd, ['lead', '--client', 'claude-code'], { HOME: home }).stderr, /compaction/);
+  } finally {
+    await rm(home, { recursive: true, force: true });
+    await rm(cwd, { recursive: true, force: true });
   }
 });

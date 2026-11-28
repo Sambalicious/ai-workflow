@@ -60,6 +60,37 @@ export function remoteWarning({ productRemote: product, push }) {
   return `this branch pushes to "${push.remote}", but the product remote is "${product}"; a pull request would target the wrong repository`;
 }
 
+// OpenCode compacts a session only when this much of the model window is left. Its default
+// of 15% lets a worker re-read most of its context on every call, which bills the window
+// again and again. The fix is a config block every machine should carry.
+const COMPACTION_FIX =
+  'set "compaction": { "auto": true, "keep": { "tokens": 40000 }, "buffer": "70%" } in ~/.config/opencode/opencode.json';
+
+/** One line when the OpenCode config would let a session grow too large before compacting. */
+export function compactionWarning(config) {
+  if (config === null || typeof config !== 'object') return null;
+  const compaction = config.compaction;
+  if (compaction?.auto === false) return `auto compaction is off, so a session grows until the provider refuses it; ${COMPACTION_FIX}`;
+  const buffer = compaction?.buffer;
+  if (buffer === undefined || buffer === null) return `compaction uses opencode's default buffer of 15%; ${COMPACTION_FIX}`;
+  if (typeof buffer === 'string') {
+    const percent = Number.parseFloat(buffer);
+    if (Number.isFinite(percent) && percent < 50) return `compaction buffers only ${percent}% of the window; ${COMPACTION_FIX}`;
+    return null;
+  }
+  if (typeof buffer === 'number' && buffer < 500000) return `compaction buffers only ${buffer} tokens; ${COMPACTION_FIX}`;
+  return null;
+}
+
+/** The parsed user OpenCode config, or null when it is missing or malformed. */
+export async function readOpencodeConfig(home = homedir()) {
+  try {
+    return JSON.parse(await readFile(join(home, '.config/opencode/opencode.json'), 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
 /** The provider options OpenCode uses for a model, from the user's config. */
 export async function providerOptions(models, model, client, home = homedir()) {
   const [provider, ...rest] = model.split('/');
@@ -144,6 +175,8 @@ if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToP
   const product = (await productRemote(process.cwd())) ?? (await productRemote(ROOT));
   const warning = remoteWarning({ productRemote: product, push: pushRemote(process.cwd()) });
   if (warning) process.stderr.write(`preflight: warning: ${warning}\n`);
+  const compaction = compactionWarning(await readOpencodeConfig());
+  if (compaction) process.stderr.write(`preflight: warning: ${compaction}\n`);
   try {
     const models = JSON.parse(await readFile(join(ROOT, '.agents/models.json'), 'utf8'));
     const resolved = resolveModel(models, canonicalRole(question), client);
