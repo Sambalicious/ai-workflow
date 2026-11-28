@@ -5,9 +5,11 @@ task needs. Refresh it at every hand-off, at every repair-wave close, and before
 session reset. Keep it near 2.5K tokens: link the artifacts, do not paste them.
 
 Copy this file into `features/active/FEAT-XXXX-slug/` when the folder is created.
-`node scripts/agents/current-digest.mjs --feature <folder> --run <RUN_ROOT>` fails
-when a heading below is missing or when a report in `RUN_ROOT/reports` is newer than
-this file.
+`node "$FACTORY_ROOT/scripts/agents/current-digest.mjs" --feature <folder> --run <RUN_ROOT>`
+fails when a heading below is missing, when a template value is still here, or when the
+report named below is not the newest report in `RUN_ROOT/reports`.
+
+Reports through: <newest report path>
 
 ## Pipeline position
 
@@ -44,5 +46,7 @@ Write `none` when nothing blocks. An unowned blocker names the role that decides
 - [Code review](RUN_ROOT/reports/FEAT-XXXX-code-review-<sha>.md)
 - [Security review](RUN_ROOT/reports/FEAT-XXXX-security.md)
 
-Link every report a session would otherwise go looking for. The script compares this
-file's mtime with the newest `.md` report under the run root.
+Link every report a session would otherwise go looking for. The `Reports through:` line
+above names the newest `.md` report under the run root; update it with the digest, so a
+touch or a fresh checkout cannot make an old digest look current. `Updated: <ISO time>`
+is accepted instead.

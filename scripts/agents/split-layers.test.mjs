@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { parseLayers, revertedFiles } from './split-layers.mjs';
+import { coversPath, parseLayers, revertedFiles, uncoveredPaths } from './split-layers.mjs';
 
 const SCRIPT = fileURLToPath(new URL('./split-layers.mjs', import.meta.url));
 const runIn = (cwd, args) => spawnSync(process.execPath, [SCRIPT, ...args], { encoding: 'utf8', cwd });
@@ -104,7 +104,7 @@ test('a layer that conflicts with a base change fails and restores the original 
     commit(dir, 'candidate touches a moved file');
     git(dir, ['switch', '-q', 'main']);
 
-    const result = runIn(dir, ['--candidate', 'candidate', '--base', 'main', '--layer', 'web=apps/web']);
+    const result = runIn(dir, ['--candidate', 'candidate', '--base', 'main', '--layer', 'web=apps/web', '--layer', 'api=apps/api']);
     assert.equal(result.status, 1);
     assert.match(result.stderr, /does not apply/);
     assert.equal(git(dir, ['rev-parse', '--abbrev-ref', 'HEAD']).stdout.trim(), 'main');
@@ -116,7 +116,10 @@ test('a layer that conflicts with a base change fails and restores the original 
 test('an empty layer fails instead of producing a branch with no diff', async () => {
   const { dir } = await repo();
   try {
-    const result = runIn(dir, ['--candidate', 'candidate', '--base', 'main', '--layer', 'docs=docs']);
+    const result = runIn(dir, [
+      '--candidate', 'candidate', '--base', 'main',
+      '--layer', 'web=apps/web', '--layer', 'api=apps/api', '--layer', 'docs=docs',
+    ]);
     assert.equal(result.status, 1);
     assert.match(result.stderr, /layer "docs" has no changes/);
     assert.equal(git(dir, ['rev-parse', '--abbrev-ref', 'HEAD']).stdout.trim(), 'main');
@@ -136,4 +139,58 @@ test('layer arguments are validated before any branch is created', () => {
   assert.throws(() => parseLayers(['web=']), /no paths/);
   assert.throws(() => parseLayers(['bad name=apps/web']), /layer name/);
   assert.throws(() => parseLayers(['web=apps/web', 'web=apps/api']), /named twice/);
+});
+
+test('a candidate path no layer covers fails before any branch is created (H7)', async () => {
+  const { dir } = await repo();
+  try {
+    await put(dir, 'packages/ui/u.txt', 'candidate\n');
+    git(dir, ['switch', '-q', 'candidate']);
+    await put(dir, 'packages/ui/u.txt', 'candidate changed it\n');
+    commit(dir, 'candidate touches packages/ui');
+    git(dir, ['switch', '-q', 'main']);
+
+    // Before the fix the run exited 0 and the stack simply left packages/ui/u.txt behind.
+    const result = runIn(dir, ['--candidate', 'candidate', '--base', 'main', '--layer', 'web=apps/web', '--layer', 'api=apps/api']);
+    assert.equal(result.status, 1, result.stdout);
+    assert.match(result.stderr, /no --layer covers/);
+    assert.match(result.stderr, /packages\/ui\/u\.txt/);
+    assert.doesNotMatch(result.stderr, /apps\/web\/page\.txt/, 'only the uncovered paths are listed');
+    assert.equal(git(dir, ['rev-parse', '--abbrev-ref', 'HEAD']).stdout.trim(), 'main');
+    for (const branch of ['layer/web', 'layer/api']) {
+      assert.notEqual(git(dir, ['rev-parse', '--verify', '--quiet', `refs/heads/${branch}`]).status, 0, `${branch} is not created`);
+    }
+
+    const covered = runIn(dir, [
+      '--candidate', 'candidate', '--base', 'main',
+      '--layer', 'web=apps/web', '--layer', 'api=apps/api', '--layer', 'ui=packages/ui',
+    ]);
+    assert.equal(covered.status, 0, covered.stderr);
+    assert.equal(show(dir, 'layer/ui', 'packages/ui/u.txt'), 'candidate changed it\n');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('two layers that cover the same path are rejected up front (H7)', async () => {
+  const { dir } = await repo();
+  try {
+    const result = runIn(dir, ['--candidate', 'candidate', '--base', 'main', '--layer', 'web=apps/web', '--layer', 'shared=apps/web/src']);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /"web" and "shared" cover the same path/);
+    assert.equal(git(dir, ['rev-parse', '--abbrev-ref', 'HEAD']).stdout.trim(), 'main');
+    assert.notEqual(git(dir, ['rev-parse', '--verify', '--quiet', 'refs/heads/layer/web']).status, 0);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('coversPath matches a directory prefix and a glob, not a sibling name', () => {
+  assert.equal(coversPath('apps/web', 'apps/web/page.txt'), true);
+  assert.equal(coversPath('apps/web/', 'apps/web/page.txt'), true);
+  assert.equal(coversPath('apps/web', 'apps/web'), true);
+  assert.equal(coversPath('apps/web', 'apps/webby/page.txt'), false);
+  assert.equal(coversPath('packages/ui', 'apps/web/page.txt'), false);
+  assert.equal(coversPath('apps/*/page.txt', 'apps/web/page.txt'), true);
+  assert.equal(coversPath('packages/ui', 'packages/uikit/x.ts'), false);
 });

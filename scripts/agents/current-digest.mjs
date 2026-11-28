@@ -6,7 +6,7 @@
 // Exit codes: 0 the digest is current; 1 it needs refreshing, with the reason printed.
 import { realpathSync } from 'node:fs';
 import { readdir, readFile, stat } from 'node:fs/promises';
-import { isAbsolute, join, resolve } from 'node:path';
+import { basename, isAbsolute, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // The digest is a template, not prose: every heading carries a fact a fresh session
@@ -18,6 +18,19 @@ export const REQUIRED_SECTIONS = [
   'Open blockers',
   'Next step',
   'Reports',
+];
+
+// The template's own text, and the sample values it ships with. A digest copied from
+// .agents/templates/CURRENT.md passes every structural check, so it is refused here.
+export const TEMPLATE_MARKERS = [
+  [/FEAT-[Xx]{4}/, 'FEAT-XXXX'],
+  [/<slug>/, '<slug>'],
+  [/<title>/, '<title>'],
+  [/<decision>/, '<decision>'],
+  [/<description>/, '<description>'],
+  [/<folder>/, '<folder>'],
+  [/<newest report path>/, '<newest report path>'],
+  [/\b0f3c2b1a/i, 'the template sample commit 0f3c2b1a'],
 ];
 
 const NONE = /^(?:none|n\/a|no(?:ne)? yet)[.!]?$/i;
@@ -58,6 +71,9 @@ const plain = (body) => oneLine(body).replace(/^[-*]\s+/, '');
 export function digestProblems(text) {
   const sections = sectionMap(text);
   const problems = [];
+  for (const [pattern, label] of TEMPLATE_MARKERS) {
+    if (pattern.test(text)) problems.push(`CURRENT.md still carries the template value ${label}; replace it with this run's own fact`);
+  }
 
   for (const name of REQUIRED_SECTIONS) {
     const body = sections.get(normalizeHeading(name));
@@ -94,18 +110,54 @@ export function digestProblems(text) {
   return problems;
 }
 
-/** Fails when a report was written after the digest's last update. */
-export function freshnessProblems({ digestMtime, latestReport }) {
+/** True when the digest's named report is the newest one the run produced. */
+function sameReport(named, latestPath, reportsDir) {
+  const clean = String(named)
+    .replace(/^\[[^\]]*\]\(([^)]+)\)$/, '$1')
+    .trim()
+    .replace(/^\.\//, '');
+  const target = resolve(String(latestPath));
+  const candidates = [clean];
+  if (isAbsolute(clean)) candidates.push(clean);
+  else if (reportsDir) candidates.push(resolve(reportsDir, clean), resolve(reportsDir, '..', clean));
+  return candidates.some((candidate) => resolve(candidate) === target || basename(candidate) === basename(target));
+}
+
+/**
+ * Fails when the newest report is not the one the digest says it read. The digest states
+ * its freshness in its own text (`Reports through: <report>` or `Updated: <ISO time>`),
+ * so a touch, an editor save or a fresh checkout cannot make a stale digest look current.
+ */
+export function freshnessProblems({ text, latestReport, reportsDir = null }) {
   if (!latestReport) return [];
-  if (digestMtime >= latestReport.mtime) return [];
+  const source = String(text ?? '');
   const at = (ms) => new Date(ms).toISOString();
+
+  const updated = /^[ \t]*Updated:[ \t]*(.+?)[ \t]*$/mi.exec(source);
+  if (updated) {
+    const when = Date.parse(updated[1]);
+    if (!Number.isFinite(when)) return [`CURRENT.md "Updated: ${updated[1]}" is not an ISO time; write one, such as 2026-11-27T10:00:00Z`];
+    if (when >= latestReport.mtime) return [];
+    return [
+      `CURRENT.md says "Updated: ${at(when)}", older than the latest report ${latestReport.path} (${at(latestReport.mtime)}); update the digest before handing off`,
+    ];
+  }
+
+  const through = /^\s*Reports through:[ \t]*(.+?)[ \t]*$/mi.exec(source);
+  if (through) {
+    if (sameReport(through[1], latestReport.path, reportsDir)) return [];
+    return [
+      `CURRENT.md says "Reports through: ${through[1]}", but the newest report is ${latestReport.path}; name the newest report or update the file`,
+    ];
+  }
+
   return [
-    `CURRENT.md (${at(digestMtime)}) is older than the latest report ${latestReport.path} (${at(latestReport.mtime)}); update the digest before handing off`,
+    'CURRENT.md has no "Reports through:" line and no "Updated:" line, so its freshness cannot be checked; add one naming the newest report',
   ];
 }
 
-export function digestReport({ text, digestMtime = 0, latestReport = null }) {
-  const problems = [...digestProblems(text), ...freshnessProblems({ digestMtime, latestReport })];
+export function digestReport({ text, latestReport = null, reportsDir = null }) {
+  const problems = [...digestProblems(text), ...freshnessProblems({ text, latestReport, reportsDir })];
   return { ok: problems.length === 0, problems };
 }
 
@@ -212,11 +264,19 @@ if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToP
       throw error;
     }
 
-    const digest = await stat(current);
-    const runRoot = flag('--run') ?? process.env.RUN_ROOT;
-    const reportsDir = flag('--reports') ?? (runRoot ? join(resolve(runRoot), 'reports') : null);
+    // A mistyped --run would otherwise find no report and read as current.
+    const runFlag = flag('--run');
+    const reportsFlag = flag('--reports');
+    for (const [name, value] of [['--run', runFlag], ['--reports', reportsFlag]]) {
+      if (value && !(await isDirectory(resolve(value)))) {
+        message(`current-digest: ${name} ${value} is not a directory; a run that cannot be read reports no staleness`);
+        process.exit(1);
+      }
+    }
+    const runRoot = runFlag ?? process.env.RUN_ROOT;
+    const reportsDir = reportsFlag ?? (runRoot ? join(resolve(runRoot), 'reports') : null);
     const latest = reportsDir ? await newestReport(reportsDir) : null;
-    const report = digestReport({ text, digestMtime: digest.mtimeMs, latestReport: latest });
+    const report = digestReport({ text, latestReport: latest, reportsDir });
 
     if (report.ok) {
       process.stdout.write(`CURRENT.md: current (${feature.path})\n`);

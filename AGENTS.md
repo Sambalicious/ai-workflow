@@ -203,7 +203,7 @@ tier and its output is worthless at the gate. Resolve the model, pass it, and re
    the lifetime dispatch budget warns rather than refusing (one ledger per ticket; a retry of
    the same role on the same artifact replaces its earlier attempt); four on the cheap tier.
    A revision is an edit, not a regenerated document. A 429 marks the entry failed and keeps
-   its tier and model (`pnpm agents:ledger fail --role <r> --reason rate_limit`).
+   its tier and model (`pnpm agents:ledger fail --run <run> --role <r> --reason rate_limit`).
 
 The setup, the health check for the local provider and the ledger template are in
 [docs/ops/agent-models.md](docs/ops/agent-models.md).
@@ -357,7 +357,7 @@ step re-reads its whole history. Keep it lean:
   repository; the wave-close checkpoint is the record that it happened.
 - At most one advisor-tier session runs at once per feature: the Security candidate review
   (step 7), then the independent code review (step 8), serialized rather than
-  parallel. `pnpm agents:ledger check` enforces it — a second running advisor-tier
+  parallel. `pnpm agents:ledger check --run <run>` enforces it — a second running advisor-tier
   dispatch is refused, consults included — so a parallel [7] and [8] fails in a script
   instead of relying on the reader. When the session limit is reached, dispatch no more
   advisor roles, record the pending gate in `CURRENT.md`, and resume after the reset. Gates
@@ -394,7 +394,7 @@ Route findings at every stage. Keep one persistent run, at most three global rep
 waves, and independent verification. The controller records local attestations; the
 caller owns authorized execution and trustworthy evidence. The controller does not
 launch agents. Split a large candidate into stacked layer PRs with
-`node scripts/agents/split-layers.mjs`; it applies each layer's merge-base diff to its
+`node "$FACTORY_ROOT/scripts/agents/split-layers.mjs"`; it applies each layer's merge-base diff to its
 own paths and fails when a layer reverts a file main moved.
 
 Triage uses `.agents/skills/triage/SKILL.md`. Bugs may proceed with an approved bug
@@ -430,7 +430,7 @@ Escalate to the full lane when a condition fails, a check fails, or a finding re
 ## Instructions
 
 1. Start with the raw idea. Pass it to the Product Manager first. Do not skip this step — every downstream agent depends on the PRD.
-2. Once the PRD is ready, run steps [2] (Spec Writer), [3a] (Architect), and [3b] (Designer) in parallel. Each takes only the PRD. Apply the fast-lane triggers once [3a] and [3b] are complete. Step [3f] (design consult) runs once [3b] is complete: an advisor-tier session compares the spec's surfaces, states, and copy slots with the PRD's Surfaces table, the orchestrator saves its reply as `design-consult.md`, and a weak spec comes back as `BLOCKER[designer]`. Step [3c] (Copywriter) starts once [2], [3b], and [3f] are complete, because the consult can change copy slots. Step [3d] (SEO crawl pass) starts once [3a] and [3b] are complete, in parallel with Copywriter. Step [3e] (SEO metadata pass) starts once [3c] and [3d] are complete. Steps [3c]–[3e] run in parallel with step [4]. Copy-driven spec changes go through the Revision loop, not direct edits. Before [3a] publishes, `node scripts/agents/migration-gate.mjs` checks the planned migration number and every copied function against `origin/main`; a taken number or a newer definition is a blocker.
+2. Once the PRD is ready, run steps [2] (Spec Writer), [3a] (Architect), and [3b] (Designer) in parallel. Each takes only the PRD. Apply the fast-lane triggers once [3a] and [3b] are complete. Step [3f] (design consult) runs once [3b] is complete: an advisor-tier session compares the spec's surfaces, states, and copy slots with the PRD's Surfaces table, the orchestrator saves its reply as `design-consult.md`, and a weak spec comes back as `BLOCKER[designer]`. Step [3c] (Copywriter) starts once [2], [3b], and [3f] are complete, because the consult can change copy slots. Step [3d] (SEO crawl pass) starts once [3a] and [3b] are complete, in parallel with Copywriter. Step [3e] (SEO metadata pass) starts once [3c] and [3d] are complete. Steps [3c]–[3e] run in parallel with step [4]. Copy-driven spec changes go through the Revision loop, not direct edits. Before [3a] publishes, `node "$FACTORY_ROOT/scripts/agents/migration-gate.mjs"` checks the planned migration number and every copied function against `origin/main`; a taken number or a newer definition is a blocker.
 3. Step [4] (API contract) cannot start until steps [2], [3a], [3b], and [3f] are complete. The Backend Engineer runs in contract mode: it publishes the complete API contract handoff and the spec responsibility map, and stops before implementation. The contract has one writer; later changes to it are `contract` findings routed through the Revision loop.
 4. Once the contract is complete, start steps [5a]–[5e] in parallel, each in its own isolated workspace:
    - [5a] Backend Engineer implements the contract with tests.
@@ -469,8 +469,9 @@ routed as usual. Preview does not replace [6b] on the real candidate.
   needs, using offset and limit. Verify the digest's latest-file paths with `ls`
   before relying on them. Refresh it with a lead-tier task after the PRD,
   architecture, design spec, and API contract land, after each revision round, and at
-  every hand-off; `node scripts/agents/current-digest.mjs --feature <folder> --run
-  <RUN_ROOT>` exits 1 when a section is missing or a report is newer than the digest.
+  every hand-off; `node "$FACTORY_ROOT/scripts/agents/current-digest.mjs" --feature <folder> --run
+  <RUN_ROOT>` exits 1 when a section is missing, a template value is left, or the
+  newest report is not the one it names.
   Older `.rN` files are superseded; open one only when a task names it. Moving or
   deleting revision files is off limits: run records pin their paths.
 - **Whole versus slice.** The API contract and spec files are passed whole to

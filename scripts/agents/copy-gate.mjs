@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Copy gate: a worker may ship a user-visible string that still says
-// "PENDING copywriter approval", but only when the pull request body lists it under
+// Copy gate: a worker may ship a user-visible string that still says it is pending
+// copywriter approval, but only when the pull request body lists it under
 // "Copy pending approval". Reads `git diff <base>...HEAD`, so the check runs on the
 // real candidate rather than on a summary. Exit 1 lists every unapproved string;
 // exit 2 is a usage or git error.
@@ -9,13 +9,17 @@ import { readFileSync, realpathSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-/** The marker a worker leaves when copy is not final yet. Case-insensitive. */
-export const MARKER = /pending\s+copywriter/i;
+// The markers a worker leaves when copy is not final yet, case-insensitive:
+//   "PENDING copywriter approval", "Copy is PENDING (run decision 8)",
+//   "(copy-r4-1, PENDING E4-D08/Q17)", and a marker split over two lines
+//   ("... and is PENDING" / "// copywriter approval ...").
+export const MARKER =
+  /\bpending\b[\s/*#-]+\bcopywriter\b|\bcopy\b[^\n]{0,20}\bpending\b|\bpending\b[^\n]{0,20}\bcopy\b/i;
 
 /** The PR body heading that approves each remaining marker. */
 export const HEADING = /^#{1,6}\s+copy pending approval\b/i;
 
-const HUNK = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/;
+const HUNK = /^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/;
 const QUOTE_PATTERNS = [/'((?:\\.|[^'\\])*)'/g, /"((?:\\.|[^"\\])*)"/g, /`((?:\\.|[^`\\])*)`/g];
 
 /** The strings inside `line` that carry the marker; the whole line when it is not quoted. */
@@ -32,38 +36,71 @@ export function flaggedStrings(line) {
 /**
  * Every added line in a unified diff that carries the marker, with its file and new
  * line number. Removed lines and diff headers are ignored: only what the PR adds counts.
+ * A hunk's length comes from its `@@` counts, so an added line that starts with `++ `
+ * (and so reads as `+++ `) is not mistaken for a file header. Adjacent added lines are
+ * matched together, so a marker split over two lines is still found.
  */
 export function findingsFromDiff(diff) {
   const findings = [];
   let file = null;
   let lineNumber = 0;
-  let inHunk = false;
+  let remaining = null;
+  let group = [];
+  const flush = () => {
+    for (let index = 0; index < group.length; index += 1) {
+      const current = group[index];
+      const next = group[index + 1];
+      if (MARKER.test(current.text)) {
+        for (const text of flaggedStrings(current.text)) findings.push({ file, line: current.line, text });
+        continue;
+      }
+      // Only a line whose marker word is cut off at the line end joins the next one; a
+      // line of code must not borrow the next line's marker.
+      if (next && /\b(?:pending|copywriter)\b[\s/*#-]*$/i.test(current.text) && MARKER.test(`${current.text} ${next.text}`)) {
+        for (const text of flaggedStrings(`${current.text} ${next.text}`)) findings.push({ file, line: current.line, text });
+        index += 1;
+      }
+    }
+    group = [];
+  };
   for (const line of String(diff).split('\n')) {
     const hunk = HUNK.exec(line);
     if (hunk) {
-      lineNumber = Number(hunk[1]);
-      inHunk = true;
+      flush();
+      lineNumber = Number(hunk[3]);
+      remaining = { old: hunk[2] === undefined ? 1 : Number(hunk[2]), new: hunk[4] === undefined ? 1 : Number(hunk[4]) };
       continue;
     }
-    if (line.startsWith('+++ ')) {
-      const path = line.slice(4).trim();
-      file = path === '/dev/null' ? null : path.replace(/^[ab]\//, '');
-      inHunk = false;
+    if (remaining) {
+      if (line.startsWith('+')) {
+        group.push({ line: lineNumber, text: line.slice(1) });
+        lineNumber += 1;
+        remaining.new -= 1;
+      } else if (line.startsWith('-')) {
+        flush();
+        remaining.old -= 1;
+      } else if (line.startsWith('\\')) {
+        // "\ No newline at end of file" belongs to the line above and consumes no count.
+        continue;
+      } else {
+        flush();
+        lineNumber += 1;
+        remaining.old -= 1;
+        remaining.new -= 1;
+      }
+      if (remaining.old <= 0 && remaining.new <= 0) {
+        flush();
+        remaining = null;
+      }
       continue;
     }
     if (line.startsWith('--- ')) continue;
-    if (!inHunk) continue;
-    if (line.startsWith('+')) {
-      const content = line.slice(1);
-      if (MARKER.test(content)) {
-        for (const text of flaggedStrings(content)) findings.push({ file, line: lineNumber, text });
-      }
-      lineNumber += 1;
-      continue;
+    if (line.startsWith('+++ ')) {
+      const path = line.slice(4).trim();
+      file = path === '/dev/null' ? null : path.replace(/^[ab]\//, '');
     }
-    if (line.startsWith('-') || line.startsWith('\\')) continue;
-    lineNumber += 1;
   }
+  flush();
   return findings;
 }
 
@@ -84,10 +121,77 @@ export function approvedText(body) {
   return sections.join('\n').replace(/\s+/g, ' ').trim();
 }
 
-/** Findings whose string the PR body does not list under the approval heading. */
+/**
+ * The approval section's own bullets, each on one line. A finding is approved by one
+ * bullet that names its `file:line` or the exact flagged string, so a generic sentence
+ * cannot approve every marker that contains the same words.
+ */
+export function approvalItems(body) {
+  const lines = String(body ?? '').split('\n');
+  const items = [];
+  const normalize = (text) => text.replace(/\s+/g, ' ').trim();
+  let inside = false;
+  let current = null;
+  const push = () => {
+    if (current !== null && normalize(current) !== '') items.push(normalize(current));
+    current = null;
+  };
+  for (const line of lines) {
+    if (HEADING.test(line)) {
+      push();
+      inside = true;
+      continue;
+    }
+    if (inside && /^#{1,6}\s+/.test(line)) {
+      push();
+      inside = false;
+      continue;
+    }
+    if (!inside) continue;
+    if (/^\s*[-*]\s+/.test(line)) {
+      push();
+      current = line.replace(/^\s*[-*]\s+/, '');
+      continue;
+    }
+    if (current !== null && /^\s+\S/.test(line)) {
+      current += ` ${line.trim()}`;
+      continue;
+    }
+    push();
+  }
+  push();
+  return items;
+}
+
+const normalizeText = (text) => String(text).replace(/\s+/g, ' ').trim();
+
+/**
+ * True when one approval bullet names this finding by `file:line`, or is the exact
+ * flagged string. A bullet that merely mentions the same words does not approve:
+ * "Strings in LedgerEntrySheet marked PENDING copywriter approval." must not clear
+ * every comment that reads "PENDING copywriter approval.".
+ */
+export function approves(item, finding) {
+  if (finding.file && item.includes(`${finding.file}:${finding.line}`)) return true;
+  return item === normalizeText(finding.text);
+}
+
+/** Findings whose string the PR body does not list, exactly once, under the heading. */
 export function unapproved(findings, body) {
-  const approved = approvedText(body);
-  return findings.filter((finding) => !approved.includes(finding.text.replace(/\s+/g, ' ').trim()));
+  const items = approvalItems(body);
+  const claimed = items.map(() => 0);
+  const matches = findings.map((finding) => {
+    const hits = [];
+    items.forEach((item, index) => {
+      if (approves(item, finding)) hits.push(index);
+    });
+    return hits;
+  });
+  for (const hits of matches) for (const index of hits) claimed[index] += 1;
+  return findings.filter((finding, index) => {
+    const hits = matches[index];
+    return !(hits.length === 1 && claimed[hits[0]] === 1);
+  });
 }
 
 /** One review line per flagged string, with the required heading when any are unapproved. */
@@ -98,8 +202,9 @@ export function report(findings, missing) {
     : [
       `Copy gate: ${missing.length} string(s) still marked PENDING copywriter and not listed under "Copy pending approval":`,
       ...missing.map((finding) => `  ${finding.file ?? '(unknown file)'}:${finding.line}  ${finding.text}`),
-      'List each string under a "## Copy pending approval" heading in the PR body, or get the',
-      'Copywriter\'s wording and remove the marker. Text marked pending must not merge unapproved.',
+      'List each string as its own bullet under a "## Copy pending approval" heading, naming',
+      '`file:line` or the exact text, or get the Copywriter\'s wording and remove the marker.',
+      'Text marked pending must not merge unapproved.',
     ];
   if (missing.length > 0 && findings.length > missing.length) {
     const listed = findings.length - missing.length;
